@@ -594,7 +594,7 @@ void RV_can_data_repack(const EtherCAT_Msg *RxMessage, const uint8_t comm_mode, 
                     pos_int = RxMessage->motor[i].data[1] << 8 | RxMessage->motor[i].data[2];
                     spd_int = RxMessage->motor[i].data[3] << 4 | (RxMessage->motor[i].data[4] & 0xF0) >> 4;
                     cur_int = (RxMessage->motor[i].data[4] & 0x0F) << 8 | RxMessage->motor[i].data[5];
-                    error_int = RxMessage->motor[i].data[1] & 0x1F;
+                    error_int = RxMessage->motor[i].data[0] & 0x1F;
                     mos_temperature_int = RxMessage->motor[i].data[7];
 
                     rv_motor_msg[motor_id_t].angle_actual_rad = uint_to_float(pos_int, POS_MIN, POS_MAX, 16);
