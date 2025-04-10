@@ -75,27 +75,29 @@ typedef struct {
 3. 使用`ifconfig`指令确定接入从机的网卡名称  `sudo apt-get install net-tools`
 4. 将该网卡名称填入到[main.cpp](main.cpp)中、"在while函数中需添加不少于10MS的延时，否则电机无法正常运行"
 5. 修改[transmit.h](app/transmit.h)中的最大从机数目（默认为5）
-6.
-
-如果需要使用SBUS接收机，需要修改串口的别名，才能找到这个接收机，具体使用教程可以参见 [SBUS转USB串口配置教程](https://www.wolai.com/kUuBkzjtbkCvuwPxWN3Epj)
-
-7. 编译工程
-8. 安装依赖库：
+6. 如果需要使用SBUS接收机，需要修改串口的别名，才能找到这个接收机，具体使用教程可以参见 [SBUS转USB串口配置教程](https://www.wolai.com/kUuBkzjtbkCvuwPxWN3Epj)
+7. 安装依赖库：
    `sudo apt install libtinfo-dev libreadline-dev libboost-all-dev libncurses5-dev libncursesw5-dev net-tools`
+8. 安装DDS核心库，进入到[cyclonedds](cyclonedds)目录，执行
+   `mkdir build && cd build && cmake -DCMAKE_INSTALL_PREFIX=/usr/local -DBUILD_EXAMPLES=ON .. && cmake --build . --parallel && sudo cmake --build . --target install`
+9. 安装DDS C++库，进入到[cyclonedds-cxx](cyclonedds-cxx)目录，执行
+   `mkdir build && cd build && cmake   -DCMAKE_PREFIX_PATH=/usr/local   -DCMAKE_INSTALL_PREFIX=/usr/local   -DBUILD_EXAMPLES=ON ..
+ && cmake --build . --parallel && sudo cmake --build . --target install`
+10. 编译本工程：
 
-   ```shell
+```shell
    mkdir build
    cd build
    cmake .. //这一步如果提示错误,请删除build文件夹,重新创建
    make
    ```
 
-9. 启动程序
-    ```shell
-   sudo ./YKS_SDK
-   ```
-   由于soem使用到了原始套接字，该程序必须以root权限运行，也可以使用setcap为本程序单独赋予原始套接字权限，
-   可以参考[这篇文章](https://squidarth.com/networking/systems/rc/2018/05/28/using-raw-sockets.html)
+10. 启动程序
+     ```shell
+    sudo ./YKS_SDK
+    ```
+    由于soem使用到了原始套接字，该程序必须以root权限运行，也可以使用setcap为本程序单独赋予原始套接字权限，
+    可以参考[这篇文章](https://squidarth.com/networking/systems/rc/2018/05/28/using-raw-sockets.html)
 
 ### 如何使用
 

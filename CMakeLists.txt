@@ -7,7 +7,9 @@ add_subdirectory(app/thirdparty)
 # 查找 Boost 和 PkgConfig 包
 find_package(Boost REQUIRED)
 find_package(PkgConfig REQUIRED)
-
+if(NOT TARGET CycloneDDS-CXX::ddscxx)
+  find_package(CycloneDDS-CXX REQUIRED)
+endif()
 
 # 查找 ncurses 库
 pkg_check_modules(NCURSES REQUIRED ncurses)
