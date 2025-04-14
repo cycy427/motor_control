@@ -18,7 +18,7 @@ using namespace nubotddsmsg::hr;
 
 
 YKSMotorData my_motor_data[Z1_NUM_MOTOR];
-
+///非常简单的测试函数，用于测试下肢的运动控制
 void squat_control(const float pos) {
     // my_motor_data[Z1JointIndex::LeftHipYaw].pos_des_ = pos * 0.2; //左右转动
     my_motor_data[Z1JointIndex::LeftHipYaw].pos_des_ = 0; //左右转动
@@ -59,14 +59,11 @@ int main() {
 
     //////////////////////////////////////////////////////////////////////////////////////////////////
     // DDS相关处理 ////////////////////////////////////////////////////////////////////////////////////
-
     dds::domain::DomainParticipant participant(0);
     if (participant == dds::core::null) {
         std::cerr << "Failed to create participant!" << std::endl;
         return -1;
     }
-
-
     //////////////////////////////////////////////////////////////////////////////////////////////////
     // 订阅 //////////////////////////////////////////////////////////////////////////////////////////
     // 下肢订阅 ========================================================================================
