@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.5)
 project(YKS_SDK)
-
+if (NOT TARGET CycloneDDS-CXX::ddscxx)
+    find_package(CycloneDDS-CXX REQUIRED)
+endif ()
 # 查找并添加第三方库目录
 add_subdirectory(app/thirdparty)
 
@@ -41,6 +43,10 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF) # 如果你不想使用 GNU 扩展，可以将此选项设为 OFF
 
+# 这个是调用生成器转换idl消息的，它自动能处理nubotmsg.hpp的依赖
+# 选择手动转换idl消息，则需要处理较为复杂的依赖关系，因此直接使用生成器更为方便
+idlcxx_generate(TARGET nubotddsmsg FILES nubotddsmsg.idl)
+
 # 添加可执行文件 YKS_SDK
 add_executable(YKS_SDK main.cpp JoyStickHandler.cpp Z1Legs.cpp BmsHandler.cpp SBusReceiver.cpp SocketSender.cpp SocketReceiver.cpp)
 
@@ -61,4 +67,13 @@ target_link_libraries(YKS_SDK PRIVATE
         soem
         cpp-readline
         ${NCURSES_LIBRARIES}
+        CycloneDDS-CXX::ddscxx nubotddsmsg
 )
+# Disable the static analyzer in GCC to avoid crashing the GNU C++ compiler
+# on Azure Pipelines
+if(DEFINED ENV{SYSTEM_TEAMFOUNDATIONSERVERURI})
+    if(CMAKE_C_COMPILER_ID STREQUAL "GNU" AND ANALYZER STREQUAL "on")
+        target_compile_options(cxxpub PRIVATE -fno-analyzer)
+        target_compile_options(cxxsub PRIVATE -fno-analyzer)
+    endif()
+endif()

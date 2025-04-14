@@ -2,6 +2,8 @@
 #include "JoyStickHandler.h"
 #include "Z1Legs.h"
 #include "BmsHandler.h"
+#include "SocketReceiver.h"
+#include "SocketSender.h"
 YKSMotorData my_motor_data[Z1_NUM_MOTOR];
 
 void squat_control(const float pos) {
@@ -36,8 +38,14 @@ int main() {
     Z1Legs z1_legs;
     z1_legs.setJoyStickHandler(joystick_handler);
     // z1_legs.setBatteryHandler(battery_handler);
-    double pos_pitch = 0;
-    double pos_roll = 0;
+
+    SocketReceiver receiver(YKS_PORT);
+    SocketSender sender("127.0.0.1",USR_PORT);
+    // receiver.startListening();
+    // sender.sendDataPeriodically();
+
+    // double pos_pitch = 0;
+    // double pos_roll = 0;
     while (true) {
         if (z1_legs.stop_) {
             break;
@@ -45,10 +53,10 @@ int main() {
         // SBusData data = sbus_receiver.getData();
         // SBusReceiver::print_data(data);
         // pos = data.ch[2] / 672.0 * 4;
-        JoystickState state = joystick_handler->getState();
+        // JoystickState state = joystick_handler->getState();
         // JoyStickHandler::print_state(state);
-        pos_roll = state.left_stick_x / 40000.0 * 20;
-        pos_pitch = state.left_stick_y / 40000.0 *20;
+        // pos_roll = state.left_stick_x / 40000.0 * 10;
+        // pos_pitch = state.left_stick_y / 40000.0 * 10;
         // printf("pos: %f\n", pos);
 
         // squat_control(pos);
@@ -60,10 +68,14 @@ int main() {
         // my_motor_data[LeftAnkleRoll].ff_ = pos_roll; //设置电机目标位置
         // my_motor_data[RightAnklePitch].ff_ = pos_pitch; //设置电机目标位置
         // my_motor_data[RightAnkleRoll].ff_ = pos_roll; //设置电机目标位置
-        my_motor_data[LeftKnee].ff_ = -pos_roll; //设置电机目标位置
-        my_motor_data[RightKnee].ff_ = pos_roll; //设置电机目标位置
+        // my_motor_data[LeftKnee].ff_ = -pos_roll; //设置电机目标位置
+        // my_motor_data[RightKnee].ff_ = pos_roll; //设置电机目标位置
+        // my_motor_data[Z1JointIndex::LeftAnkleRoll].ff_ = pos_roll; //设置电机目标位置
+        receiver.getSocketMotorCMD(my_motor_data);
+        z1_legs.setMotorKpKd(my_motor_data); //专门设置电机KP、KD值，调用了这个函数之后就会将原来设置在Z1legs类里面的默认KP、KD值覆盖掉
         z1_legs.setMotorCommand(my_motor_data); //设置电机指令
         z1_legs.getMotorData(my_motor_data); //获取电机数据
+        sender.sendSocketMotorData(my_motor_data); //通过Socket反馈电机当前的数据
         // printf("ld_pitch: %f  ld_roll: %f l_pitch: %f  l_roll: %f rd_pitch: %f  rd_roll: %f r_pitch: %f  r_roll: %f \n", pos_pitch, pos_roll,
         //        my_motor_data[LeftAnklePitch].tau_, my_motor_data[LeftAnkleRoll].tau_,pos_pitch, pos_roll,
         //        my_motor_data[RightAnklePitch].tau_, my_motor_data[RightAnkleRoll].tau_);
