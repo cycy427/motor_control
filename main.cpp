@@ -162,7 +162,6 @@ int main() {
     dds::pub::qos::DataWriterQos armwriterQos(armtopicpubQos); // datawriter的qos应当继承自topic的qos
     dds::pub::DataWriter<motorstates> armWriter(armPublisher, armtopicpub, armwriterQos);
     std::cout << "=== [arm publisher] get ready! " << std::endl;
-
     //////////////////////////////////////////////////////////////////////////////////////////////////
     /////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -182,48 +181,15 @@ int main() {
     // receiver.startListening();
     // sender.sendDataPeriodically();
 
-
     motorstates armStates;
     armStates.level(1); // 设置为上肢
-    armStates.states().resize(14);
-    //初始化
-    for (int i = 0; i < 14; ++i) {
-        auto &state = armStates.states()[i];
-
-        state.mode(0);
-        state.index(i + 1);
-        state.pos(0);
-        state.vel(0);
-        state.cur(0);
-        state.tau(0);
-        state.tau_raw(0);
-        state.error(0);
-        state.tem(15);
-        state.mos_tem(15);
-    }
+    armStates.states().resize(TI5_MOTOR_NUMBER);
 
     motorstates legStates;
     legStates.level(0); // 设置为下肢
-    legStates.states().resize(13);
-    //初始化
-    for (int i = 0; i < 13; ++i) {
-        auto &state = legStates.states()[i];
-
-        state.mode(0);
-        state.index(i + 1);
-        state.pos(0);
-        state.vel(0);
-        state.cur(0);
-        state.tau(0);
-        state.tau_raw(0);
-        state.error(0);
-        state.tem(15);
-        state.mos_tem(15);
-    }
+    legStates.states().resize(YKS_MOTOR_NUMBER);
 
     dds::sub::LoanedSamples<motorcmds> samples;
-
-
     // double pos_pitch = 0;
     // double pos_roll = 0;
     while (true) {
