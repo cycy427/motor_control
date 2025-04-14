@@ -6,7 +6,6 @@
 #include "SocketSender.h"
 #include "dds/dds.hpp"
 #include "nubotddsmsg.hpp"
-#include <csignal>  // 添加这行以包含信号处理相关定义
 //这里以后考虑参数传递或者文件配置主题名称
 #define ARMCMDTOPIC "/nubot/z1/armmotorcmds"
 #define LEGCMDTOPIC "/nubot/z1/legmotorcmds"
