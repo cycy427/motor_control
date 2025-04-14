@@ -4,7 +4,7 @@
 #ifndef YKS_SDK_Z1LEGS_H
 #define YKS_SDK_Z1LEGS_H
 
-// #define PRINT_MOTOR_STATE //如果想要显示机器人的所有电机的状态，请将此宏定义开启
+#define PRINT_MOTOR_STATE //如果想要显示机器人的所有电机的状态，请将此宏定义开启
 
 #include <cstdio>
 #include <array>

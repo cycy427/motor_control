@@ -6,6 +6,9 @@
 #include "SocketSender.h"
 #include "dds/dds.hpp"
 #include "nubotddsmsg.hpp"
+
+// #define SOCKET  //如果想要使用Socket通信，那么就取消注释，如果想使用DDS通信，那么请注释掉这个宏定义
+
 //这里以后考虑参数传递或者文件配置主题名称
 #define ARMCMDTOPIC "/nubot/z1/armmotorcmds"
 #define LEGCMDTOPIC "/nubot/z1/legmotorcmds"
@@ -88,9 +91,9 @@ void DDS_SUB(dds::sub::DataReader<motorcmds> &Reader, dds::sub::LoanedSamples<mo
             const motorcmds &legcmds = sample_iter->data();
             const dds::sub::SampleInfo &info = sample_iter->info();
             if (info.valid()) {
-                std::cout << "legMotorcmds" << static_cast<int>(legcmds.level()) << "   pos:" << legcmds.cmds()[0].pos()
-                        <<
-                        std::endl;
+                // std::cout << "legMotorcmds" << static_cast<int>(legcmds.level()) << "   pos:" << legcmds.cmds()[0].pos()
+                //         <<
+                //         std::endl;
                 DDS_Get_Motor_Cmds(YKS_MOTOR_NUMBER, legcmds, my_motor_data);
             }
         }
@@ -196,16 +199,20 @@ int main() {
         if (z1_legs.stop_) {
             break;
         }
+#ifndef SOCKET
         /////////////////////////////////////////////////////////////////////////////////////////////
         //读取leg订阅的消息 ---------------------------------------------------------------------------
         DDS_SUB(legReader, samples);
         /////////////////////////////////////////////////////////////////////////////////////////////
         //读取arm订阅的消息 -----------------------------------------------------------------------------
-        DDS_SUB(armReader, samples); //这个函数这里需要改，根据到底是上肢还是下肢要给不同的数组进行赋值
+        // DDS_SUB(armReader, samples); //这个函数这里需要改，根据到底是上肢还是下肢要给不同的数组进行赋值
         /////////////////////////////////////////////////////////////////////////////////////////////
+#endif
+#ifdef SOCKET
         //读取Socket通信的消息 -----------------------------------------------------------------------------
         receiver.getSocketMotorCMD(my_motor_data);
         /////////////////////////////////////////////////////////////////////////////////////////////
+#endif
         //电机执行指令 -----------------------------------------------------------------------------
         z1_legs.setMotorKpKd(my_motor_data); //专门设置电机KP、KD值，调用了这个函数之后就会将原来设置在Z1legs类里面的默认KP、KD值覆盖掉
         z1_legs.setMotorCommand(my_motor_data); //设置电机指令
@@ -215,7 +222,7 @@ int main() {
 
         ///////////////////////////////////////////////////////////////////////////////////////////
         ///将上肢电机状态写入消息 啦啦啦啦啦啦啦啦啦啦啦
-        DDS_Pub_Motor_Data(1, armStates, armWriter, my_motor_data);
+        // DDS_Pub_Motor_Data(1, armStates, armWriter, my_motor_data);
         ///将下肢电机状态写入消息 啦啦啦啦啦啦啦啦啦啦啦
         DDS_Pub_Motor_Data(0, legStates, legWriter, my_motor_data);
         ///通过Socket将电机状态发送给用户端

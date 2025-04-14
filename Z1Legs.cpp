@@ -129,25 +129,7 @@ void Z1Legs::Control() {
             if (stop_) {
                 break;
             }
-        }
-
-        // TODO: implement control logic here
-        // JoystickState state = joy_stick_handler_->getState();
-        // // JoyStickHandler::print_state(state);
-        // pos = state.left_stick_x / 40000.0 * 3;
-        // if (pos > 4 || pos < -4) {
-        //     continue;
-        // }
-        // // printf("pos: %f\n", pos);
-        // if (state.Y_button==1) {
-        //     squat_control(1);
-        // }
-        // if (state.A_button==1) {
-        //     squat_control(0);
-        // }
-
-        // squat_control(pos);
-        {
+        } {
             //创建的 lock 对象的作用域内（即 {} 包围的代码块），
             //可以安全地对 motor_data_ 进行读写操作，因为此时 mutex_ 已经被锁定，
             //其他线程无法同时修改 motor_data_。注意他只在花括号内有效，
