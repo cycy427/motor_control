@@ -75,7 +75,10 @@ typedef struct {
 3. 使用`ifconfig`指令确定接入从机的网卡名称  `sudo apt-get install net-tools`
 4. 将该网卡名称填入到[main.cpp](main.cpp)中、"在while函数中需添加不少于10MS的延时，否则电机无法正常运行"
 5. 修改[transmit.h](app/transmit.h)中的最大从机数目（默认为5）
-6. 如果需要使用SBUS接收机，需要修改串口的别名，才能找到这个接收机，具体使用教程可以参见 [SBUS转USB串口配置教程](https://www.wolai.com/kUuBkzjtbkCvuwPxWN3Epj)
+6.
+
+如果需要使用SBUS接收机，需要修改串口的别名，才能找到这个接收机，具体使用教程可以参见 [SBUS转USB串口配置教程](https://www.wolai.com/kUuBkzjtbkCvuwPxWN3Epj)
+
 7. 安装依赖库：
    `sudo apt install libtinfo-dev libreadline-dev libboost-all-dev libncurses5-dev libncursesw5-dev net-tools`
 8. 安装DDS核心库，进入到[cyclonedds](cyclonedds)目录，执行
@@ -84,15 +87,13 @@ typedef struct {
    `mkdir build && cd build && cmake   -DCMAKE_PREFIX_PATH=/usr/local   -DCMAKE_INSTALL_PREFIX=/usr/local   -DBUILD_EXAMPLES=ON ..
  && cmake --build . --parallel && sudo cmake --build . --target install`
 10. 编译本工程：
-
-```shell
-   mkdir build
-   cd build
-   cmake .. //这一步如果提示错误,请删除build文件夹,重新创建
-   make
-   ```
-
-10. 启动程序
+    ```shell
+       mkdir build
+       cd build
+       cmake .. //这一步如果提示错误,请删除build文件夹,重新创建
+       make
+       ```
+11. 启动程序
      ```shell
     sudo ./YKS_SDK
     ```
@@ -133,6 +134,10 @@ typedef struct {
 3. 对于Python用户
    这里通过Socket通信创建了一个接口，分别是example/scripts下面的[SocketReceiver.py](example/scripts/SocketReceiver.py)、[SocketSender.py](example/scripts/SocketSender.py)
    这两个文件，他们分别展示了Python与C++SDK的控制发送与数据接收方式，通过Socket通信，可以实现Python控制电机运动，并拿到电机回传的数据。
+
+4. 对于DDS用户
+   这里通过DDS通信创建了一个接口，详情参见[readme.md](example/yksddss/readme.md)
+   ，代码在[yksddspy](example/yksddss/yksddspy)
 
 ### 特别注意
 
