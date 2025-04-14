@@ -66,8 +66,6 @@ void DDS_Pub_Motor_Data(const int arm_or_leg, motorstates &states, dds::pub::Dat
     } else {
         motor_num = TI5_MOTOR_NUMBER;
     }
-    states.level(arm_or_leg); // 设置为下肢
-    states.states().resize(motor_num);
     for (int i = 0; i < motor_num; i++) {
         auto &state = states.states()[i];
         state.mode(motor_data_[i].mode);
@@ -167,7 +165,6 @@ int main() {
     std::cout << "=== [arm publisher] get ready! " << std::endl;
     //////////////////////////////////////////////////////////////////////////////////////////////////
     /////////////////////////////////////////////////////////////////////////////////////////////////
-
 
     if (bool Ethernet_Status = CAT_Init("enp5s0"); !Ethernet_Status) { exit(1); } //如果初始化失败，则直接退出程序
     auto joystick_device = "/dev/input/js0";
