@@ -136,7 +136,7 @@ typedef struct {
    这两个文件，他们分别展示了Python与C++SDK的控制发送与数据接收方式，通过Socket通信，可以实现Python控制电机运动，并拿到电机回传的数据。
 
 4. 对于DDS用户
-   这里通过DDS通信创建了一个接口，详情参见[readme.md](example/yksddss/readme.md)
+   这里通过DDS通信创建了一个接口，详情参见[ReadMe.md](example/yksddss/ReadMe.md)
    ，代码在[yksddspy](example/yksddss/yksddspy)
 
 ### 特别注意

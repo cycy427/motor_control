@@ -230,7 +230,7 @@ int main() {
 
         ///////////////////////////////////////////////////////////////////////////////////////////
         ///将上肢电机状态写入消息 啦啦啦啦啦啦啦啦啦啦啦
-        for (int i = 0; i < 14; ++i) {
+        for (int i = 0; i < TI5_MOTOR_NUMBER; ++i) {
             auto &state = armStates.states()[i];
 
             state.mode(0);
@@ -246,7 +246,7 @@ int main() {
         }
 
         ///将下肢电机状态写入消息 啦啦啦啦啦啦啦啦啦啦啦
-        for (int i = 0; i < 13; ++i) {
+        for (int i = 0; i < YKS_MOTOR_NUMBER; ++i) {
             auto &state = legStates.states()[i];
 
             state.mode(0);
