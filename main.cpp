@@ -41,22 +41,11 @@ void squat_control(const float pos) {
     // my_motor_data[Z1JointIndex::WaistYaw].pos_des_ = pos;
 }
 
+void DDS_Set_Leg_Motor_Cmds(const motorcmds &cmds) {
+    // std::cout << "=== [DDS_Set_Motor_Cmds] get ready! " << std::endl;
+}
+
 int main() {
-    if (bool Ethernet_Status = CAT_Init("enp5s0"); !Ethernet_Status) { exit(1); } //如果初始化失败，则直接退出程序
-    auto joystick_device = "/dev/input/js0";
-    // auto battery = "/dev/ttyUSB1";
-    const auto joystick_handler = std::make_shared<JoyStickHandler>(joystick_device);
-    // const auto battery_handler = std::make_shared<BmsHandler>(battery);
-    const SBusReceiver sbus_receiver("/dev/SBUS1");
-    Z1Legs z1_legs;
-    z1_legs.setJoyStickHandler(joystick_handler);
-    // z1_legs.setBatteryHandler(battery_handler);
-
-    SocketReceiver receiver(YKS_PORT);
-    SocketSender sender("127.0.0.1",USR_PORT);
-    // receiver.startListening();
-    // sender.sendDataPeriodically();
-
     //////////////////////////////////////////////////////////////////////////////////////////////////
     // DDS相关处理 ////////////////////////////////////////////////////////////////////////////////////
     dds::domain::DomainParticipant participant(0);
@@ -124,6 +113,23 @@ int main() {
 
     //////////////////////////////////////////////////////////////////////////////////////////////////
     /////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+    if (bool Ethernet_Status = CAT_Init("enp5s0"); !Ethernet_Status) { exit(1); } //如果初始化失败，则直接退出程序
+    auto joystick_device = "/dev/input/js0";
+    // auto battery = "/dev/ttyUSB1";
+    const auto joystick_handler = std::make_shared<JoyStickHandler>(joystick_device);
+    // const auto battery_handler = std::make_shared<BmsHandler>(battery);
+    const SBusReceiver sbus_receiver("/dev/SBUS1");
+    Z1Legs z1_legs;
+    z1_legs.setJoyStickHandler(joystick_handler);
+    // z1_legs.setBatteryHandler(battery_handler);
+
+    SocketReceiver receiver(YKS_PORT);
+    SocketSender sender("127.0.0.1",USR_PORT);
+    // receiver.startListening();
+    // sender.sendDataPeriodically();
+
 
     motorstates armStates;
     armStates.level(1); // 设置为上肢
