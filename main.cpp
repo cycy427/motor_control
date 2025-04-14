@@ -19,15 +19,6 @@ using namespace nubotddsmsg::hr;
 
 
 YKSMotorData my_motor_data[Z1_NUM_MOTOR];
-//用于响应ctrl+c退出
-std::atomic<bool> quit(false);
-
-void signal_handler(int signal) {
-    if (signal == SIGINT) {
-        std::cout << "\nReceived Ctrl+C, exiting gracefully..." << std::endl;
-        quit = true; // 设置退出标志
-    }
-}
 
 void squat_control(const float pos) {
     // my_motor_data[Z1JointIndex::LeftHipYaw].pos_des_ = pos * 0.2; //左右转动
@@ -69,8 +60,6 @@ int main() {
 
     //////////////////////////////////////////////////////////////////////////////////////////////////
     // DDS相关处理 ////////////////////////////////////////////////////////////////////////////////////
-    // 注册信号处理函数
-    std::signal(SIGINT, signal_handler);
 
     dds::domain::DomainParticipant participant(0);
     if (participant == dds::core::null) {
@@ -183,7 +172,7 @@ int main() {
 
     // double pos_pitch = 0;
     // double pos_roll = 0;
-    while (!quit) {
+    while (true) {
         if (z1_legs.stop_) {
             break;
         }
@@ -216,11 +205,12 @@ int main() {
         samples = armReader.take();
         if (samples.length() > 0) {
             dds::sub::LoanedSamples<motorcmds>::const_iterator sample_iter;
-            for (sample_iter = samples.begin();sample_iter < samples.end();++sample_iter) {
-                const motorcmds & armcmds = sample_iter->data();
-                const dds::sub::SampleInfo& info = sample_iter->info();
+            for (sample_iter = samples.begin(); sample_iter < samples.end(); ++sample_iter) {
+                const motorcmds &armcmds = sample_iter->data();
+                const dds::sub::SampleInfo &info = sample_iter->info();
                 if (info.valid()) {
-                    std::cout << "legMotorcmds" << (int)armcmds.level() << "   pos:" << armcmds.cmds()[0].pos() << std::endl;
+                    std::cout << "legMotorcmds" << (int) armcmds.level() << "   pos:" << armcmds.cmds()[0].pos() <<
+                            std::endl;
                     //拿到所有下肢电机指令数据，调用z1arms类下发命令
                     // for (auto& cmd : armcmds.cmds()) {
                     //     std::cout << "  armMotorcmds " << cmd.index()
@@ -241,7 +231,7 @@ int main() {
         ///////////////////////////////////////////////////////////////////////////////////////////
         ///将上肢电机状态写入消息 啦啦啦啦啦啦啦啦啦啦啦
         for (int i = 0; i < 14; ++i) {
-            auto& state = armStates.states()[i];
+            auto &state = armStates.states()[i];
 
             state.mode(0);
             state.index(i);
@@ -257,7 +247,7 @@ int main() {
 
         ///将下肢电机状态写入消息 啦啦啦啦啦啦啦啦啦啦啦
         for (int i = 0; i < 13; ++i) {
-            auto& state = legStates.states()[i];
+            auto &state = legStates.states()[i];
 
             state.mode(0);
             state.index(i);
@@ -271,8 +261,8 @@ int main() {
             state.mos_tem(15);
         }
 
-        armWriter.write(armStates);  //发布消息
-        legWriter.write(legStates);  //发布消息
+        armWriter.write(armStates); //发布消息
+        legWriter.write(legStates); //发布消息
         // SBusData data = sbus_receiver.getData();
         // SBusReceiver::print_data(data);
         // pos = data.ch[2] / 672.0 * 4;
