@@ -48,7 +48,7 @@ set(CMAKE_CXX_EXTENSIONS OFF) # 如果你不想使用 GNU 扩展，可以将此�
 idlcxx_generate(TARGET nubotddsmsg FILES nubotddsmsg.idl)
 
 # 添加可执行文件 YKS_SDK
-add_executable(YKS_SDK main.cpp JoyStickHandler.cpp Z1Legs.cpp BmsHandler.cpp SBusReceiver.cpp SocketSender.cpp SocketReceiver.cpp DDSTransmit.cpp )
+add_executable(YKS_SDK main.cpp JoyStickHandler.cpp Z1Legs.cpp BmsHandler.cpp SBusReceiver.cpp SocketSender.cpp SocketReceiver.cpp)
 
 # 为 YKS_SDK 添加头文件搜索路径
 target_include_directories(YKS_SDK PRIVATE
@@ -71,9 +71,9 @@ target_link_libraries(YKS_SDK PRIVATE
 )
 # Disable the static analyzer in GCC to avoid crashing the GNU C++ compiler
 # on Azure Pipelines
-if(DEFINED ENV{SYSTEM_TEAMFOUNDATIONSERVERURI})
-    if(CMAKE_C_COMPILER_ID STREQUAL "GNU" AND ANALYZER STREQUAL "on")
+if (DEFINED ENV{SYSTEM_TEAMFOUNDATIONSERVERURI})
+    if (CMAKE_C_COMPILER_ID STREQUAL "GNU" AND ANALYZER STREQUAL "on")
         target_compile_options(cxxpub PRIVATE -fno-analyzer)
         target_compile_options(cxxsub PRIVATE -fno-analyzer)
-    endif()
-endif()
+    endif ()
+endif ()
