@@ -5,7 +5,7 @@
 #include "Z1Legs.h"
 
 Z1Legs::Z1Legs() : stop_(false), time_(0.0), control_dt_(1), duration_(3.0), counter_(0),
-                   mode_pr_(Mode::PR), mode_machine_(0) {
+                   mode_pr_(Mode::AB), mode_machine_(0) {
     control_thread_ = std::make_shared<std::thread>(&Z1Legs::Control, this);
     // Assign Kp and Kd values to motorDate_recv
     for (int i = 0; i < Z1_NUM_MOTOR; ++i) {
@@ -157,7 +157,7 @@ void Z1Legs::updateMotorData() {
 }
 
 YKSMotorData
-Z1Legs::AnkleA_inverse_kinematics(const YKSMotorData &pitch_joint_cmd, const YKSMotorData &roll_joint_cmd) const {
+Z1Legs::AnkleA_inverse_kinematics(const YKSMotorData &pitch_joint_cmd, const YKSMotorData &roll_joint_cmd) {
     // 逆解计算
     YKSMotorData AnkleA_cmd = {};
     const double theta1_des = pitch_joint_cmd.pos_des_ - roll_joint_cmd.pos_des_;
@@ -177,7 +177,7 @@ Z1Legs::AnkleA_inverse_kinematics(const YKSMotorData &pitch_joint_cmd, const YKS
 }
 
 YKSMotorData
-Z1Legs::AnkleB_inverse_kinematics(const YKSMotorData &pitch_joint_cmd, const YKSMotorData &roll_joint_cmd) const {
+Z1Legs::AnkleB_inverse_kinematics(const YKSMotorData &pitch_joint_cmd, const YKSMotorData &roll_joint_cmd) {
     // 逆解计算
     YKSMotorData AnkleB_cmd = {};
     const double theta1_des = pitch_joint_cmd.pos_des_ - roll_joint_cmd.pos_des_;
@@ -197,7 +197,7 @@ Z1Legs::AnkleB_inverse_kinematics(const YKSMotorData &pitch_joint_cmd, const YKS
 }
 
 YKSMotorData Z1Legs::Pitch_forward_kinematics(const YKSMotorData &Ankle_A_motors,
-                                              const YKSMotorData &Ankle_B_motors) const {
+                                              const YKSMotorData &Ankle_B_motors) {
     YKSMotorData pitch_joint_data = {};
 
     const double theta1 = Ankle_A_motors.pos_ * PR_directionMotor_[0];
@@ -217,11 +217,12 @@ YKSMotorData Z1Legs::Pitch_forward_kinematics(const YKSMotorData &Ankle_A_motors
     pitch_joint_data.tau_ = Ankle_A_motors.tau_ * PR_directionMotor_[0] + Ankle_B_motors.tau_ * PR_directionMotor_[1];
     // PR_joint_data[1].ff_  = (Ankle_motors[0].tau_ - Ankle_motors[1].tau_) * PR_directionMotor_[1] / 2.0;
 
+
     return pitch_joint_data;
 }
 
 YKSMotorData Z1Legs::Roll_forward_kinematics(const YKSMotorData &Ankle_A_motors,
-                                             const YKSMotorData &Ankle_B_motors) const {
+                                             const YKSMotorData &Ankle_B_motors)  {
     YKSMotorData pitch_joint_data = {};
     const double theta1 = Ankle_A_motors.pos_ * PR_directionMotor_[0];
     const double theta2 = Ankle_B_motors.pos_ * PR_directionMotor_[1];
@@ -276,36 +277,36 @@ void Z1Legs::setMotorCommand(const YKSMotorData *data) {
             motor_data_[i].mode = data[i].mode;
             if (i == LeftAnkleA) {
                 tempData = AnkleA_inverse_kinematics(data[LeftAnklePitch], data[LeftAnkleRoll]);
-                motor_data_[i].pos_des_ = tempData.pos_des_;
-                motor_data_[i].vel_des_ = tempData.vel_des_;
-                motor_data_[i].ff_ = tempData.ff_;
+                motor_data_[i].pos_des_ = tempData.pos_des_*Leg_directionMotor_[i];
+                motor_data_[i].vel_des_ = tempData.vel_des_*Leg_directionMotor_[i];
+                motor_data_[i].ff_ = tempData.ff_*Leg_directionMotor_[i];
             } else if (i == LeftAnkleB) {
                 tempData = AnkleB_inverse_kinematics(data[LeftAnklePitch], data[LeftAnkleRoll]);
-                motor_data_[i].pos_des_ = tempData.pos_des_;
-                motor_data_[i].vel_des_ = tempData.vel_des_;
-                motor_data_[i].ff_ = tempData.ff_;
+                motor_data_[i].pos_des_ = tempData.pos_des_*Leg_directionMotor_[i];
+                motor_data_[i].vel_des_ = tempData.vel_des_*Leg_directionMotor_[i];
+                motor_data_[i].ff_ = tempData.ff_*Leg_directionMotor_[i];
             } else if (i == RightAnkleA) {
                 tempData = AnkleA_inverse_kinematics(data[RightAnklePitch], data[RightAnkleRoll]);
-                motor_data_[i].pos_des_ = tempData.pos_des_;
-                motor_data_[i].vel_des_ = tempData.vel_des_;
-                motor_data_[i].ff_ = tempData.ff_;
+                motor_data_[i].pos_des_ = tempData.pos_des_*Leg_directionMotor_[i];
+                motor_data_[i].vel_des_ = tempData.vel_des_*Leg_directionMotor_[i];
+                motor_data_[i].ff_ = tempData.ff_*Leg_directionMotor_[i];
             } else if (i == RightAnkleB) {
                 tempData = AnkleB_inverse_kinematics(data[RightAnklePitch], data[RightAnkleRoll]);
-                motor_data_[i].pos_des_ = tempData.pos_des_;
-                motor_data_[i].vel_des_ = tempData.vel_des_;
-                motor_data_[i].ff_ = tempData.ff_;
+                motor_data_[i].pos_des_ = tempData.pos_des_*Leg_directionMotor_[i];
+                motor_data_[i].vel_des_ = tempData.vel_des_*Leg_directionMotor_[i];
+                motor_data_[i].ff_ = tempData.ff_*Leg_directionMotor_[i];
             } else {
-                motor_data_[i].pos_des_ = data[i].pos_des_;
-                motor_data_[i].vel_des_ = data[i].vel_des_;
-                motor_data_[i].ff_ = data[i].ff_;
+                motor_data_[i].pos_des_ = data[i].pos_des_*Leg_directionMotor_[i];
+                motor_data_[i].vel_des_ = data[i].vel_des_*Leg_directionMotor_[i];
+                motor_data_[i].ff_ = data[i].ff_*Leg_directionMotor_[i];
             }
         }
     } else {
         for (int i = 0; i < Z1_NUM_MOTOR; ++i) {
             motor_data_[i].mode = data[i].mode;
-            motor_data_[i].pos_des_ = data[i].pos_des_;
-            motor_data_[i].vel_des_ = data[i].vel_des_;
-            motor_data_[i].ff_ = data[i].ff_;
+            motor_data_[i].pos_des_ = data[i].pos_des_*Leg_directionMotor_[i];
+            motor_data_[i].vel_des_ = data[i].vel_des_*Leg_directionMotor_[i];
+            motor_data_[i].ff_ = data[i].ff_*Leg_directionMotor_[i];
         }
     }
 }
@@ -320,13 +321,45 @@ void Z1Legs::setMotorKpKd(const YKSMotorData *data) {
     }
 }
 
-void Z1Legs::getMotorData(YKSMotorData *data) const {
+void Z1Legs::getMotorData(YKSMotorData *data)  {
     std::lock_guard lock(mutex_);
-    std::memcpy(data, motor_data_, Z1_NUM_MOTOR * sizeof(YKSMotorData));
+    // std::memcpy(data, motor_data_, Z1_NUM_MOTOR * sizeof(YKSMotorData));
     if (mode_pr_ == Mode::PR) {
-        data[LeftAnklePitch] = Pitch_forward_kinematics(motor_data_[LeftAnkleA], motor_data_[LeftAnkleB]);
-        data[LeftAnkleRoll] = Roll_forward_kinematics(motor_data_[LeftAnkleA], motor_data_[LeftAnkleB]);
-        data[RightAnklePitch] = Pitch_forward_kinematics(motor_data_[RightAnkleA], motor_data_[RightAnkleB]);
-        data[RightAnkleRoll] = Roll_forward_kinematics(motor_data_[RightAnkleA], motor_data_[RightAnkleB]);
+        YKSMotorData temp_data;
+        for (int i = 0; i < Z1_NUM_MOTOR; ++i) {
+            if (i == LeftAnkleA) {
+                temp_data=Pitch_forward_kinematics(motor_data_[LeftAnkleA], motor_data_[LeftAnkleB]);
+                data[LeftAnklePitch].pos_ = temp_data.pos_*Leg_directionMotor_[i];
+                data[LeftAnklePitch].vel_ = temp_data.vel_*Leg_directionMotor_[i];
+                data[LeftAnklePitch].tau_ = temp_data.tau_*Leg_directionMotor_[i];
+            } else if (i == LeftAnkleB) {
+                temp_data=Roll_forward_kinematics(motor_data_[LeftAnkleA], motor_data_[LeftAnkleB]);
+                data[LeftAnkleRoll].pos_ = temp_data.pos_*Leg_directionMotor_[i];
+                data[LeftAnkleRoll].vel_ = temp_data.vel_*Leg_directionMotor_[i];
+                data[LeftAnkleRoll].tau_ = temp_data.tau_*Leg_directionMotor_[i];
+            } else if (i == RightAnkleA) {
+                temp_data=Pitch_forward_kinematics(motor_data_[RightAnkleA], motor_data_[RightAnkleB]);
+                data[RightAnklePitch].pos_ = temp_data.pos_*Leg_directionMotor_[i];
+                data[RightAnklePitch].vel_ = temp_data.vel_*Leg_directionMotor_[i];
+                data[RightAnklePitch].tau_ = temp_data.tau_*Leg_directionMotor_[i];
+            } else if (i == RightAnkleB) {
+                temp_data=Roll_forward_kinematics(motor_data_[RightAnkleA], motor_data_[RightAnkleB]);
+                data[RightAnkleRoll].pos_ = temp_data.pos_*Leg_directionMotor_[i];
+                data[RightAnkleRoll].vel_ = temp_data.vel_*Leg_directionMotor_[i];
+                data[RightAnkleRoll].tau_ = temp_data.tau_*Leg_directionMotor_[i];
+            } else {
+                data[i].pos_ = motor_data_[i].pos_*Leg_directionMotor_[i];
+                data[i].vel_ = motor_data_[i].vel_*Leg_directionMotor_[i];
+                data[i].tau_ = motor_data_[i].tau_*Leg_directionMotor_[i];
+            }
+        }
     }
+    else {
+        for (int i = 0; i < Z1_NUM_MOTOR; ++i) {
+            data[i].pos_ = motor_data_[i].pos_*Leg_directionMotor_[i];
+            data[i].vel_ = motor_data_[i].vel_*Leg_directionMotor_[i];
+            data[i].tau_ = motor_data_[i].tau_*Leg_directionMotor_[i];
+        }
+    }
+    
 }

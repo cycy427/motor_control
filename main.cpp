@@ -7,7 +7,7 @@
 #include "dds/dds.hpp"
 #include "nubotddsmsg.hpp"
 
-// #define SOCKET  //如果想要使用Socket通信，那么就取消注释，如果想使用DDS通信，那么请注释掉这个宏定义
+#define DDS
 
 //这里以后考虑参数传递或者文件配置主题名称
 #define ARMCMDTOPIC "/nubot/z1/armmotorcmds"
@@ -55,11 +55,22 @@ void DDS_Get_Motor_Cmds(const int motor_num, const motorcmds &cmds, YKSMotorData
         motor_cmds[i].kd_ = cmds.cmds()[i].kd();
     }
 }
+void DDS_Get_Arm_Motor_Cmds(const int motor_num, const motorcmds &cmds, YKSMotorData *motor_cmds) {
+    // 拿到所有DDS传过来的电机指令数据，然后传给main函数当中的全局数组，通过电机数量可以区分到底是上肢还是下肢的指令
+    for (int i = 0; i < motor_num; i++) {
+        motor_cmds[i+12].pos_des_ = cmds.cmds()[i].pos();
+        motor_cmds[i+12].vel_des_ = cmds.cmds()[i].vel();
+        motor_cmds[i+12].ff_ = cmds.cmds()[i].tau();
+        motor_cmds[i+12].mode = cmds.cmds()[i].mode();
+        motor_cmds[i+12].kp_ = cmds.cmds()[i].kp();
+        motor_cmds[i+12].kd_ = cmds.cmds()[i].kd();
+    }
+}
 
 void DDS_Pub_Motor_Data(const int arm_or_leg, motorstates &states, dds::pub::DataWriter<motorstates> &writer,
                         const YKSMotorData *motor_data_) {
     // 拿到所有DDS传过来的电机指令数据，然后传给main函数当中的全局数组，通过电机数量可以区分到底是上肢还是下肢的指令
-    int motor_num = YKS_MOTOR_NUMBER;
+    int motor_num = TI5_MOTOR_NUMBER;
     if (arm_or_leg == 0) {
         //如果是是下肢
         motor_num = YKS_MOTOR_NUMBER;
@@ -68,16 +79,16 @@ void DDS_Pub_Motor_Data(const int arm_or_leg, motorstates &states, dds::pub::Dat
     }
     for (int i = 0; i < motor_num; i++) {
         auto &state = states.states()[i];
-        state.mode(motor_data_[i].mode);
+        state.mode(motor_data_[i+12].mode);
         state.index(i + 1);
-        state.pos(motor_data_[i].pos_);
-        state.vel(motor_data_[i].vel_);
-        state.cur(motor_data_[i].tau_);
-        state.tau(motor_data_[i].tau_);
-        state.tau_raw(motor_data_[i].tau_);
-        state.error(motor_data_[i].error_);
-        state.tem(motor_data_[i].temperature_);
-        state.mos_tem(motor_data_[i].mos_temperature_);
+        state.pos(motor_data_[i+12].pos_);
+        state.vel(motor_data_[i+12].vel_);
+        state.cur(motor_data_[i+12].tau_);
+        state.tau(motor_data_[i+12].tau_);
+        state.tau_raw(motor_data_[i+12].tau_);
+        state.error(motor_data_[i+12].error_);
+        state.tem(motor_data_[i+12].temperature_);
+        state.mos_tem(motor_data_[i+12].mos_temperature_);
     }
     writer.write(states);
 }
@@ -86,13 +97,14 @@ void DDS_SUB(dds::sub::DataReader<motorcmds> &Reader, dds::sub::LoanedSamples<mo
     samples = Reader.take();
     if (samples.length() > 0) {
         for (auto sample_iter = samples.begin(); sample_iter < samples.end(); ++sample_iter) {
-            const motorcmds &legcmds = sample_iter->data();
+            const motorcmds &cmds = sample_iter->data();
             const dds::sub::SampleInfo &info = sample_iter->info();
             if (info.valid()) {
-                // std::cout << "legMotorcmds" << static_cast<int>(legcmds.level()) << "   pos:" << legcmds.cmds()[0].pos()
-                //         <<
-                //         std::endl;
-                DDS_Get_Motor_Cmds(YKS_MOTOR_NUMBER, legcmds, my_motor_data);
+
+                // DDS_Get_Motor_Cmds(YKS_MOTOR_NUMBER, legcmds, my_motor_data);
+                // DDS_Get_Motor_Cmds(TI5_MOTOR_NUMBER, cmds, my_motor_data);
+                DDS_Get_Arm_Motor_Cmds(TI5_MOTOR_NUMBER, cmds, my_motor_data);
+
             }
         }
     }
@@ -166,7 +178,7 @@ int main() {
     //////////////////////////////////////////////////////////////////////////////////////////////////
     /////////////////////////////////////////////////////////////////////////////////////////////////
 
-    if (bool Ethernet_Status = CAT_Init("enp5s0"); !Ethernet_Status) { exit(1); } //如果初始化失败，则直接退出程序
+    if (bool Ethernet_Status = CAT_Init("enx6c1ff71bc3a8"); !Ethernet_Status) { exit(1); } //如果初始化失败，则直接退出程序
     auto joystick_device = "/dev/input/js0";
     // auto battery = "/dev/ttyUSB1";
     const auto joystick_handler = std::make_shared<JoyStickHandler>(joystick_device);
@@ -189,29 +201,35 @@ int main() {
     legStates.level(0); // 设置为下肢
     legStates.states().resize(YKS_MOTOR_NUMBER);
 
-    dds::sub::LoanedSamples<motorcmds> samples;
+    dds::sub::LoanedSamples<motorcmds> samples_leg;
+    dds::sub::LoanedSamples<motorcmds> samples_arm;
+
     // double pos_pitch = 0;
     // double pos_roll = 0;
     while (true) {
         if (z1_legs.stop_) {
             break;
         }
-#ifndef SOCKET
+#ifdef DDS
         /////////////////////////////////////////////////////////////////////////////////////////////
         //读取leg订阅的消息 ---------------------------------------------------------------------------
-        DDS_SUB(legReader, samples);
+        // DDS_SUB(legReader, samples_leg);
+        
         /////////////////////////////////////////////////////////////////////////////////////////////
         //读取arm订阅的消息 -----------------------------------------------------------------------------
-        // DDS_SUB(armReader, samples); //这个函数这里需要改，根据到底是上肢还是下肢要给不同的数组进行赋值
+        DDS_SUB(armReader, samples_arm); //这个函数这里需要改，根据到底是上肢还是下肢要给不同的数组进行赋值
         /////////////////////////////////////////////////////////////////////////////////////////////
 #endif
-#ifdef SOCKET
+#ifndef DDS
         //读取Socket通信的消息 -----------------------------------------------------------------------------
         receiver.getSocketMotorCMD(my_motor_data);
         /////////////////////////////////////////////////////////////////////////////////////////////
 #endif
         //电机执行指令 -----------------------------------------------------------------------------
         z1_legs.setMotorKpKd(my_motor_data); //专门设置电机KP、KD值，调用了这个函数之后就会将原来设置在Z1legs类里面的默认KP、KD值覆盖掉
+        // printf("[Motor11] %f\n",my_motor_data[1].pos_des_);
+        // printf("[Motor12] %f\n",my_motor_data[11].pos_des_);
+
         z1_legs.setMotorCommand(my_motor_data); //设置电机指令
         ////////////////////////////////////////////////////////////////////////////////////////////
         //获取所有电机的状态
@@ -219,38 +237,12 @@ int main() {
 
         ///////////////////////////////////////////////////////////////////////////////////////////
         ///将上肢电机状态写入消息 啦啦啦啦啦啦啦啦啦啦啦
-        // DDS_Pub_Motor_Data(1, armStates, armWriter, my_motor_data);
+        DDS_Pub_Motor_Data(1, armStates, armWriter, my_motor_data);
         ///将下肢电机状态写入消息 啦啦啦啦啦啦啦啦啦啦啦
-        DDS_Pub_Motor_Data(0, legStates, legWriter, my_motor_data);
+        // DDS_Pub_Motor_Data(0, legStates, legWriter, my_motor_data);
         ///通过Socket将电机状态发送给用户端
         sender.sendSocketMotorData(my_motor_data); //通过Socket反馈电机当前的数据
 
-        // SBusData data = sbus_receiver.getData();
-        // SBusReceiver::print_data(data);
-        // pos = data.ch[2] / 672.0 * 4;
-        // JoystickState state = joystick_handler->getState();
-        // JoyStickHandler::print_state(state);
-        // pos_roll = state.left_stick_x / 40000.0 * 10;
-        // pos_pitch = state.left_stick_y / 40000.0 * 10;
-        // printf("pos: %f\n", pos);
-
-        // squat_control(pos);
-        // my_motor_data[LeftAnklePitch].pos_des_ = pos_pitch; //设置电机目标位置
-        // my_motor_data[LeftAnkleRoll].pos_des_ = pos_roll; //设置电机目标位置
-        // my_motor_data[RightAnklePitch].pos_des_ = pos_pitch; //设置电机目标位置
-        // my_motor_data[RightAnkleRoll].pos_des_ = pos_roll; //设置电机目标位置
-        // my_motor_data[LeftAnklePitch].ff_ = pos_pitch; //设置电机目标位置
-        // my_motor_data[LeftAnkleRoll].ff_ = pos_roll; //设置电机目标位置
-        // my_motor_data[RightAnklePitch].ff_ = pos_pitch; //设置电机目标位置
-        // my_motor_data[RightAnkleRoll].ff_ = pos_roll; //设置电机目标位置
-        // my_motor_data[LeftKnee].ff_ = -pos_roll; //设置电机目标位置
-        // my_motor_data[RightKnee].ff_ = pos_roll; //设置电机目标位置
-        // my_motor_data[Z1JointIndex::LeftAnkleRoll].ff_ = pos_roll; //设置电机目标位置
-
-
-        // printf("ld_pitch: %f  ld_roll: %f l_pitch: %f  l_roll: %f rd_pitch: %f  rd_roll: %f r_pitch: %f  r_roll: %f \n", pos_pitch, pos_roll,
-        //        my_motor_data[LeftAnklePitch].tau_, my_motor_data[LeftAnkleRoll].tau_,pos_pitch, pos_roll,
-        //        my_motor_data[RightAnklePitch].tau_, my_motor_data[RightAnkleRoll].tau_);
         std::this_thread::sleep_for(std::chrono::milliseconds(1)); //读取周期为1ms
     }
     runThread.join(); //runThread.join(); 的主要功能是确保 main 函数在退出之前等待 runThread 线程完成其任务。

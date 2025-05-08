@@ -20,16 +20,16 @@ TI5_MOTOR_RANGE ti5_motor_range = {
     .TC = {TC_30_40_PRO,TC_40_52_PRO, TC_50_60_PRO, TC_60_70_PRO, TC_70_PRO, TC_60_PRO_S, TC_70_PRO_S},
 };
 //这个要根据实际的Z1机器人YKS电机型号来设置
-int Z1_YKS_MOTOR_ID_Type[6] = {A13720, A10020_1, A8112, A13715, A6408, A6408};
+int Z1_YKS_MOTOR_ID_Type[6] = {A13715, A10020_2, A10020_1, A13720, A8112, A8112};
 int Z1_TI5_MOTOR_ID_Type[7] = {
-    CRA_RI60_70_PRO_101, CRA_RI60_70_PRO_101, CRA_RI50_60_PRO_101, CRA_RI50_60_PRO_101, CRA_RI40_52_PRO_101,
+    CRA_RI60_70_PRO_101, CRA_RI40_52_PRO_101, CRA_RI50_60_PRO_101, CRA_RI50_60_PRO_101, CRA_RI40_52_PRO_101,
     CRA_RI30_40_PRO_101, CRA_RI30_40_PRO_101
 };
 //-------------------------------------
 // 初始化从站和电机配置
 //-------------------------------------
 Slave g_slaves[5] = {
-    // CAN ID 1: YKS 1-6
+    // SLAVE ID 1,代表第几个从站: YKS 1-6
     {
         .slave_id = 1,
         .motor_count = 6,
@@ -39,17 +39,17 @@ Slave g_slaves[5] = {
             {MOTOR_YKS, 5, 4}, {MOTOR_YKS, 6, 5}
         }
     },
-    // CAN ID 2: YKS 1-6
+    // SLAVE ID 2: YKS 1-6
     {
         .slave_id = 2,
         .motor_count = 6,
         .motors = {
-            {MOTOR_YKS, 1, 6}, {MOTOR_YKS, 2, 7},
-            {MOTOR_YKS, 3, 8}, {MOTOR_YKS, 4, 9},
-            {MOTOR_YKS, 5, 10}, {MOTOR_YKS, 6, 11}
+            {MOTOR_TI5, 1, 6}, {MOTOR_TI5, 2, 7},
+            {MOTOR_TI5, 3, 8}, {MOTOR_TI5, 4, 9},
+            {MOTOR_TI5, 5, 10}, {MOTOR_TI5, 6, 11}
         }
     },
-    // CAN ID 3: YKS 1 + Ti5 1-5
+    // SLAVE ID 3: YKS 1 + Ti5 1-5
     {
         .slave_id = 3,
         .motor_count = 6,
@@ -60,7 +60,7 @@ Slave g_slaves[5] = {
             {MOTOR_TI5, 6, 17}
         }
     },
-    // CAN ID 4: Ti5 1-6
+    // SLAVE ID 4: Ti5 1-6
     {
         .slave_id = 4,
         .motor_count = 6,
@@ -70,7 +70,7 @@ Slave g_slaves[5] = {
             {MOTOR_TI5, 5, 22}, {MOTOR_TI5, 6, 23}
         }
     },
-    // CAN ID 5: Ti5 1-5
+    // SLAVE ID 5: Ti5 1-5
     {
         .slave_id = 5,
         .motor_count = 5,

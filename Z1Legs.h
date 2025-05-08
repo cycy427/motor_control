@@ -24,7 +24,7 @@ extern "C" {
 #include "ethercat.h"
 }
 
-constexpr int Z1_NUM_MOTOR = YKS_MOTOR_NUMBER;
+constexpr int Z1_NUM_MOTOR = TOTAL_MOTOR_NUMBER;
 
 enum class Mode {
     PR = 0, // Series Control for Pitch/Roll Joints
@@ -63,7 +63,7 @@ public:
 
     void setBatteryHandler(const std::shared_ptr<BmsHandler> &handler);
 
-    void getMotorData(YKSMotorData *data) const; //获取电机的状态
+    void getMotorData(YKSMotorData *data) ; //获取电机的状态
 
     void setMotorCommand(const YKSMotorData *data); //设置电机的位置、速度、力
 
@@ -82,19 +82,19 @@ private:
 
     void PrintMotorState(int size) const;
 
-    YKSMotorData Pitch_forward_kinematics(const YKSMotorData &Ankle_A_motors, const YKSMotorData &Ankle_B_motors) const;
+    YKSMotorData Pitch_forward_kinematics(const YKSMotorData &Ankle_A_motors, const YKSMotorData &Ankle_B_motors) ;
 
     //通过脚踝AB电机的角度计算耦合的踝关节的俯仰角
-    YKSMotorData Roll_forward_kinematics(const YKSMotorData &Ankle_A_motors, const YKSMotorData &Ankle_B_motors) const;
+    YKSMotorData Roll_forward_kinematics(const YKSMotorData &Ankle_A_motors, const YKSMotorData &Ankle_B_motors) ;
 
     //通过脚踝电机的位置计算耦合的踝关节的横滚角
     //输入目标踝关节的俯仰角横滚角计算脚踝A电机的旋转角度
     YKSMotorData AnkleA_inverse_kinematics(const YKSMotorData &pitch_joint_cmd,
-                                           const YKSMotorData &roll_joint_cmd) const;
+                                           const YKSMotorData &roll_joint_cmd) ;
 
     //输入目标踝关节的俯仰角横滚角计算脚踝B电机的旋转角度
     YKSMotorData AnkleB_inverse_kinematics(const YKSMotorData &pitch_joint_cmd,
-                                           const YKSMotorData &roll_joint_cmd) const;
+                                           const YKSMotorData &roll_joint_cmd) ;
 
     std::shared_ptr<std::thread> control_thread_;
     // Stiffness for all Z1 Joints
@@ -121,6 +121,9 @@ private:
     int counter_;
     Mode mode_pr_; //启用PR模式俯仰角横滚角控制还是AB模式单独控制两个脚踝的电机  默认为PR模式
     const std::vector<double> PR_directionMotor_ = {-1, 1};
+    const std::vector<int> Leg_directionMotor_ = {-1, 1,-1,-1,1,1,
+        -1,1,-1,1,1,1 , 1,1,1,1,1,1, 1,1,1,1,1,1,1,1};
+
     uint8_t mode_machine_;
     YKSMotorData motor_data_[Z1_NUM_MOTOR]{}; //私有的电机结构体数组
     mutable std::mutex mutex_; //用于电机数据读取与写入的互斥锁

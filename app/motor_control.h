@@ -29,7 +29,7 @@
 //以下的这些参数针对不同型号的电机这个范围是不一样的，需要根据实际情况设置，在最新版的技术手册中有说明
 //下面这些不同电机也是一样的
 #define KP_MIN 0.0f
-#define KP_MAX 1800.0f
+#define KP_MAX 500.0f
 #define POS_MIN (-12.5f)
 #define POS_MAX 12.5f
 #define SPD_MIN (-18.0f)
@@ -37,7 +37,7 @@
 //下面的KD不同YKS电机不一样
 //EC-A4310-P2-36  EC-A6408-P2-25  EC-A8112-P1-18
 #define KD1_MIN 0.0f
-#define KD1_MAX 5.0f
+#define KD1_MAX 50.0f
 //EC-A10020-P1-12/6  EC-A10020-P2-24  EC-A13720-P1-11.4  EC-A13715-P1-12.67
 #define KD2_MIN 0.0f
 #define KD2_MAX 50.0f
@@ -86,11 +86,11 @@
 #define I13720_MAX 220.0f
 //Ti5电机
 //CRA-RI30-40-PRO-101
-#define GEAR_30_40_PRO 101
-#define T_30_40_PRO 2.8f
-#define V_30_40_PRO (45.0f/0.6f)
-#define I_30_40_PRO 1000
-#define TC_30_40_PRO 0.024f
+#define GEAR_30_40_PRO 101//减速比
+#define T_30_40_PRO 2.8f//2000rpm/（减速比）时额定扭矩
+#define V_30_40_PRO (45.0f/0.6f)//额定转速（带1/2额定扭矩）单位：弧度/秒
+#define I_30_40_PRO 1000//额定电流，单位：毫安
+#define TC_30_40_PRO 0.024f//扭矩常数：N*m/A
 //CRA-RI40-52-PRO-101
 #define GEAR_40_52_PRO 101
 #define T_40_52_PRO 6.5f

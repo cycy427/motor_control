@@ -20,7 +20,7 @@ std::mutex message_mutex; //全局互斥锁，用于保护Tx_Message数组
 spsc_queue<EtherCAT_Msg_ptr, capacity<10> > messages[SLAVE_NUMBER];
 std::atomic<bool> running{false};
 std::thread runThread; //Ethercat任务线程
-YKSMotorData motorDate_recv[YKS_MOTOR_NUMBER]; //一个存放所有YKS电机的状态信息以及期望状态信息的数组
+YKSMotorData motorDate_recv[TOTAL_MOTOR_NUMBER]; //一个存放所有YKS电机的状态信息以及期望状态信息的数组
 YKS_IMUData imuData_recv;
 char IO_map[4096];
 OSAL_THREAD_HANDLE checkThread;
@@ -370,7 +370,7 @@ void EtherCAT_Get_State(const uint8_t slave, const uint8_t *motor_ack_status) {
 void User_Get_Motor_Data(YKSMotorData *mot_data) {
     std::lock_guard<std::mutex> lock(motor_data_mutex);
     // memcpy(mot_data, motorDate_recv, sizeof(motorDate_recv));
-    for (int i = 0; i < YKS_MOTOR_NUMBER; ++i) {
+    for (int i = 0; i < TOTAL_MOTOR_NUMBER; ++i) {
         mot_data[i].pos_ = motorDate_recv[i].pos_;
         mot_data[i].vel_ = motorDate_recv[i].vel_;
         mot_data[i].tau_ = motorDate_recv[i].tau_;
@@ -391,7 +391,7 @@ void EtherCAT_Send_Command(const YKSMotorData *mot_data) {
         degraded_handler();
     } {
         std::lock_guard<std::mutex> lock(message_mutex);
-        for (int index = 0; index < YKS_MOTOR_NUMBER; index++) {
+        for (int index = 0; index < TOTAL_MOTOR_NUMBER; index++) {
             const int slave_idx = index / 6;
 
             const Slave *slave = &g_slaves[slave_idx];
@@ -403,8 +403,8 @@ void EtherCAT_Send_Command(const YKSMotorData *mot_data) {
                                     mot_data[index].kd_, mot_data[index].pos_des_, mot_data[index].vel_des_,
                                     mot_data[index].ff_);
             } else if (motor->type == MOTOR_TI5) {
-                // printf("mode %d \n", mot_data[index].mode);
-                // set_ti5_current(&Tx_Message[slave_idx], motor->motor_id, motor->motor_id, mot_data[index].ff_);
+                // printf("slave %d index %d ,mode %d,pos_des_ %f ,vel_des_ %f,ff_ %f \n", slave_idx, index,
+                       // mot_data[index].mode, mot_data[index].pos_des_, mot_data[index].vel_des_, mot_data[index].ff_);
                 if (mot_data[index].mode == 2) {
                     set_ti5_current(&Tx_Message[slave_idx], motor->motor_id, motor->motor_id, mot_data[index].ff_);
                 } else if (mot_data[index].mode == 3) {

@@ -75,17 +75,16 @@ typedef struct {
 3. 使用`ifconfig`指令确定接入从机的网卡名称  `sudo apt-get install net-tools`
 4. 将该网卡名称填入到[main.cpp](main.cpp)中、"在while函数中需添加不少于10MS的延时，否则电机无法正常运行"
 5. 修改[transmit.h](app/transmit.h)中的最大从机数目（默认为5）
-6.
-
-如果需要使用SBUS接收机，需要修改串口的别名，才能找到这个接收机，具体使用教程可以参见 [SBUS转USB串口配置教程](https://www.wolai.com/kUuBkzjtbkCvuwPxWN3Epj)
+6. 如果需要使用SBUS接收机，需要修改串口的别名，才能找到这个接收机，具体使用教程可以参见 [SBUS转USB串口配置教程](https://www.wolai.com/kUuBkzjtbkCvuwPxWN3Epj)
 
 7. 安装依赖库：
    `sudo apt install libtinfo-dev libreadline-dev libboost-all-dev libncurses5-dev libncursesw5-dev net-tools`
 8. 安装DDS核心库，进入到[cyclonedds](cyclonedds)目录，执行
    `mkdir build && cd build && cmake -DCMAKE_INSTALL_PREFIX=/usr/local -DBUILD_EXAMPLES=ON .. && cmake --build . --parallel && sudo cmake --build . --target install`
+   如果这一步报错，请删除build文件夹，重新创建，再次执行cmake命令
 9. 安装DDS C++库，进入到[cyclonedds-cxx](cyclonedds-cxx)目录，执行
    `mkdir build && cd build && cmake   -DCMAKE_PREFIX_PATH=/usr/local   -DCMAKE_INSTALL_PREFIX=/usr/local   -DBUILD_EXAMPLES=ON ..
- && cmake --build . --parallel && sudo cmake --build . --target install`
+ && cmake --build . --parallel && sudo cmake --build . --target install`如果这一步报错，请删除build文件夹，重新创建，再次执行cmake命令
 10. 编译本工程：
     ```shell
        mkdir build
@@ -159,3 +158,18 @@ Ethercat驱动板内部有6个通道，使用的时候指定通道即可，电�
 https://gitcode.com/gh_mirrors/xo/xone
 
 更多教程参见app文件夹下的[YKS官方教程](app/README.md#SOEM主站)
+
+### 钛虎电机使用说明
+使用方法：
+1. 将build文件夹删除，重新创建工程后编译
+    ```shell
+       mkdir build
+       cd build
+       cmake .. //这一步如果提示错误,请删除build文件夹,重新创建
+       make
+       sudo ./YKS_SDK
+2. 检查motor_control.cpp文件中的电机型号设置是否正确，如有需要，修改，电机的型号是否正确
+   也就是检查Z1_TI5_MOTOR_ID_Type和g_slaves数组初始化是否正确
+3. 在main.cpp中，可以调用函数squat_control()和read_arm_control()来控制和读取电机数据
+ 这两个函数需要根据需要进行修改和拓展，比如输入数组来一次性控制多个电机，输出数组来一次性读取多个电机数据
+
