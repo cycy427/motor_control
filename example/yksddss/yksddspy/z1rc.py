@@ -161,9 +161,10 @@ if __name__ == '__main__':
     # z1_arm.squat_control(13, 2, 3)
     # z1.squat_control(14, 50, 2)
 
-    z1_leg.motorCmds.cmds[0].pos = 0.5
-    z1_leg.motorCmds.cmds[0].vel = 0
-    z1_leg.motorCmds.cmds[0].tau = 0
+    z1_leg.motorCmds.cmds[0].mode = 2
+    z1_leg.motorCmds.cmds[0].pos = 3
+    z1_leg.motorCmds.cmds[0].vel = 1
+    z1_leg.motorCmds.cmds[0].tau = 1000
     z1_leg.motorCmds.cmds[0].kp = 400
     z1_leg.motorCmds.cmds[0].kd = 20
 

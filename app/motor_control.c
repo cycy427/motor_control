@@ -266,7 +266,7 @@ void set_motor_position(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint16_t 
 
     TxMessage->can_ide = 0;
     TxMessage->motor[data_channel - 1].rtr = 0;
-    TxMessage->motor[data_channel - 1].id = motor_id;
+    TxMessage->motor[data_channel - 1].id = data_channel;
     TxMessage->motor[data_channel - 1].dlc = 8;
 
     if (ack_status > 3)
@@ -297,7 +297,7 @@ void set_motor_speed(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint16_t mot
 
     TxMessage->can_ide = 0;
     TxMessage->motor[data_channel - 1].rtr = 0;
-    TxMessage->motor[data_channel - 1].id = motor_id;
+    TxMessage->motor[data_channel - 1].id = data_channel;
     TxMessage->motor[data_channel - 1].dlc = 7;
 
     rv_type_convert.to_float = spd;
@@ -329,7 +329,7 @@ void set_motor_cur_tor(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint16_t m
                        uint8_t ctrl_status, uint8_t ack_status) {
     TxMessage->can_ide = 0;
     TxMessage->motor[data_channel - 1].rtr = 0;
-    TxMessage->motor[data_channel - 1].id = motor_id;
+    TxMessage->motor[data_channel - 1].id = data_channel;
     TxMessage->motor[data_channel - 1].dlc = 3;
 
     if (ack_status > 3)
