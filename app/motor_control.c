@@ -20,11 +20,17 @@ TI5_MOTOR_RANGE ti5_motor_range = {
     .TC = {TC_30_40_PRO,TC_40_52_PRO, TC_50_60_PRO, TC_60_70_PRO, TC_70_PRO, TC_60_PRO_S, TC_70_PRO_S},
 };
 //这个要根据实际的Z1机器人YKS电机型号来设置
-int Z1_YKS_MOTOR_ID_Type[6] = {A13715, A10020_2, A10020_1, A13720, A8112, A8112};
-int Z1_TI5_MOTOR_ID_Type[7] = {
+int Z1_MOTOR_ID_Type[27] = {
+    A13715, A10020_2, A10020_1, A13720, A8112, A8112,
+    A13715, A10020_2, A10020_1, A13720, A8112, A8112,
+    A8112,
+    CRA_RI60_70_PRO_101, CRA_RI40_52_PRO_101, CRA_RI50_60_PRO_101, CRA_RI50_60_PRO_101, CRA_RI40_52_PRO_101,
+    CRA_RI30_40_PRO_101, CRA_RI30_40_PRO_101,
     CRA_RI60_70_PRO_101, CRA_RI40_52_PRO_101, CRA_RI50_60_PRO_101, CRA_RI50_60_PRO_101, CRA_RI40_52_PRO_101,
     CRA_RI30_40_PRO_101, CRA_RI30_40_PRO_101
 };
+
+
 //-------------------------------------
 // 初始化从站和电机配置
 //-------------------------------------
@@ -197,14 +203,15 @@ send_motor_ctrl_cmd(EtherCAT_Msg *TxMessage, const uint8_t data_channel, const u
         return;
 
     TxMessage->can_ide = 0;
-    TxMessage->motor[data_channel - 1].id = motor_id;
+    TxMessage->motor[data_channel - 1].id = data_channel;
     TxMessage->motor[data_channel - 1].rtr = 0;
     TxMessage->motor[data_channel - 1].dlc = 8;
 
-    const float KD_MIN = yks_motor_range.KD_MIN[Z1_YKS_MOTOR_ID_Type[data_channel - 1]];
-    const float KD_MAX = yks_motor_range.KD_MAX[Z1_YKS_MOTOR_ID_Type[data_channel - 1]];
-    const float T_MIN = yks_motor_range.T_MIN[Z1_YKS_MOTOR_ID_Type[data_channel - 1]];
-    const float T_MAX = yks_motor_range.T_MAX[Z1_YKS_MOTOR_ID_Type[data_channel - 1]];
+
+    const float KD_MIN = yks_motor_range.KD_MIN[Z1_MOTOR_ID_Type[motor_id]];
+    const float KD_MAX = yks_motor_range.KD_MAX[Z1_MOTOR_ID_Type[motor_id]];
+    const float T_MIN = yks_motor_range.T_MIN[Z1_MOTOR_ID_Type[motor_id]];
+    const float T_MAX = yks_motor_range.T_MAX[Z1_MOTOR_ID_Type[motor_id]];
 
 
     if (kp > KP_MAX)
@@ -542,14 +549,15 @@ void RV_can_data_repack(const EtherCAT_Msg *RxMessage, const uint8_t comm_mode, 
     int spd_int = 0;
     int cur_int = 0;
     int error_int = 0;
-    int mos_temperature_int =  0;
+    int mos_temperature_int = 0;
 
     for (int i = 0; i < slave->motor_count; ++i) {
         const Motor *motor = &slave->motors[i];
+        const uint8_t global_id = motor->global_id;
         if (motor->type == MOTOR_YKS) {
-            const float I_MIN = yks_motor_range.I_MIN[Z1_YKS_MOTOR_ID_Type[i]];
-            const float I_MAX = yks_motor_range.I_MAX[Z1_YKS_MOTOR_ID_Type[i]];
-            const float KT = yks_motor_range.KT[Z1_YKS_MOTOR_ID_Type[i]];
+            const float I_MIN = yks_motor_range.I_MIN[Z1_MOTOR_ID_Type[global_id]];
+            const float I_MAX = yks_motor_range.I_MAX[Z1_MOTOR_ID_Type[global_id]];
+            const float KT = yks_motor_range.KT[Z1_MOTOR_ID_Type[global_id]];
             if (RxMessage->motor[i].dlc == 0)
                 continue;
             // printf("motor%d:\n", i + 1);
@@ -603,8 +611,7 @@ void RV_can_data_repack(const EtherCAT_Msg *RxMessage, const uint8_t comm_mode, 
                     //这里我将电流乘以KT转变为力矩，所以实际上这里是力矩
                     rv_motor_msg[motor_id_t].temperature = (RxMessage->motor[i].data[6] - 50) / 2;
                     rv_motor_msg[motor_id_t].error = error_int;
-                    rv_motor_msg[motor_id_t].mos_temperature = (mos_temperature_int -50 )/2;
-
+                    rv_motor_msg[motor_id_t].mos_temperature = (mos_temperature_int - 50) / 2;
                 } else if (ack_status == 2) // response frame 2
                 {
                     rv_type_convert.buf[0] = RxMessage->motor[i].data[4];
@@ -715,7 +722,7 @@ void RV_can_data_repack(const EtherCAT_Msg *RxMessage, const uint8_t comm_mode, 
             if (RxMessage->motor[i].dlc == 0) {
                 continue;
             }
-            const float GEAR_RATIO = ti5_motor_range.GEAR_RATIO[Z1_TI5_MOTOR_ID_Type[i]];
+            const float GEAR_RATIO = ti5_motor_range.GEAR_RATIO[Z1_MOTOR_ID_Type[global_id]];
             // printf("motor%d:\n", i + 1);
             if (RxMessage->motor[i].dlc != 0) // Response mode
             {
@@ -742,7 +749,7 @@ void RV_can_data_repack(const EtherCAT_Msg *RxMessage, const uint8_t comm_mode, 
                 float spd_float = ti5_spd_int;
                 double pos_double = ti5_pos_int;
 
-                rv_motor_msg[motor_id_t].current_actual_float = cur_float * ti5_motor_range.TC[Z1_TI5_MOTOR_ID_Type[i]];
+                rv_motor_msg[motor_id_t].current_actual_float = cur_float * ti5_motor_range.TC[Z1_MOTOR_ID_Type[global_id]];
                 rv_motor_msg[motor_id_t].speed_actual_rad = (spd_float * 360.0f) / (GEAR_RATIO * 100 * 57.2958f);
                 rv_motor_msg[motor_id_t].angle_actual_rad = (pos_double * 360.0f) / (65536 * GEAR_RATIO * 57.2958f);
 
@@ -856,11 +863,11 @@ ack_status:0~3
 void set_ti5_current(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id, float cur) {
     if (data_channel < 1 || data_channel > 6)
         return;
-    const float I_MAX = ti5_motor_range.I_MAX[Z1_TI5_MOTOR_ID_Type[data_channel - 1]];
+    const float I_MAX = ti5_motor_range.I_MAX[Z1_MOTOR_ID_Type[motor_id]];
 
     TxMessage->can_ide = 0;
     TxMessage->motor[data_channel - 1].rtr = 0;
-    TxMessage->motor[data_channel - 1].id = motor_id;
+    TxMessage->motor[data_channel - 1].id = data_channel;
     TxMessage->motor[data_channel - 1].dlc = 5;
 
     // 设置指令代码为 0x42
@@ -868,7 +875,7 @@ void set_ti5_current(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t mot
 
     uint32_t torque_uint = 0;
     double cur_double = clamping(cur, -I_MAX, I_MAX);
-    torque_uint = (unsigned int) (cur_double / ti5_motor_range.TC[Z1_TI5_MOTOR_ID_Type[data_channel - 1]]);
+    torque_uint = (unsigned int) (cur_double / ti5_motor_range.TC[Z1_MOTOR_ID_Type[motor_id]]);
     // printf("torque_uint = %d\n", torque_uint);
 
 
@@ -889,12 +896,12 @@ ack_status:0~3
 void set_ti5_speed(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id, float spd) {
     if (data_channel < 1 || data_channel > 6)
         return;
-    const float V_MAX = ti5_motor_range.V_MAX[Z1_TI5_MOTOR_ID_Type[data_channel - 1]];
-    const int GEAR_RATIO = ti5_motor_range.GEAR_RATIO[Z1_TI5_MOTOR_ID_Type[data_channel - 1]];
+    const float V_MAX = ti5_motor_range.V_MAX[Z1_MOTOR_ID_Type[motor_id]];
+    const int GEAR_RATIO = ti5_motor_range.GEAR_RATIO[Z1_MOTOR_ID_Type[motor_id]];
 
     TxMessage->can_ide = 0;
     TxMessage->motor[data_channel - 1].rtr = 0;
-    TxMessage->motor[data_channel - 1].id = motor_id;
+    TxMessage->motor[data_channel - 1].id = data_channel;
     TxMessage->motor[data_channel - 1].dlc = 5;
 
     // 设置指令代码为 0x43
@@ -926,11 +933,11 @@ void set_ti5_position(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t mo
     if (data_channel < 1 || data_channel > 6)
         return;
 
-    const int GEAR_RATIO = ti5_motor_range.GEAR_RATIO[Z1_TI5_MOTOR_ID_Type[data_channel - 1]];
+    const int GEAR_RATIO = ti5_motor_range.GEAR_RATIO[Z1_MOTOR_ID_Type[motor_id]];
 
     TxMessage->can_ide = 0;
     TxMessage->motor[data_channel - 1].rtr = 0;
-    TxMessage->motor[data_channel - 1].id = motor_id;
+    TxMessage->motor[data_channel - 1].id = data_channel;
     TxMessage->motor[data_channel - 1].dlc = 5;
 
     // 设置指令代码为 0x44

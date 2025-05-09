@@ -154,47 +154,36 @@ class Z1RemoteClient(threading.Thread):
             return 0
 
 
-#     /读取电机状态，根据电机全局id进行索引，通过模式确认返回值
-# //
-# //mode 1 : position control 单位 弧度
-# //mode 2 : torque control 单位 Nm 没有测试过，根据文档计算得出，可以直接给电流
-# //mode 3 : velocity control 单位 rad/s
-# double read_arm_control( int arm_index,int mode ) {
-#     switch (mode) {
-#     case 1: //position
-# return my_motor_data[arm_index].pos_; //
-#
-# case 2: //torque
-# return  my_motor_data[arm_index].tau_; //
-#
-# case 3: //velocity
-# return my_motor_data[arm_index].vel_; //
-# default:
-# return 0;
-# }
-# }
-
-
-
-
 if __name__ == '__main__':
-    z1 = Z1RemoteClient(ARMCMDTOPIC, ARMSTATETOPIC, 'arm')
-    # z1 = Z1RemoteClient(LEGCMDTOPIC, LEGSTATETOPIC, 'leg')
+    z1_arm = Z1RemoteClient(ARMCMDTOPIC, ARMSTATETOPIC, 'arm')
+    z1_leg = Z1RemoteClient(LEGCMDTOPIC, LEGSTATETOPIC, 'leg')
 
-    z1.squat_control(13, 2, 3)
+    # z1_arm.squat_control(13, 2, 3)
     # z1.squat_control(14, 50, 2)
+
+    z1_leg.motorCmds.cmds[0].pos = 0.5
+    z1_leg.motorCmds.cmds[0].vel = 0
+    z1_leg.motorCmds.cmds[0].tau = 0
+    z1_leg.motorCmds.cmds[0].kp = 400
+    z1_leg.motorCmds.cmds[0].kd = 20
 
     while True:
         # z1.squat_control(11, 0.5, 1)
 
-        z1.setCommand()
-        print("pub %f  %f" % (13, z1.motorCmds.cmds[1].pos))
+        z1_arm.setCommand()
+        print("pub %f  %f" % (13, z1_arm.motorCmds.cmds[1].pos))
 
-        st = z1.getStates()
+        st = z1_arm.getStates()
         print("sub %f" % (st.states[1].pos))
 
-        pos = z1.read_arm_control(13, 1)  # 获取第13个关节的位置
-        torque = z1.read_arm_control(13, 2)  # 获取力矩
-        vel = z1.read_arm_control(13, 3)  # 获取速度
-        print(f"Position: {pos}, Torque: {torque}, Velocity: {vel}")
+        z1_leg.setCommand()
+        print("pub %f  %f" % (0, z1_leg.motorCmds.cmds[0].pos))
+
+        st = z1_leg.getStates()
+        print("sub %f" % (st.states[0].pos))
+
+        # pos = z1_arm.read_arm_control(13, 1)  # 获取第13个关节的位置
+        # torque = z1_arm.read_arm_control(13, 2)  # 获取力矩
+        # vel = z1_arm.read_arm_control(13, 3)  # 获取速度
+        # print(f"Position: {pos}, Torque: {torque}, Velocity: {vel}")
         time.sleep(0.01)

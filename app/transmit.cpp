@@ -399,18 +399,18 @@ void EtherCAT_Send_Command(const YKSMotorData *mot_data) {
 
             if (motor->type == MOTOR_YKS) {
                 // printf("slave %d command_id %d \n", slave, command_id);
-                send_motor_ctrl_cmd(&Tx_Message[slave_idx], motor->motor_id, motor->motor_id, mot_data[index].kp_,
+                send_motor_ctrl_cmd(&Tx_Message[slave_idx], motor->motor_id, motor->global_id, mot_data[index].kp_,
                                     mot_data[index].kd_, mot_data[index].pos_des_, mot_data[index].vel_des_,
                                     mot_data[index].ff_);
             } else if (motor->type == MOTOR_TI5) {
                 // printf("slave %d index %d ,mode %d,pos_des_ %f ,vel_des_ %f,ff_ %f \n", slave_idx, index,
                        // mot_data[index].mode, mot_data[index].pos_des_, mot_data[index].vel_des_, mot_data[index].ff_);
                 if (mot_data[index].mode == 2) {
-                    set_ti5_current(&Tx_Message[slave_idx], motor->motor_id, motor->motor_id, mot_data[index].ff_);
+                    set_ti5_current(&Tx_Message[slave_idx], motor->motor_id, motor->global_id, mot_data[index].ff_);
                 } else if (mot_data[index].mode == 3) {
-                    set_ti5_speed(&Tx_Message[slave_idx], motor->motor_id, motor->motor_id, mot_data[index].vel_des_);
+                    set_ti5_speed(&Tx_Message[slave_idx], motor->motor_id, motor->global_id, mot_data[index].vel_des_);
                 } else if (mot_data[index].mode == 1) {
-                    set_ti5_position(&Tx_Message[slave_idx], motor->motor_id, motor->motor_id,
+                    set_ti5_position(&Tx_Message[slave_idx], motor->motor_id, motor->global_id,
                                      mot_data[index].pos_des_);
                 }
                 // printf("slave_idx %d  \n", index);

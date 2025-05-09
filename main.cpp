@@ -44,7 +44,7 @@ void squat_control(const float pos) {
     // my_motor_data[Z1JointIndex::WaistYaw].pos_des_ = pos;
 }
 
-void DDS_Get_Motor_Cmds(const int motor_num, const motorcmds &cmds, YKSMotorData *motor_cmds) {
+void DDS_Get_Leg_Motor_Cmds(const int motor_num, const motorcmds &cmds, YKSMotorData *motor_cmds) {
     // 拿到所有DDS传过来的电机指令数据，然后传给main函数当中的全局数组，通过电机数量可以区分到底是上肢还是下肢的指令
     for (int i = 0; i < motor_num; i++) {
         motor_cmds[i].pos_des_ = cmds.cmds()[i].pos();
@@ -67,7 +67,7 @@ void DDS_Get_Arm_Motor_Cmds(const int motor_num, const motorcmds &cmds, YKSMotor
     }
 }
 
-void DDS_Pub_Motor_Data(const int arm_or_leg, motorstates &states, dds::pub::DataWriter<motorstates> &writer,
+void DDS_Pub_Arm_Motor_Data(const int arm_or_leg, motorstates &states, dds::pub::DataWriter<motorstates> &writer,
                         const YKSMotorData *motor_data_) {
     // 拿到所有DDS传过来的电机指令数据，然后传给main函数当中的全局数组，通过电机数量可以区分到底是上肢还是下肢的指令
     int motor_num = TI5_MOTOR_NUMBER;
@@ -93,18 +93,53 @@ void DDS_Pub_Motor_Data(const int arm_or_leg, motorstates &states, dds::pub::Dat
     writer.write(states);
 }
 
-void DDS_SUB(dds::sub::DataReader<motorcmds> &Reader, dds::sub::LoanedSamples<motorcmds> &samples) {
+void DDS_Pub_Leg_Motor_Data(const int arm_or_leg, motorstates &states, dds::pub::DataWriter<motorstates> &writer,
+                        const YKSMotorData *motor_data_) {
+    // 拿到所有DDS传过来的电机指令数据，然后传给main函数当中的全局数组，通过电机数量可以区分到底是上肢还是下肢的指令
+    int motor_num = YKS_MOTOR_NUMBER;
+    if (arm_or_leg == 0) {
+        //如果是是下肢
+        motor_num = YKS_MOTOR_NUMBER;
+    } else {
+        motor_num = TI5_MOTOR_NUMBER;
+    }
+    for (int i = 0; i < motor_num; i++) {
+        auto &state = states.states()[i];
+        state.mode(motor_data_[i].mode);
+        state.index(i + 1);
+        state.pos(motor_data_[i].pos_);
+        state.vel(motor_data_[i].vel_);
+        state.cur(motor_data_[i].tau_);
+        state.tau(motor_data_[i].tau_);
+        state.tau_raw(motor_data_[i].tau_);
+        state.error(motor_data_[i].error_);
+        state.tem(motor_data_[i].temperature_);
+        state.mos_tem(motor_data_[i].mos_temperature_);
+    }
+    writer.write(states);
+}
+
+void DDS_Arm_SUB(dds::sub::DataReader<motorcmds> &Reader, dds::sub::LoanedSamples<motorcmds> &samples) {
     samples = Reader.take();
     if (samples.length() > 0) {
         for (auto sample_iter = samples.begin(); sample_iter < samples.end(); ++sample_iter) {
             const motorcmds &cmds = sample_iter->data();
             const dds::sub::SampleInfo &info = sample_iter->info();
             if (info.valid()) {
-
-                // DDS_Get_Motor_Cmds(YKS_MOTOR_NUMBER, legcmds, my_motor_data);
-                // DDS_Get_Motor_Cmds(TI5_MOTOR_NUMBER, cmds, my_motor_data);
                 DDS_Get_Arm_Motor_Cmds(TI5_MOTOR_NUMBER, cmds, my_motor_data);
+            }
+        }
+    }
+}
 
+void DDS_Leg_SUB(dds::sub::DataReader<motorcmds> &Reader, dds::sub::LoanedSamples<motorcmds> &samples) {
+    samples = Reader.take();
+    if (samples.length() > 0) {
+        for (auto sample_iter = samples.begin(); sample_iter < samples.end(); ++sample_iter) {
+            const motorcmds &cmds = sample_iter->data();
+            const dds::sub::SampleInfo &info = sample_iter->info();
+            if (info.valid()) {
+                DDS_Get_Leg_Motor_Cmds(YKS_MOTOR_NUMBER, cmds, my_motor_data);
             }
         }
     }
@@ -178,7 +213,7 @@ int main() {
     //////////////////////////////////////////////////////////////////////////////////////////////////
     /////////////////////////////////////////////////////////////////////////////////////////////////
 
-    if (bool Ethernet_Status = CAT_Init("enx6c1ff71bc3a8"); !Ethernet_Status) { exit(1); } //如果初始化失败，则直接退出程序
+    if (bool Ethernet_Status = CAT_Init("enp3s0"); !Ethernet_Status) { exit(1); } //如果初始化失败，则直接退出程序
     auto joystick_device = "/dev/input/js0";
     // auto battery = "/dev/ttyUSB1";
     const auto joystick_handler = std::make_shared<JoyStickHandler>(joystick_device);
@@ -213,11 +248,11 @@ int main() {
 #ifdef DDS
         /////////////////////////////////////////////////////////////////////////////////////////////
         //读取leg订阅的消息 ---------------------------------------------------------------------------
-        // DDS_SUB(legReader, samples_leg);
+        DDS_Leg_SUB(legReader, samples_leg);
         
         /////////////////////////////////////////////////////////////////////////////////////////////
         //读取arm订阅的消息 -----------------------------------------------------------------------------
-        DDS_SUB(armReader, samples_arm); //这个函数这里需要改，根据到底是上肢还是下肢要给不同的数组进行赋值
+        DDS_Arm_SUB(armReader, samples_arm); //这个函数这里需要改，根据到底是上肢还是下肢要给不同的数组进行赋值
         /////////////////////////////////////////////////////////////////////////////////////////////
 #endif
 #ifndef DDS
@@ -237,9 +272,9 @@ int main() {
 
         ///////////////////////////////////////////////////////////////////////////////////////////
         ///将上肢电机状态写入消息 啦啦啦啦啦啦啦啦啦啦啦
-        DDS_Pub_Motor_Data(1, armStates, armWriter, my_motor_data);
+        DDS_Pub_Arm_Motor_Data(1, armStates, armWriter, my_motor_data);
         ///将下肢电机状态写入消息 啦啦啦啦啦啦啦啦啦啦啦
-        // DDS_Pub_Motor_Data(0, legStates, legWriter, my_motor_data);
+        DDS_Pub_Leg_Motor_Data(0, legStates, legWriter, my_motor_data);
         ///通过Socket将电机状态发送给用户端
         sender.sendSocketMotorData(my_motor_data); //通过Socket反馈电机当前的数据
 
