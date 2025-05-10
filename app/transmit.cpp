@@ -413,7 +413,9 @@ void EtherCAT_Send_Command(const YKSMotorData *mot_data) {
                                     mot_data[index].ff_, 1);
                 }
             } else if (motor->type == MOTOR_TI5) {
-                if (mot_data[index].mode == 1) {
+                if (mot_data[index].mode == 0) {
+                    set_ti5_current(&Tx_Message[slave_idx], motor->motor_id, motor->global_id, 0);
+                }else if (mot_data[index].mode == 1) {
                     set_ti5_position(&Tx_Message[slave_idx], motor->motor_id, motor->global_id,
                                      mot_data[index].pos_des_);
                 } else if (mot_data[index].mode == 2) {
@@ -421,9 +423,9 @@ void EtherCAT_Send_Command(const YKSMotorData *mot_data) {
                 } else if (mot_data[index].mode == 3) {
                     set_ti5_speed(&Tx_Message[slave_idx], motor->motor_id, motor->global_id, mot_data[index].vel_des_);
 
-                    printf("slave %d index %d ,mode %d,pos_des_ %f ,vel_des_ %f,ff_ %f \n", slave_idx, index,
-                           mot_data[index].mode, mot_data[index].pos_des_, mot_data[index].vel_des_,
-                           mot_data[index].ff_);
+                    // printf("slave %d index %d ,mode %d,pos_des_ %f ,vel_des_ %f,ff_ %f \n", slave_idx, index,
+                    //        mot_data[index].mode, mot_data[index].pos_des_, mot_data[index].vel_des_,
+                    //        mot_data[index].ff_);
                 }
                 // printf("slave_idx %d  \n", index);
             }

@@ -158,8 +158,8 @@ if __name__ == '__main__':
     z1_arm = Z1RemoteClient(ARMCMDTOPIC, ARMSTATETOPIC, 'arm')
     z1_leg = Z1RemoteClient(LEGCMDTOPIC, LEGSTATETOPIC, 'leg')
 
-    z1_arm.squat_control(13, 2, 1)
-    z1_arm.squat_control(14, 1, 1)
+    z1_arm.squat_control(13, -2, 3)
+    z1_arm.squat_control(14, 4, 1)
 
     z1_leg.motorCmds.cmds[0].mode = 0
     z1_leg.motorCmds.cmds[0].pos = 3
