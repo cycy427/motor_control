@@ -5,7 +5,7 @@
 #include "Z1Legs.h"
 
 Z1Legs::Z1Legs() : stop_(false), time_(0.0), control_dt_(1), duration_(3.0), counter_(0),
-                   mode_pr_(Mode::AB), mode_machine_(0) {
+                   mode_pr_(Mode::PR), mode_machine_(0) {
     control_thread_ = std::make_shared<std::thread>(&Z1Legs::Control, this);
     // Assign Kp and Kd values to motorDate_recv
     for (int i = 0; i < Z1_NUM_MOTOR; ++i) {

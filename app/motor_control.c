@@ -23,20 +23,18 @@ TI5_MOTOR_RANGE ti5_motor_range = {
 //int Z1_YKS_MOTOR_ID_Type[6] = {A13715, A10020_2, A10020_1, A13720, A8112, A8112};//这个是Z1.5机器人的腿部电机的顺序
 //这个要根据实际的Z1机器人电机型号来设置，canid 1-6往上,结构体globalid从0开始 依次对应于Slave中的glboalid
 int Z1_MOTOR_ID_Type[27] = {
-    A13715, A10020_2, A10020_1, A13720, A8112, A8112,//下肢 左腿
-    A13715, A10020_2, A10020_1, A13720, A8112, A8112,//下肢 右腿
-    A8112, //腰部
-    CRA_RI60_70_PRO_101, CRA_RI40_52_PRO_101, CRA_RI50_60_PRO_101, CRA_RI50_60_PRO_101, CRA_RI40_52_PRO_101,//上肢 左臂
-    CRA_RI30_40_PRO_101, CRA_RI30_40_PRO_101,
-    CRA_RI60_70_PRO_101, CRA_RI40_52_PRO_101, CRA_RI50_60_PRO_101, CRA_RI50_60_PRO_101, CRA_RI40_52_PRO_101,//上肢 右臂
-    CRA_RI30_40_PRO_101, CRA_RI30_40_PRO_101
+    A13715, A10020_2, A10020_1, A13720, A8112, A8112, //下肢 左腿
+    A13715, A10020_2, A10020_1, A13720, A8112, A8112, //下肢 右腿
+    A8112, A8112, A6408, A6408, A4310, A4310, //上肢 左臂
+    A8112, A8112, A6408, A6408, A4310, A4310, //上肢 右臂
+    A8112, A8112, A10020_1//两肩和腰部
 };
 
 
 //-------------------------------------
 // 初始化从站和电机配置
 //-------------------------------------
-Slave g_slaves[5] = {
+Slave g_slaves[6] = {
     // SLAVE ID 1,代表第几个从站: YKS 1-6
     {
         .slave_id = 1,
@@ -57,7 +55,7 @@ Slave g_slaves[5] = {
             {MOTOR_YKS, 5, 10}, {MOTOR_YKS, 6, 11}
         }
     },
-    // SLAVE ID 3: YKS 1 + Ti5 1-5
+    // SLAVE ID 3: YKS 1-6
     {
         .slave_id = 3,
         .motor_count = 6,
@@ -68,7 +66,7 @@ Slave g_slaves[5] = {
             {MOTOR_YKS, 6, 17}
         }
     },
-    // SLAVE ID 4: Ti5 1-6
+    // SLAVE ID 4: YKS 1-6
     {
         .slave_id = 4,
         .motor_count = 6,
@@ -78,14 +76,24 @@ Slave g_slaves[5] = {
             {MOTOR_YKS, 5, 22}, {MOTOR_YKS, 6, 23}
         }
     },
-    // SLAVE ID 5: Ti5 1-5
+    // SLAVE ID 5: YKS 1-6
     {
         .slave_id = 5,
         .motor_count = 5,
         .motors = {
             {MOTOR_YKS, 1, 24}, {MOTOR_YKS, 2, 25},
-            {MOTOR_YKS, 3, 26}, {MOTOR_TI5, 4, 27},
-            {MOTOR_YKS, 5, 28}, {MOTOR_TI5, 6, 29}
+            {MOTOR_YKS, 3, 26}, {MOTOR_YKS, 4, 27},
+            {MOTOR_YKS, 5, 28}, {MOTOR_YKS, 6, 29}
+        }
+    },
+    // SLAVE ID 6: YKS 1-5
+    {
+        .slave_id = 6,
+        .motor_count = 5,
+        .motors = {
+            {MOTOR_YKS, 1, 30}, {MOTOR_YKS, 2, 31},
+            {MOTOR_YKS, 3, 32}, {MOTOR_YKS, 4, 33},
+            {MOTOR_YKS, 5, 34}, {MOTOR_YKS, 6, 35}
         }
     }
 };
@@ -751,7 +759,8 @@ void RV_can_data_repack(const EtherCAT_Msg *RxMessage, const uint8_t comm_mode, 
                 float spd_float = ti5_spd_int;
                 double pos_double = ti5_pos_int;
 
-                rv_motor_msg[motor_id_t].current_actual_float = cur_float * ti5_motor_range.TC[Z1_MOTOR_ID_Type[global_id]];
+                rv_motor_msg[motor_id_t].current_actual_float =
+                        cur_float * ti5_motor_range.TC[Z1_MOTOR_ID_Type[global_id]];
                 rv_motor_msg[motor_id_t].speed_actual_rad = (spd_float * 360.0f) / (GEAR_RATIO * 100 * 57.2958f);
                 rv_motor_msg[motor_id_t].angle_actual_rad = (pos_double * 360.0f) / (65536 * GEAR_RATIO * 57.2958f);
 

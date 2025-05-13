@@ -193,7 +193,7 @@ if __name__ == '__main__':
     z1_leg = Z1RemoteClient(LEGCMDTOPIC, LEGSTATETOPIC, 'leg')
 
     z1_arm.arm_yks_squat_control(18, 0, 1, 0, 0, 400, 40)
-    z1_leg.leg_squat_control(0, 0, 2, 0, 0, 400, 40)
+    z1_leg.leg_squat_control(0, 0, 4, 0, 0, 400, 40)
 
     while True:
         # z1.squat_control(11, 0.5, 1)
