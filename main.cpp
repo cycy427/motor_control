@@ -7,7 +7,7 @@
 #include "dds/dds.hpp"
 #include "nubotddsmsg.hpp"
 
-#define DDS
+#define DDS  //如果想要使用Socket通信，那么就注释，如果想使用DDS通信，那么请取消注释
 
 //这里以后考虑参数传递或者文件配置主题名称
 #define ARMCMDTOPIC "/nubot/z1/armmotorcmds"
@@ -277,7 +277,12 @@ int main() {
         DDS_Pub_Leg_Motor_Data(0, legStates, legWriter, my_motor_data);
         ///通过Socket将电机状态发送给用户端
         sender.sendSocketMotorData(my_motor_data); //通过Socket反馈电机当前的数据
-
+        // SBusData data = sbus_receiver.getData();
+        // SBusReceiver::print_data(data);
+        // pos = data.ch[2] / 672.0 * 4;
+        // JoystickState state = joystick_handler->getState();
+        // JoyStickHandler::print_state(state);
+        // squat_control(pos);
         std::this_thread::sleep_for(std::chrono::milliseconds(1)); //读取周期为1ms
     }
     runThread.join(); //runThread.join(); 的主要功能是确保 main 函数在退出之前等待 runThread 线程完成其任务。

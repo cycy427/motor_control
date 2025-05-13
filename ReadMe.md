@@ -185,3 +185,8 @@ C++使用方法：
 1. 接入一个5V电源：将电池线连接至Ethercat板子的电源一端，这一端是靠近STM32芯片的一端，另一端连接至上位机网口。
 ### 注意，这一步不能接反，不确定请找接过的人！！！
 2. 修改电机的can id，然后接到板子上，CAN1通道为电机can id 1，2，3；CAN2通道为电机can id 4，5，6；
+
+
+#### 获得原始数据
+1. 调用：z1_leg.cpp里面的EtherCAT_Send_Command（）用户发送数据给ethercat的地方
+2. 进入transmit.cpp里面的EtherCAT_Send_Command,根据mode的不同调用不同的解码函数，其中力位混合模式在mode==0的set_ti5_current()上修改，要拿到原始数据，可以进入这些set_ti5_xxx函数，修改返回值

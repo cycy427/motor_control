@@ -71,7 +71,7 @@ void Z1Legs::PrintMotorState(const int size) const {
 
     for (int i = 0; i < size; ++i) {
         attron(COLOR_PAIR(1));
-        mvprintw(i + 4, 0, "%d", i + 1);
+        mvprintw(i + 4, 0, "%d", i );
         attroff(COLOR_PAIR(1));
 
         attron(COLOR_PAIR(2));
@@ -277,36 +277,36 @@ void Z1Legs::setMotorCommand(const YKSMotorData *data) {
             motor_data_[i].mode = data[i].mode;
             if (i == LeftAnkleA) {
                 tempData = AnkleA_inverse_kinematics(data[LeftAnklePitch], data[LeftAnkleRoll]);
-                motor_data_[i].pos_des_ = tempData.pos_des_*Leg_directionMotor_[i];
-                motor_data_[i].vel_des_ = tempData.vel_des_*Leg_directionMotor_[i];
-                motor_data_[i].ff_ = tempData.ff_*Leg_directionMotor_[i];
+                motor_data_[i].pos_des_ = tempData.pos_des_ * LegDirectionMotor_[i];
+                motor_data_[i].vel_des_ = tempData.vel_des_ * LegDirectionMotor_[i];
+                motor_data_[i].ff_ = tempData.ff_ * LegDirectionMotor_[i];
             } else if (i == LeftAnkleB) {
                 tempData = AnkleB_inverse_kinematics(data[LeftAnklePitch], data[LeftAnkleRoll]);
-                motor_data_[i].pos_des_ = tempData.pos_des_*Leg_directionMotor_[i];
-                motor_data_[i].vel_des_ = tempData.vel_des_*Leg_directionMotor_[i];
-                motor_data_[i].ff_ = tempData.ff_*Leg_directionMotor_[i];
+                motor_data_[i].pos_des_ = tempData.pos_des_ * LegDirectionMotor_[i];
+                motor_data_[i].vel_des_ = tempData.vel_des_ * LegDirectionMotor_[i];
+                motor_data_[i].ff_ = tempData.ff_ * LegDirectionMotor_[i];
             } else if (i == RightAnkleA) {
                 tempData = AnkleA_inverse_kinematics(data[RightAnklePitch], data[RightAnkleRoll]);
-                motor_data_[i].pos_des_ = tempData.pos_des_*Leg_directionMotor_[i];
-                motor_data_[i].vel_des_ = tempData.vel_des_*Leg_directionMotor_[i];
-                motor_data_[i].ff_ = tempData.ff_*Leg_directionMotor_[i];
+                motor_data_[i].pos_des_ = tempData.pos_des_ * LegDirectionMotor_[i];
+                motor_data_[i].vel_des_ = tempData.vel_des_ * LegDirectionMotor_[i];
+                motor_data_[i].ff_ = tempData.ff_ * LegDirectionMotor_[i];
             } else if (i == RightAnkleB) {
                 tempData = AnkleB_inverse_kinematics(data[RightAnklePitch], data[RightAnkleRoll]);
-                motor_data_[i].pos_des_ = tempData.pos_des_*Leg_directionMotor_[i];
-                motor_data_[i].vel_des_ = tempData.vel_des_*Leg_directionMotor_[i];
-                motor_data_[i].ff_ = tempData.ff_*Leg_directionMotor_[i];
+                motor_data_[i].pos_des_ = tempData.pos_des_ * LegDirectionMotor_[i];
+                motor_data_[i].vel_des_ = tempData.vel_des_ * LegDirectionMotor_[i];
+                motor_data_[i].ff_ = tempData.ff_ * LegDirectionMotor_[i];
             } else {
-                motor_data_[i].pos_des_ = data[i].pos_des_*Leg_directionMotor_[i];
-                motor_data_[i].vel_des_ = data[i].vel_des_*Leg_directionMotor_[i];
-                motor_data_[i].ff_ = data[i].ff_*Leg_directionMotor_[i];
+                motor_data_[i].pos_des_ = data[i].pos_des_ * LegDirectionMotor_[i];
+                motor_data_[i].vel_des_ = data[i].vel_des_ * LegDirectionMotor_[i];
+                motor_data_[i].ff_ = data[i].ff_ * LegDirectionMotor_[i];
             }
         }
     } else {
         for (int i = 0; i < Z1_NUM_MOTOR; ++i) {
             motor_data_[i].mode = data[i].mode;
-            motor_data_[i].pos_des_ = data[i].pos_des_*Leg_directionMotor_[i];
-            motor_data_[i].vel_des_ = data[i].vel_des_*Leg_directionMotor_[i];
-            motor_data_[i].ff_ = data[i].ff_*Leg_directionMotor_[i];
+            motor_data_[i].pos_des_ = data[i].pos_des_ * LegDirectionMotor_[i];
+            motor_data_[i].vel_des_ = data[i].vel_des_ * LegDirectionMotor_[i];
+            motor_data_[i].ff_ = data[i].ff_ * LegDirectionMotor_[i];
         }
     }
 }
@@ -321,44 +321,43 @@ void Z1Legs::setMotorKpKd(const YKSMotorData *data) {
     }
 }
 
-void Z1Legs::getMotorData(YKSMotorData *data)  {
+void Z1Legs::getMotorData(YKSMotorData *data) {
     std::lock_guard lock(mutex_);
     // std::memcpy(data, motor_data_, Z1_NUM_MOTOR * sizeof(YKSMotorData));
     if (mode_pr_ == Mode::PR) {
         YKSMotorData temp_data;
         for (int i = 0; i < Z1_NUM_MOTOR; ++i) {
             if (i == LeftAnkleA) {
-                temp_data=Pitch_forward_kinematics(motor_data_[LeftAnkleA], motor_data_[LeftAnkleB]);
-                data[LeftAnklePitch].pos_ = temp_data.pos_*Leg_directionMotor_[i];
-                data[LeftAnklePitch].vel_ = temp_data.vel_*Leg_directionMotor_[i];
-                data[LeftAnklePitch].tau_ = temp_data.tau_*Leg_directionMotor_[i];
+                temp_data = Pitch_forward_kinematics(motor_data_[LeftAnkleA], motor_data_[LeftAnkleB]);
+                data[LeftAnklePitch].pos_ = temp_data.pos_ * LegDirectionMotor_[i];
+                data[LeftAnklePitch].vel_ = temp_data.vel_ * LegDirectionMotor_[i];
+                data[LeftAnklePitch].tau_ = temp_data.tau_ * LegDirectionMotor_[i];
             } else if (i == LeftAnkleB) {
-                temp_data=Roll_forward_kinematics(motor_data_[LeftAnkleA], motor_data_[LeftAnkleB]);
-                data[LeftAnkleRoll].pos_ = temp_data.pos_*Leg_directionMotor_[i];
-                data[LeftAnkleRoll].vel_ = temp_data.vel_*Leg_directionMotor_[i];
-                data[LeftAnkleRoll].tau_ = temp_data.tau_*Leg_directionMotor_[i];
+                temp_data = Roll_forward_kinematics(motor_data_[LeftAnkleA], motor_data_[LeftAnkleB]);
+                data[LeftAnkleRoll].pos_ = temp_data.pos_ * LegDirectionMotor_[i];
+                data[LeftAnkleRoll].vel_ = temp_data.vel_ * LegDirectionMotor_[i];
+                data[LeftAnkleRoll].tau_ = temp_data.tau_ * LegDirectionMotor_[i];
             } else if (i == RightAnkleA) {
-                temp_data=Pitch_forward_kinematics(motor_data_[RightAnkleA], motor_data_[RightAnkleB]);
-                data[RightAnklePitch].pos_ = temp_data.pos_*Leg_directionMotor_[i];
-                data[RightAnklePitch].vel_ = temp_data.vel_*Leg_directionMotor_[i];
-                data[RightAnklePitch].tau_ = temp_data.tau_*Leg_directionMotor_[i];
+                temp_data = Pitch_forward_kinematics(motor_data_[RightAnkleA], motor_data_[RightAnkleB]);
+                data[RightAnklePitch].pos_ = temp_data.pos_ * LegDirectionMotor_[i];
+                data[RightAnklePitch].vel_ = temp_data.vel_ * LegDirectionMotor_[i];
+                data[RightAnklePitch].tau_ = temp_data.tau_ * LegDirectionMotor_[i];
             } else if (i == RightAnkleB) {
-                temp_data=Roll_forward_kinematics(motor_data_[RightAnkleA], motor_data_[RightAnkleB]);
-                data[RightAnkleRoll].pos_ = temp_data.pos_*Leg_directionMotor_[i];
-                data[RightAnkleRoll].vel_ = temp_data.vel_*Leg_directionMotor_[i];
-                data[RightAnkleRoll].tau_ = temp_data.tau_*Leg_directionMotor_[i];
+                temp_data = Roll_forward_kinematics(motor_data_[RightAnkleA], motor_data_[RightAnkleB]);
+                data[RightAnkleRoll].pos_ = temp_data.pos_ * LegDirectionMotor_[i];
+                data[RightAnkleRoll].vel_ = temp_data.vel_ * LegDirectionMotor_[i];
+                data[RightAnkleRoll].tau_ = temp_data.tau_ * LegDirectionMotor_[i];
             } else {
-                data[i].pos_ = motor_data_[i].pos_*Leg_directionMotor_[i];
-                data[i].vel_ = motor_data_[i].vel_*Leg_directionMotor_[i];
-                data[i].tau_ = motor_data_[i].tau_*Leg_directionMotor_[i];
+                data[i].pos_ = motor_data_[i].pos_ * LegDirectionMotor_[i];
+                data[i].vel_ = motor_data_[i].vel_ * LegDirectionMotor_[i];
+                data[i].tau_ = motor_data_[i].tau_ * LegDirectionMotor_[i];
             }
         }
-    }
-    else {
+    } else {
         for (int i = 0; i < Z1_NUM_MOTOR; ++i) {
-            data[i].pos_ = motor_data_[i].pos_*Leg_directionMotor_[i];
-            data[i].vel_ = motor_data_[i].vel_*Leg_directionMotor_[i];
-            data[i].tau_ = motor_data_[i].tau_*Leg_directionMotor_[i];
+            data[i].pos_ = motor_data_[i].pos_ * LegDirectionMotor_[i];
+            data[i].vel_ = motor_data_[i].vel_ * LegDirectionMotor_[i];
+            data[i].tau_ = motor_data_[i].tau_ * LegDirectionMotor_[i];
         }
     }
     

@@ -63,7 +63,7 @@ public:
 
     void setBatteryHandler(const std::shared_ptr<BmsHandler> &handler);
 
-    void getMotorData(YKSMotorData *data) ; //获取电机的状态
+    void getMotorData(YKSMotorData *data); //获取电机的状态
 
     void setMotorCommand(const YKSMotorData *data); //设置电机的位置、速度、力
 
@@ -121,8 +121,11 @@ private:
     int counter_;
     Mode mode_pr_; //启用PR模式俯仰角横滚角控制还是AB模式单独控制两个脚踝的电机  默认为PR模式
     const std::vector<double> PR_directionMotor_ = {-1, 1};
-    const std::vector<int> Leg_directionMotor_ = {-1, 1,-1,-1,1,1,
-        -1,1,-1,1,1,1 , 1,1,1,1,1,1, 1,1,1,1,1,1,1,1};
+    const std::vector<int> LegDirectionMotor_ = {-1, 1,-1,-1,1,1,
+        -1,1,-1,1,1,1 ,
+ 	1,1,1,1,1,1, 1,
+	1,1,1,1,1,1,1};//用于根据实际电机的正方向来进行针对性设置，以适配URDF模型的坐标系
+
 
     uint8_t mode_machine_;
     YKSMotorData motor_data_[Z1_NUM_MOTOR]{}; //私有的电机结构体数组

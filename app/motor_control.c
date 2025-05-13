@@ -19,14 +19,16 @@ TI5_MOTOR_RANGE ti5_motor_range = {
     .T_MAX = {T_30_40_PRO,T_40_52_PRO, T_50_60_PRO, T_60_70_PRO, T_70_PRO, T_60_PRO_S, T_70_PRO_S},
     .TC = {TC_30_40_PRO,TC_40_52_PRO, TC_50_60_PRO, TC_60_70_PRO, TC_70_PRO, TC_60_PRO_S, TC_70_PRO_S},
 };
-//这个要根据实际的Z1机器人YKS电机型号来设置
+//int Z1_YKS_MOTOR_ID_Type[6] = {A13720, A10020_1, A8112, A13715, A6408, A6408};//这个是Z1的第一版机器人的腿部电机的顺序
+//int Z1_YKS_MOTOR_ID_Type[6] = {A13715, A10020_2, A10020_1, A13720, A8112, A8112};//这个是Z1.5机器人的腿部电机的顺序
+//这个要根据实际的Z1机器人电机型号来设置，canid 1-6往上,结构体globalid从0开始 依次对应于Slave中的glboalid
 int Z1_MOTOR_ID_Type[27] = {
-    A13715, A10020_2, A10020_1, A13720, A8112, A8112,
-    A13715, A10020_2, A10020_1, A13720, A8112, A8112,
-    A8112,
-    CRA_RI60_70_PRO_101, CRA_RI40_52_PRO_101, CRA_RI50_60_PRO_101, CRA_RI50_60_PRO_101, CRA_RI40_52_PRO_101,
+    A13715, A10020_2, A10020_1, A13720, A8112, A8112,//下肢 左腿
+    A13715, A10020_2, A10020_1, A13720, A8112, A8112,//下肢 右腿
+    A8112, //腰部
+    CRA_RI60_70_PRO_101, CRA_RI40_52_PRO_101, CRA_RI50_60_PRO_101, CRA_RI50_60_PRO_101, CRA_RI40_52_PRO_101,//上肢 左臂
     CRA_RI30_40_PRO_101, CRA_RI30_40_PRO_101,
-    CRA_RI60_70_PRO_101, CRA_RI40_52_PRO_101, CRA_RI50_60_PRO_101, CRA_RI50_60_PRO_101, CRA_RI40_52_PRO_101,
+    CRA_RI60_70_PRO_101, CRA_RI40_52_PRO_101, CRA_RI50_60_PRO_101, CRA_RI50_60_PRO_101, CRA_RI40_52_PRO_101,//上肢 右臂
     CRA_RI30_40_PRO_101, CRA_RI30_40_PRO_101
 };
 
@@ -50,9 +52,9 @@ Slave g_slaves[5] = {
         .slave_id = 2,
         .motor_count = 6,
         .motors = {
-            {MOTOR_TI5, 1, 6}, {MOTOR_TI5, 2, 7},
-            {MOTOR_TI5, 3, 8}, {MOTOR_TI5, 4, 9},
-            {MOTOR_TI5, 5, 10}, {MOTOR_TI5, 6, 11}
+            {MOTOR_YKS, 1, 6}, {MOTOR_YKS, 2, 7},
+            {MOTOR_YKS, 3, 8}, {MOTOR_YKS, 4, 9},
+            {MOTOR_YKS, 5, 10}, {MOTOR_YKS, 6, 11}
         }
     },
     // SLAVE ID 3: YKS 1 + Ti5 1-5
@@ -61,9 +63,9 @@ Slave g_slaves[5] = {
         .motor_count = 6,
         .motors = {
             {MOTOR_YKS, 1, 12},
-            {MOTOR_TI5, 2, 13}, {MOTOR_TI5, 3, 14},
-            {MOTOR_TI5, 4, 15}, {MOTOR_TI5, 5, 16},
-            {MOTOR_TI5, 6, 17}
+            {MOTOR_YKS, 2, 13}, {MOTOR_YKS, 3, 14},
+            {MOTOR_YKS, 4, 15}, {MOTOR_YKS, 5, 16},
+            {MOTOR_YKS, 6, 17}
         }
     },
     // SLAVE ID 4: Ti5 1-6
@@ -71,9 +73,9 @@ Slave g_slaves[5] = {
         .slave_id = 4,
         .motor_count = 6,
         .motors = {
-            {MOTOR_TI5, 1, 18}, {MOTOR_TI5, 2, 19},
-            {MOTOR_TI5, 3, 20}, {MOTOR_TI5, 4, 21},
-            {MOTOR_TI5, 5, 22}, {MOTOR_TI5, 6, 23}
+            {MOTOR_YKS, 1, 18}, {MOTOR_YKS, 2, 19},
+            {MOTOR_YKS, 3, 20}, {MOTOR_YKS, 4, 21},
+            {MOTOR_YKS, 5, 22}, {MOTOR_YKS, 6, 23}
         }
     },
     // SLAVE ID 5: Ti5 1-5
@@ -81,9 +83,9 @@ Slave g_slaves[5] = {
         .slave_id = 5,
         .motor_count = 5,
         .motors = {
-            {MOTOR_TI5, 1, 24}, {MOTOR_TI5, 2, 25},
-            {MOTOR_TI5, 3, 26}, {MOTOR_TI5, 4, 27},
-            {MOTOR_TI5, 5, 28}, {MOTOR_TI5, 6, 29}
+            {MOTOR_YKS, 1, 24}, {MOTOR_YKS, 2, 25},
+            {MOTOR_YKS, 3, 26}, {MOTOR_TI5, 4, 27},
+            {MOTOR_YKS, 5, 28}, {MOTOR_TI5, 6, 29}
         }
     }
 };
