@@ -40,7 +40,7 @@ module nubotddsmsg {
 
     @extensibility(FINAL)
     struct motorstates {
-      octet level;  // uint8 0-low level(下肢) 1-high level(上肢)
+      octet level;  // uint8 0-low level(下肢) 1-high level(上肢) 2-body(躯干)
       sequence<motorstate> states; //数组，所有的电机
     };
   

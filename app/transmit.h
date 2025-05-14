@@ -8,8 +8,9 @@
 #define TRANSMIT_H
 
 #define SLAVE_NUMBER 6 //可接最大从机数
-#define YKS_MOTOR_NUMBER 13 //接入的YKS电机数
-#define TI5_MOTOR_NUMBER 14 //接入的Ti5电机数
+#define LEG_MOTOR_NUMBER 12 //双腿的电机数
+#define ARM_MOTOR_NUMBER 12 //双臂的电机数
+#define BODY_MOTOR_NUMBER 3 //身体的电机数
 #define TOTAL_MOTOR_NUMBER 27 //接入的总电机数
 
 #include <inttypes.h>

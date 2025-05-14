@@ -21,12 +21,16 @@ LEGCMDTOPIC = "/nubot/z1/legmotorcmds"
 ARMSTATETOPIC = "/nubot/z1/armmotorstates"
 LEGSTATETOPIC = "/nubot/z1/legmotorstates"
 
+BODYCMDTOPIC = "/nubot/z1/bodymotorcmds"
+BODYSTATETOPIC = "/nubot/z1/bodymotorstates"
+
+
 class Z1RemoteClient(threading.Thread):
     def __init__(self, cmdtopic, statetopic, role):
         '''
         :param cmdtopic:   发布命令的topic
         :param statetopic: 订阅状态的topic
-        :param role:       leg-下肢， arm-上肢
+        :param role:       leg-下肢， arm-上肢 ，body-躯干
         '''
 
         super(Z1RemoteClient, self).__init__()
@@ -34,11 +38,11 @@ class Z1RemoteClient(threading.Thread):
         self.cmdtopic = cmdtopic
         self.statetopic = statetopic
 
-        if role not in ['arm', 'leg']:
+        if role not in ['arm', 'leg','body']:
             raise ValueError("role must be 'arm' or 'leg'")
 
-        motornum = {'arm': 14, 'leg': 13}
-        levels = {'arm': 1, 'leg': 0}
+        motornum = {'arm': 12, 'leg': 12, 'body': 3}
+        levels = {'leg': 0, 'arm': 1, 'body': 2}
 
         self.daemon = True
 
@@ -118,7 +122,7 @@ class Z1RemoteClient(threading.Thread):
         :param value: 目标值
         :param mode: 控制模式 (1: position, 2: torque, 3: velocity)
         """
-        arm_index = arm_index - 12
+        arm_index = arm_index - 11
         if not (0 <= arm_index < len(self.motorCmds.cmds)):
             raise IndexError("Invalid motor index")
 
@@ -131,13 +135,14 @@ class Z1RemoteClient(threading.Thread):
             cmd.tau = value
         elif mode == 3:
             cmd.vel = value
+
     def arm_yks_squat_control(self, arm_index, mode, pos, vel, tau, kp, kd):
         """
         :param arm_index: 关节索引
         :param value: 目标值
         :param mode: 控制模式 (1: position, 2: torque, 3: velocity)
         """
-        arm_index = arm_index - 12
+        arm_index = arm_index - 11
 
         if not (0 <= arm_index < len(self.motorCmds.cmds)):
             raise IndexError("Invalid motor index")
@@ -149,6 +154,25 @@ class Z1RemoteClient(threading.Thread):
         cmd.tau = tau
         cmd.kp = kp
         cmd.kd = kd
+    def body_yks_squat_control(self, arm_index, mode, pos, vel, tau, kp, kd):
+        """
+        :param arm_index: 关节索引
+        :param value: 目标值
+        :param mode: 控制模式 (1: position, 2: torque, 3: velocity)
+        """
+        arm_index = arm_index - 23
+
+        if not (0 <= arm_index < len(self.motorCmds.cmds)):
+            raise IndexError("Invalid motor index")
+
+        cmd = self.motorCmds.cmds[arm_index]
+        cmd.mode = mode
+        cmd.pos = pos
+        cmd.vel = vel
+        cmd.tau = tau
+        cmd.kp = kp
+        cmd.kd = kd
+
     def leg_squat_control(self, leg_index, mode, pos, vel, tau, kp, kd):
         """
         :param leg_index: 关节索引
@@ -172,7 +196,7 @@ class Z1RemoteClient(threading.Thread):
         :param mode: 读取模式 (0: 力位混合 1: position, 2: torque, 3: velocity)
         :return: 对应模式下的状态值
         """
-        arm_index = arm_index - 12  # 转换为本地索引
+        arm_index = arm_index - 11  # 转换为本地索引
         if not (0 <= arm_index < len(self._motorStates.states)):
             raise IndexError("Invalid motor index")
 
@@ -191,9 +215,11 @@ class Z1RemoteClient(threading.Thread):
 if __name__ == '__main__':
     z1_arm = Z1RemoteClient(ARMCMDTOPIC, ARMSTATETOPIC, 'arm')
     z1_leg = Z1RemoteClient(LEGCMDTOPIC, LEGSTATETOPIC, 'leg')
+    z1_body = Z1RemoteClient(BODYCMDTOPIC, BODYSTATETOPIC, 'body')
 
     z1_arm.arm_yks_squat_control(18, 0, 1, 0, 0, 400, 40)
     z1_leg.leg_squat_control(0, 0, 4, 0, 0, 400, 40)
+    z1_body.body_yks_squat_control(24, 0, 1, 0, 0, 400, 40)
 
     while True:
         # z1.squat_control(11, 0.5, 1)
@@ -209,7 +235,11 @@ if __name__ == '__main__':
 
         st = z1_leg.getStates()
         # print("sub %f" % (st.states[0].pos))
+        z1_body.setCommand()
+        # print("pub %f  %f" % (0, z1_leg.motorCmds.cmds[0].pos))
 
+        st = z1_body.getStates()
+        # print("sub %f" % (st.states[0].pos))
         # pos = z1_arm.read_arm_control(13, 1)  # 获取第13个关节的位置
         # torque = z1_arm.read_arm_control(13, 2)  # 获取力矩
         # vel = z1_arm.read_arm_control(13, 3)  # 获取速度
