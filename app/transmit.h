@@ -10,8 +10,8 @@
 #define SLAVE_NUMBER 6 //可接最大从机数
 #define LEG_MOTOR_NUMBER 12 //双腿的电机数
 #define ARM_MOTOR_NUMBER 12 //双臂的电机数
-#define BODY_MOTOR_NUMBER 3 //身体的电机数
-#define TOTAL_MOTOR_NUMBER 27 //接入的总电机数
+#define BODY_MOTOR_NUMBER 6 //身体的电机数
+#define TOTAL_MOTOR_NUMBER 30 //接入的总电机数
 
 #include <inttypes.h>
 #include <stdio.h>

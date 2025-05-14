@@ -170,8 +170,9 @@ C++使用方法：
        sudo ./YKS_SDK
 2. 检查app/motor_control.c文件中的电机型号设置是否正确，如有需要，修改，电机的型号是否正确
    也就是检查Z1_MOTOR_ID_Type和g_slaves数组初始化是否正确，前者是电机的顺序
-3. 在main.cpp中，检查CAT_Init("enp3s0")中的网口名称是否正确，如有需要，修改
-4. 可以调用函数squat_control()和read_arm_control()来控制和读取电机数据
+3. 检查Z1_legs.h中LegDirectionMotor_数组的电机转向是否正确，如有需要，修改
+4. 在main.cpp中，检查CAT_Init("enp3s0")中的网口名称是否正确，如有需要，修改
+5. 可以调用函数squat_control()和read_arm_control()来控制和读取电机数据
  这两个函数需要根据需要进行修改和拓展，比如输入数组来一次性控制多个电机，输出数组来一次性读取多个电机数据
 这两个函数的电机id号参考app/motor_control.c中的g_slaves的global_id，与上位机显示的序列差1。
 #### python控制电机运动：

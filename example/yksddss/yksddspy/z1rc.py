@@ -9,7 +9,7 @@ from cyclonedds.pub import Publisher, DataWriter
 from cyclonedds.sub import DataReader
 from cyclonedds.topic import Topic
 from cyclonedds.qos import Qos, Policy
-
+from cyclonedds.idl.types import sequence
 import nubotddsmsg.hr as hrmsg
 from copy import deepcopy
 
@@ -41,7 +41,7 @@ class Z1RemoteClient(threading.Thread):
         if role not in ['arm', 'leg','body']:
             raise ValueError("role must be 'arm' or 'leg'")
 
-        motornum = {'arm': 12, 'leg': 12, 'body': 3}
+        motornum = {'arm': 12, 'leg': 30, 'body': 6}
         levels = {'leg': 0, 'arm': 1, 'body': 2}
 
         self.daemon = True
@@ -49,6 +49,15 @@ class Z1RemoteClient(threading.Thread):
         # 初始化消息
         self._motorCmds = hrmsg.motorcmds(level=levels[role],
                                           cmds=[hrmsg.motorcmd(0, 0, 0, 0, 0, 0, 0) for _ in range(motornum[role])])
+
+
+        # MotorCmdSeq = sequence(hrmsg.motorcmd)
+        # cmd_list = [hrmsg.motorcmd(mode=0, index=i, pos=0.0, vel=0.0, tau=0.0, kp=0.0, kd=0.0) for i in range(12)]
+        # cmds = sequence(hrmsg.motorcmd, cmd_list)  # 或者 MotorCmdSeq(cmd_list)
+        # cmds = MotorCmdSeq
+        #
+        # self._motorCmds = hrmsg.motorcmds(level=levels[role],
+        #                                   cmds=MotorCmdSeq)
 
         self.motorCmds = hrmsg.motorcmds(level=levels[role],
                                          cmds=[hrmsg.motorcmd(0, 0, 0, 0, 0, 0, 0) for _ in range(motornum[role])])
@@ -213,33 +222,35 @@ class Z1RemoteClient(threading.Thread):
 
 
 if __name__ == '__main__':
-    z1_arm = Z1RemoteClient(ARMCMDTOPIC, ARMSTATETOPIC, 'arm')
+    # z1_arm = Z1RemoteClient(ARMCMDTOPIC, ARMSTATETOPIC, 'arm')
     z1_leg = Z1RemoteClient(LEGCMDTOPIC, LEGSTATETOPIC, 'leg')
-    z1_body = Z1RemoteClient(BODYCMDTOPIC, BODYSTATETOPIC, 'body')
+    # z1_body = Z1RemoteClient(BODYCMDTOPIC, BODYSTATETOPIC, 'body')
 
-    z1_arm.arm_yks_squat_control(23, 0, 1, 0, 0, 400, 40)#0-11
-    z1_leg.leg_squat_control(10, 0, 4, 0, 0, 400, 40)#12-23
-    z1_leg.leg_squat_control(11, 0, 0, 0, 0, 400, 40)
-    z1_body.body_yks_squat_control(25, 0, 1, 0, 0, 400, 40)#24-26
+    # z1_arm.arm_yks_squat_control(22, 0, 1, 0, 0, 400, 40)#0-11
+    for i in range(30):
+        z1_leg.leg_squat_control(i, 0, 3, 0, 0, 300, 40)
+    # z1_leg.leg_squat_control(10, 0, 4, 0, 0, 400, 40)#12-23
+    # z1_leg.leg_squat_control(11, 0, 0, 0, 0, 400, 40)
+    # z1_body.body_yks_squat_control(25, 0, 1, 0, 0, 400, 40)#24-26
 
     while True:
         # z1.squat_control(11, 0.5, 1)
 
-        z1_arm.setCommand()
-        print("pub %f  %f" % (13, z1_arm.motorCmds.cmds[6].pos))
+        # z1_arm.setCommand()
+        # print("pub %f  %f" % (13, z1_arm.motorCmds.cmds[6].pos))
 
-        st = z1_arm.getStates()
-        print("sub %f" % (st.states[1].pos))
+        # st = z1_arm.getStates()
+        # print("sub %f" % (st.states[1].pos))
 
         z1_leg.setCommand()
-        # print("pub %f  %f" % (0, z1_leg.motorCmds.cmds[0].pos))
+        print("pub %f  %f" % (0, z1_leg.motorCmds.cmds[0].pos))
 
         st = z1_leg.getStates()
-        # print("sub %f" % (st.states[0].pos))
-        z1_body.setCommand()
+        print("sub %f" % (st.states[0].pos))
+        # z1_body.setCommand()
         # print("pub %f  %f" % (0, z1_leg.motorCmds.cmds[0].pos))
 
-        st = z1_body.getStates()
+        # st = z1_body.getStates()
         # print("sub %f" % (st.states[0].pos))
         # pos = z1_arm.read_arm_control(13, 1)  # 获取第13个关节的位置
         # torque = z1_arm.read_arm_control(13, 2)  # 获取力矩

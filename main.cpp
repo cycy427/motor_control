@@ -106,7 +106,7 @@ void DDS_Pub_Arm_Motor_Data(motorstates &states, dds::pub::DataWriter<motorstate
 void DDS_Pub_Leg_Motor_Data( motorstates &states, dds::pub::DataWriter<motorstates> &writer,
                         const YKSMotorData *motor_data_) {
     // 拿到所有DDS传过来的电机指令数据，然后传给main函数当中的全局数组，通过电机数量可以区分到底是上肢还是下肢的指令
-    int motor_num = LEG_MOTOR_NUMBER;
+    int motor_num = TOTAL_MOTOR_NUMBER;
 
     for (int i = 0; i < motor_num; i++) {
         auto &state = states.states()[i];
@@ -165,7 +165,7 @@ void DDS_Leg_SUB(dds::sub::DataReader<motorcmds> &Reader, dds::sub::LoanedSample
             const motorcmds &cmds = sample_iter->data();
             const dds::sub::SampleInfo &info = sample_iter->info();
             if (info.valid()) {
-                DDS_Get_Leg_Motor_Cmds(LEG_MOTOR_NUMBER, cmds, my_motor_data);
+                DDS_Get_Leg_Motor_Cmds(TOTAL_MOTOR_NUMBER, cmds, my_motor_data);
             }
         }
     }
@@ -300,7 +300,7 @@ int main() {
 
     motorstates legStates;
     legStates.level(0); // 设置为下肢
-    legStates.states().resize(LEG_MOTOR_NUMBER);
+    legStates.states().resize(TOTAL_MOTOR_NUMBER);
 
     motorstates bodyStates;
     bodyStates.level(2); // 设置为躯干
