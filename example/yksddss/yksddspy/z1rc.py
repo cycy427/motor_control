@@ -142,7 +142,7 @@ class Z1RemoteClient(threading.Thread):
         :param value: 目标值
         :param mode: 控制模式 (1: position, 2: torque, 3: velocity)
         """
-        arm_index = arm_index - 11
+        arm_index = arm_index - 12
 
         if not (0 <= arm_index < len(self.motorCmds.cmds)):
             raise IndexError("Invalid motor index")
@@ -160,7 +160,7 @@ class Z1RemoteClient(threading.Thread):
         :param value: 目标值
         :param mode: 控制模式 (1: position, 2: torque, 3: velocity)
         """
-        arm_index = arm_index - 23
+        arm_index = arm_index - 24
 
         if not (0 <= arm_index < len(self.motorCmds.cmds)):
             raise IndexError("Invalid motor index")
@@ -217,9 +217,10 @@ if __name__ == '__main__':
     z1_leg = Z1RemoteClient(LEGCMDTOPIC, LEGSTATETOPIC, 'leg')
     z1_body = Z1RemoteClient(BODYCMDTOPIC, BODYSTATETOPIC, 'body')
 
-    z1_arm.arm_yks_squat_control(18, 0, 1, 0, 0, 400, 40)
-    z1_leg.leg_squat_control(0, 0, 4, 0, 0, 400, 40)
-    z1_body.body_yks_squat_control(24, 0, 1, 0, 0, 400, 40)
+    z1_arm.arm_yks_squat_control(23, 0, 1, 0, 0, 400, 40)#0-11
+    z1_leg.leg_squat_control(10, 0, 4, 0, 0, 400, 40)#12-23
+    z1_leg.leg_squat_control(11, 0, 0, 0, 0, 400, 40)
+    z1_body.body_yks_squat_control(25, 0, 1, 0, 0, 400, 40)#24-26
 
     while True:
         # z1.squat_control(11, 0.5, 1)

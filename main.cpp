@@ -62,24 +62,24 @@ void DDS_Get_Leg_Motor_Cmds(const int motor_num, const motorcmds &cmds, YKSMotor
 void DDS_Get_Arm_Motor_Cmds(const int motor_num, const motorcmds &cmds, YKSMotorData *motor_cmds) {
     // 拿到所有DDS传过来的电机指令数据，然后传给main函数当中的全局数组，通过电机数量可以区分到底是上肢还是下肢的指令
     for (int i = 0; i < motor_num; i++) {
-        motor_cmds[i+11].pos_des_ = cmds.cmds()[i].pos();
-        motor_cmds[i+11].vel_des_ = cmds.cmds()[i].vel();
-        motor_cmds[i+11].ff_ = cmds.cmds()[i].tau();
-        motor_cmds[i+11].mode = cmds.cmds()[i].mode();
-        motor_cmds[i+11].kp_ = cmds.cmds()[i].kp();
-        motor_cmds[i+11].kd_ = cmds.cmds()[i].kd();
+        motor_cmds[i+12].pos_des_ = cmds.cmds()[i].pos();
+        motor_cmds[i+12].vel_des_ = cmds.cmds()[i].vel();
+        motor_cmds[i+12].ff_ = cmds.cmds()[i].tau();
+        motor_cmds[i+12].mode = cmds.cmds()[i].mode();
+        motor_cmds[i+12].kp_ = cmds.cmds()[i].kp();
+        motor_cmds[i+12].kd_ = cmds.cmds()[i].kd();
     }
 }
 
 void DDS_Get_Body_Motor_Cmds(const int motor_num, const motorcmds &cmds, YKSMotorData *motor_cmds) {
     // 拿到所有DDS传过来的电机指令数据，然后传给main函数当中的全局数组，通过电机数量可以区分到底是上肢还是下肢的指令
     for (int i = 0; i < motor_num; i++) {
-        motor_cmds[i+23].pos_des_ = cmds.cmds()[i].pos();
-        motor_cmds[i+23].vel_des_ = cmds.cmds()[i].vel();
-        motor_cmds[i+23].ff_ = cmds.cmds()[i].tau();
-        motor_cmds[i+23].mode = cmds.cmds()[i].mode();
-        motor_cmds[i+23].kp_ = cmds.cmds()[i].kp();
-        motor_cmds[i+23].kd_ = cmds.cmds()[i].kd();
+        motor_cmds[i+24].pos_des_ = cmds.cmds()[i].pos();
+        motor_cmds[i+24].vel_des_ = cmds.cmds()[i].vel();
+        motor_cmds[i+24].ff_ = cmds.cmds()[i].tau();
+        motor_cmds[i+24].mode = cmds.cmds()[i].mode();
+        motor_cmds[i+24].kp_ = cmds.cmds()[i].kp();
+        motor_cmds[i+24].kd_ = cmds.cmds()[i].kd();
     }
 }
 
@@ -89,16 +89,16 @@ void DDS_Pub_Arm_Motor_Data(motorstates &states, dds::pub::DataWriter<motorstate
     int motor_num = ARM_MOTOR_NUMBER;
     for (int i = 0; i < motor_num; i++) {
         auto &state = states.states()[i];
-        state.mode(motor_data_[i+11].mode);
-        state.index(i + 11);
-        state.pos(motor_data_[i+11].pos_);
-        state.vel(motor_data_[i+11].vel_);
-        state.cur(motor_data_[i+11].tau_);
-        state.tau(motor_data_[i+11].tau_);
-        state.tau_raw(motor_data_[i+11].tau_);
-        state.error(motor_data_[i+11].error_);
-        state.tem(motor_data_[i+11].temperature_);
-        state.mos_tem(motor_data_[i+11].mos_temperature_);
+        state.mode(motor_data_[i+12].mode);
+        state.index(i + 12);
+        state.pos(motor_data_[i+12].pos_);
+        state.vel(motor_data_[i+12].vel_);
+        state.cur(motor_data_[i+12].tau_);
+        state.tau(motor_data_[i+12].tau_);
+        state.tau_raw(motor_data_[i+12].tau_);
+        state.error(motor_data_[i+12].error_);
+        state.tem(motor_data_[i+12].temperature_);
+        state.mos_tem(motor_data_[i+12].mos_temperature_);
     }
     writer.write(states);
 }
@@ -131,16 +131,16 @@ void DDS_Pub_Body_Motor_Data( motorstates &states, dds::pub::DataWriter<motorsta
 
     for (int i = 0; i < motor_num; i++) {
         auto &state = states.states()[i];
-        state.mode(motor_data_[i+23].mode);
-        state.index(i + 23);
-        state.pos(motor_data_[i+23].pos_);
-        state.vel(motor_data_[i+23].vel_);
-        state.cur(motor_data_[i+23].tau_);
-        state.tau(motor_data_[i+23].tau_);
-        state.tau_raw(motor_data_[i+23].tau_);
-        state.error(motor_data_[i+23].error_);
-        state.tem(motor_data_[i+23].temperature_);
-        state.mos_tem(motor_data_[i+23].mos_temperature_);
+        state.mode(motor_data_[i+24].mode);
+        state.index(i + 24);
+        state.pos(motor_data_[i+24].pos_);
+        state.vel(motor_data_[i+24].vel_);
+        state.cur(motor_data_[i+24].tau_);
+        state.tau(motor_data_[i+24].tau_);
+        state.tau_raw(motor_data_[i+24].tau_);
+        state.error(motor_data_[i+24].error_);
+        state.tem(motor_data_[i+24].temperature_);
+        state.mos_tem(motor_data_[i+24].mos_temperature_);
     }
     writer.write(states);
 }
