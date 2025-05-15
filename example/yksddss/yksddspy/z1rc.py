@@ -24,7 +24,8 @@ LEGSTATETOPIC = "/nubot/z1/legmotorstates"
 BODYCMDTOPIC = "/nubot/z1/bodymotorcmds"
 BODYSTATETOPIC = "/nubot/z1/bodymotorstates"
 
-
+WHOLEBODYCMDTOPIC = "/nubot/z1/wholebodymotorcmds"
+WHOLEBODYSTATETOPIC = "/nubot/z1/wholebodymotorstates"
 class Z1RemoteClient(threading.Thread):
     def __init__(self, cmdtopic, statetopic, role):
         '''
@@ -38,18 +39,17 @@ class Z1RemoteClient(threading.Thread):
         self.cmdtopic = cmdtopic
         self.statetopic = statetopic
 
-        if role not in ['arm', 'leg','body']:
-            raise ValueError("role must be 'arm' or 'leg'")
+        if role not in ['arm', 'leg', 'body', 'Z1_5_WB']:
+            raise ValueError("role must be 'arm' or 'leg' or 'body' or 'Z1_5_WB'")
 
-        motornum = {'arm': 12, 'leg': 30, 'body': 6}
-        levels = {'leg': 0, 'arm': 1, 'body': 2}
+        motornum = {'arm': 12, 'leg': 12, 'body': 6, 'Z1_5_WB': 30}
+        levels = {'leg': 0, 'arm': 1, 'body': 2, 'Z1_5_WB': 3}
 
         self.daemon = True
 
         # 初始化消息
         self._motorCmds = hrmsg.motorcmds(level=levels[role],
                                           cmds=[hrmsg.motorcmd(0, 0, 0, 0, 0, 0, 0) for _ in range(motornum[role])])
-
 
         # MotorCmdSeq = sequence(hrmsg.motorcmd)
         # cmd_list = [hrmsg.motorcmd(mode=0, index=i, pos=0.0, vel=0.0, tau=0.0, kp=0.0, kd=0.0) for i in range(12)]
@@ -163,6 +163,7 @@ class Z1RemoteClient(threading.Thread):
         cmd.tau = tau
         cmd.kp = kp
         cmd.kd = kd
+
     def body_yks_squat_control(self, arm_index, mode, pos, vel, tau, kp, kd):
         """
         :param arm_index: 关节索引
@@ -223,16 +224,63 @@ class Z1RemoteClient(threading.Thread):
 
 if __name__ == '__main__':
     # z1_arm = Z1RemoteClient(ARMCMDTOPIC, ARMSTATETOPIC, 'arm')
-    z1_leg = Z1RemoteClient(LEGCMDTOPIC, LEGSTATETOPIC, 'leg')
+    z1_5_wb = Z1RemoteClient(WHOLEBODYCMDTOPIC, WHOLEBODYSTATETOPIC, 'Z1_5_WB')
     # z1_body = Z1RemoteClient(BODYCMDTOPIC, BODYSTATETOPIC, 'body')
 
-    # z1_arm.arm_yks_squat_control(22, 0, 1, 0, 0, 400, 40)#0-11
+    # z1_5_wb.leg_squat_control(22, 0, 1, 0, 0, 400, 40)#0-11
+    
     for i in range(30):
-        z1_leg.leg_squat_control(i, 0, 3, 0, 0, 300, 40)
+        # print(i)
+        z1_5_wb.leg_squat_control(i, 0, 0, 0, 0, 0, 10)
+        # z1_5_wb.setCommand()
+        # print("pub %f  %f" % (0, z1_5_wb.motorCmds.cmds[0].pos))
+
+        # st = z1_5_wb.getStates()
+        # print("sub %f" % (st.states[0].pos))
+        time.sleep(0.01)
+
+    # time.sleep(3)
+
     # z1_leg.leg_squat_control(10, 0, 4, 0, 0, 400, 40)#12-23
     # z1_leg.leg_squat_control(11, 0, 0, 0, 0, 400, 40)
     # z1_body.body_yks_squat_control(25, 0, 1, 0, 0, 400, 40)#24-26
+    # for i in range(12,30):
+    #     # print(i)
+    #     z1_5_wb.leg_squat_control(i, 0, 0, 0, 0, 100, 10)
+    #     z1_5_wb.setCommand()
+    #     print("pub %f  %f" % (0, z1_5_wb.motorCmds.cmds[0].pos))
 
+    #     st = z1_5_wb.getStates()
+    #     print("sub %f" % (st.states[0].pos))
+    #     time.sleep(0.01)
+    
+    
+    # time.sleep(1.5) 
+
+
+    # for i in range(0, 13):
+    #     z1_5_wb.leg_squat_control(16, 0, -i*0.1, 0, 0, 100, 10)
+    #     z1_5_wb.setCommand()
+    #     print("pub %f  %f" % (0, z1_5_wb.motorCmds.cmds[0].pos))
+
+    #     st = z1_5_wb.getStates()
+    #     print("sub %f" % (st.states[0].pos))
+    #     time.sleep(0.01)
+
+    
+    # for i in range(0, 70):
+    #     z1_5_wb.leg_squat_control(18, 0, i*0.005, 0, 0, 100, 10)
+    #     z1_5_wb.leg_squat_control(19, 0, -i*0.018, 0, 0, 100, 10)
+    #     z1_5_wb.leg_squat_control(21, 0, i*0.0026, 0, 0, 100, 10)
+    #     z1_5_wb.leg_squat_control(22, 0, -i*0.0104, 0, 0, 100, 10)
+    #     z1_5_wb.leg_squat_control(23, 0, i*0.018, 0, 0, 100, 10)
+    #     z1_5_wb.setCommand()
+    #     print("pub %f  %f" % (0, z1_5_wb.motorCmds.cmds[0].pos))
+
+    #     st = z1_5_wb.getStates()
+    #     print("sub %f" % (st.states[0].pos))
+    #     time.sleep(0.01)
+        
     while True:
         # z1.squat_control(11, 0.5, 1)
 
@@ -242,10 +290,10 @@ if __name__ == '__main__':
         # st = z1_arm.getStates()
         # print("sub %f" % (st.states[1].pos))
 
-        z1_leg.setCommand()
-        print("pub %f  %f" % (0, z1_leg.motorCmds.cmds[0].pos))
+        z1_5_wb.setCommand()
+        print("pub %f  %f" % (0, z1_5_wb.motorCmds.cmds[0].pos))
 
-        st = z1_leg.getStates()
+        st = z1_5_wb.getStates()
         print("sub %f" % (st.states[0].pos))
         # z1_body.setCommand()
         # print("pub %f  %f" % (0, z1_leg.motorCmds.cmds[0].pos))

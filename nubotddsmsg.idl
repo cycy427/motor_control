@@ -40,7 +40,7 @@ module nubotddsmsg {
 
     @extensibility(FINAL)
     struct motorstates {
-      octet level;  // uint8 0-low level(下肢) 1-high level(上肢) 2-body(躯干)
+      octet level;  // uint8 0-low level(下肢) 1-high level(上肢)
       sequence<motorstate> states; //数组，所有的电机
     };
   
@@ -50,16 +50,51 @@ module nubotddsmsg {
   
   //// 传感器 begin/////////////////////////////////////////////////////////
   module sensor {  // 传感器
-  
-    @extensibility(FINAL)
-    struct xxx {
-      octet mode;   // uint8 模式
-      float pos;    // float32 期望位置 (rad)
-      float vel;    // float32 期望速度 (rad/s)
-      float tau;    // float32 期望力矩 (Nm)
-      float kp;     // float32 位置环KP
-      float kd;     // float32 位置环KD
-    };
+
+      @extensibility(FINAL)
+      struct orientation {
+        float x;
+        float y;
+        float z;
+        float w;
+      };
+
+      @extensibility(FINAL)
+      struct angular_velocity {
+        float x;
+        float y;
+        float z;
+      };
+
+      @extensibility(FINAL)
+      struct linear_acceleration {
+        float x;
+        float y;
+        float z;
+      };
+
+      @extensibility(FINAL)
+      struct Magnetic {
+        float x;
+        float y;
+        float z;
+      };
+
+      @extensibility(FINAL)
+      struct euler_angles {
+        float roll;
+        float pitch;
+        float yaw;
+      };
+
+      @extensibility(FINAL)
+      struct imudata {
+        orientation orientation;
+        angular_velocity angular_velocity;
+        linear_acceleration linear_acceleration;
+        Magnetic Magnetic;
+        euler_angles euler_angles;
+      };
 
   };
   //// 传感器 end/////////////////////////////////////////////////////////
