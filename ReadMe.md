@@ -75,7 +75,9 @@ typedef struct {
 3. 使用`ifconfig`指令确定接入从机的网卡名称  `sudo apt-get install net-tools`
 4. 将该网卡名称填入到[main.cpp](main.cpp)中、"在while函数中需添加不少于10MS的延时，否则电机无法正常运行"
 5. 修改[transmit.h](app/transmit.h)中的最大从机数目（默认为5）
-6. 如果需要使用SBUS接收机，需要修改串口的别名，才能找到这个接收机，具体使用教程可以参见 [SBUS转USB串口配置教程](https://www.wolai.com/kUuBkzjtbkCvuwPxWN3Epj)
+6.
+
+如果需要使用SBUS接收机，需要修改串口的别名，才能找到这个接收机，具体使用教程可以参见 [SBUS转USB串口配置教程](https://www.wolai.com/kUuBkzjtbkCvuwPxWN3Epj)
 
 7. 安装依赖库：
    `sudo apt install libtinfo-dev libreadline-dev libboost-all-dev libncurses5-dev libncursesw5-dev net-tools`
@@ -160,7 +162,9 @@ https://gitcode.com/gh_mirrors/xo/xone
 更多教程参见app文件夹下的[YKS官方教程](app/README.md#SOEM主站)
 
 ### 钛虎电机使用简要说明，请先阅读上述完整教程
+
 C++使用方法：
+
 1. 将build文件夹删除，重新创建工程后编译
     ```shell
        mkdir build
@@ -175,25 +179,45 @@ C++使用方法：
 5. 如果使用python控制，检查上述内容后在中终端中打开就行了，换一个终端使用python对齐修改
 
 #### python控制电机运动：
+
 1. 完成c++的第一步，打开一个终端将./build/YKS_SDK运行起来
 2. 首先打开安装了dds库的python环境，如果没有安装参开dds_int中的readme.md安装环境和example/yksddss/文件夹中的readme.md安装消息库
 3. 例程为./example/yksddss/yksddspy/z1rc.py，认真阅读后可以只打开ethercat板子但是不打开电机进行测试，看./YKS_SDK
-页面是否有收到消息，通信成功后参考这个例程写自己收发程序或者调用这个例程的函数皆可
+   页面是否有收到消息，通信成功后参考这个例程写自己收发程序或者调用这个例程的函数皆可
 4. 所写的发送程序为z1_5_wb.z1_5_wb_squat_control(),请阅读函数注释，将函数参数修改为需要发送的数据，然后调用该函数，需要
-修改的值一般为index，这个是电机的全局id号，和./YKS_SDK终端所显示的一致，每次发送都是30个数据一块发送，要是
-只需要控制双足，那么可以修改for i in range(12): z1_5_wb.z1_5_wb_squat_control(),其余的不改即可
+   修改的值一般为index，这个是电机的全局id号，和./YKS_SDK终端所显示的一致，每次发送都是30个数据一块发送，要是
+   只需要控制双足，那么可以修改for i in range(12): z1_5_wb.z1_5_wb_squat_control(),其余的不改即可
 5. id 设置为 双足：0-11 双臂 12-23 躯干 24-29
 
 #### 接线说明
+
 1. 接入一个5V电源：将电池线连接至Ethercat板子的电源一端，这一端是靠近STM32芯片的一端，另一端连接至上位机网口。
+
 ### 注意，这一步不能接反，不确定请找接过的人！！！
+
 2. 修改电机的can id，然后接到板子上，CAN1通道为电机can id 1，2，3；CAN2通道为电机can id 4，5，6；
 
+## 调试步骤
+
+规范使用步骤：
+
+- 开启：先ethercat板子上电，然后电机上电，打开sudo ./YKS_SDK，有返回值值之后再用DDS下发指令。
+- 关闭：
+- （1）先杀死终端中的sudo ./YKS_SDK,再拍急停，此时可以不关闭电池电源（关闭ethercat板子供电），重新打开电机急停开关，电机上电，打开sudo
+  ./YKS_SDK，进程重新启动。
+- （2）先拍急停，此时电机断电，然后关闭程序，此时不可以直接打开急停和打开sudo ./YKS_SDK，而是要关闭电源开关（关闭ethercat板子供电），重新打开的步骤。
+  调试建议：
+- 如果有时间的话，先只打开ethercat板子进行调试，通过./YKS_SDK终端观察下发的命令是否正确，确认无误后再关闭ethercat板子电源，重新上述的开启步骤
 
 ### 注意事项
+
 1. 电机id号参考app/motor_control.c中的g_slaves的global_id，与上位机显示的序列相同。
 2. 请先杀掉./YKS_SDK程序后再拍急停关闭电机，如果先关闭了电机再关程序，请同时将ethercat版也断电，即将电池断电
 
 #### 获得原始数据
+
 1. 调用：z1_leg.cpp里面的EtherCAT_Send_Command（）用户发送数据给ethercat的地方
-2. 进入transmit.cpp里面的EtherCAT_Send_Command,根据mode的不同调用不同的解码函数，其中力位混合模式在mode==0的set_ti5_current()上修改，要拿到原始数据，可以进入这些set_ti5_xxx函数，修改返回值
+2.
+
+进入transmit.cpp里面的EtherCAT_Send_Command,根据mode的不同调用不同的解码函数，其中力位混合模式在mode==0的set_ti5_current()
+上修改，要拿到原始数据，可以进入这些set_ti5_xxx函数，修改返回值

@@ -475,7 +475,7 @@ int main() {
         ///通过Socket将电机状态发送给用户端
         // sender.sendSocketMotorData(my_motor_data); //通过Socket反馈电机当前的数据
         SBusData data = sbus_receiver.getData();
-        SBusReceiver::print_data(data);
+        // SBusReceiver::print_data(data);
 
         DDS_Pub_Sbus_Data(sbus_States, sbus_Writer, &data);
         // pos = data.ch[2] / 672.0 * 4;
