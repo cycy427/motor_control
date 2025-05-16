@@ -200,6 +200,22 @@ class Z1RemoteClient(threading.Thread):
         cmd.kp = kp
         cmd.kd = kd
 
+    def z1_5_wb_squat_control(self, index, mode, pos, vel, tau, kp, kd):
+        """
+        :param index: 关节索引（全局ID）双足：0-11 双臂 12-23 躯干 24-29
+        :param pos, vel, tau, kp, kd: 目标值
+        :param mode: 控制模式 (0: 力位混合 1: position, 2: torque, 3: velocity)
+        """
+        if not (0 <= index < len(self.motorCmds.cmds)):
+            raise IndexError("Invalid motor index")
+
+        cmd = self.motorCmds.cmds[index]
+        cmd.mode = mode
+        cmd.pos = pos
+        cmd.vel = vel
+        cmd.tau = tau
+        cmd.kp = kp
+        cmd.kd = kd
     def read_arm_control(self, arm_index, mode):
         """
         :param arm_index: 关节索引（全局ID）
@@ -231,65 +247,13 @@ if __name__ == '__main__':
     
     for i in range(30):
         # print(i)
-        z1_5_wb.leg_squat_control(i, 0, 0, 0, 0, 0, 10)
-        # z1_5_wb.setCommand()
-        # print("pub %f  %f" % (0, z1_5_wb.motorCmds.cmds[0].pos))
+        z1_5_wb.z1_5_wb_squat_control(i, 0, 0, 0, 0, 0, 10)
 
-        # st = z1_5_wb.getStates()
-        # print("sub %f" % (st.states[0].pos))
         time.sleep(0.01)
 
-    # time.sleep(3)
 
-    # z1_leg.leg_squat_control(10, 0, 4, 0, 0, 400, 40)#12-23
-    # z1_leg.leg_squat_control(11, 0, 0, 0, 0, 400, 40)
-    # z1_body.body_yks_squat_control(25, 0, 1, 0, 0, 400, 40)#24-26
-    # for i in range(12,30):
-    #     # print(i)
-    #     z1_5_wb.leg_squat_control(i, 0, 0, 0, 0, 100, 10)
-    #     z1_5_wb.setCommand()
-    #     print("pub %f  %f" % (0, z1_5_wb.motorCmds.cmds[0].pos))
-
-    #     st = z1_5_wb.getStates()
-    #     print("sub %f" % (st.states[0].pos))
-    #     time.sleep(0.01)
-    
-    
-    # time.sleep(1.5) 
-
-
-    # for i in range(0, 13):
-    #     z1_5_wb.leg_squat_control(16, 0, -i*0.1, 0, 0, 100, 10)
-    #     z1_5_wb.setCommand()
-    #     print("pub %f  %f" % (0, z1_5_wb.motorCmds.cmds[0].pos))
-
-    #     st = z1_5_wb.getStates()
-    #     print("sub %f" % (st.states[0].pos))
-    #     time.sleep(0.01)
-
-    
-    # for i in range(0, 70):
-    #     z1_5_wb.leg_squat_control(18, 0, i*0.005, 0, 0, 100, 10)
-    #     z1_5_wb.leg_squat_control(19, 0, -i*0.018, 0, 0, 100, 10)
-    #     z1_5_wb.leg_squat_control(21, 0, i*0.0026, 0, 0, 100, 10)
-    #     z1_5_wb.leg_squat_control(22, 0, -i*0.0104, 0, 0, 100, 10)
-    #     z1_5_wb.leg_squat_control(23, 0, i*0.018, 0, 0, 100, 10)
-    #     z1_5_wb.setCommand()
-    #     print("pub %f  %f" % (0, z1_5_wb.motorCmds.cmds[0].pos))
-
-    #     st = z1_5_wb.getStates()
-    #     print("sub %f" % (st.states[0].pos))
-    #     time.sleep(0.01)
         
     while True:
-        # z1.squat_control(11, 0.5, 1)
-
-        # z1_arm.setCommand()
-        # print("pub %f  %f" % (13, z1_arm.motorCmds.cmds[6].pos))
-
-        # st = z1_arm.getStates()
-        # print("sub %f" % (st.states[1].pos))
-
         z1_5_wb.setCommand()
         print("pub %f  %f" % (0, z1_5_wb.motorCmds.cmds[0].pos))
 
@@ -298,10 +262,4 @@ if __name__ == '__main__':
         # z1_body.setCommand()
         # print("pub %f  %f" % (0, z1_leg.motorCmds.cmds[0].pos))
 
-        # st = z1_body.getStates()
-        # print("sub %f" % (st.states[0].pos))
-        # pos = z1_arm.read_arm_control(13, 1)  # 获取第13个关节的位置
-        # torque = z1_arm.read_arm_control(13, 2)  # 获取力矩
-        # vel = z1_arm.read_arm_control(13, 3)  # 获取速度
-        # print(f"Position: {pos}, Torque: {torque}, Velocity: {vel}")
         time.sleep(0.01)

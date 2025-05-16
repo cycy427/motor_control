@@ -172,21 +172,27 @@ C++使用方法：
    也就是检查Z1_MOTOR_ID_Type和g_slaves数组初始化是否正确，前者是电机的顺序
 3. 检查Z1_legs.h中LegDirectionMotor_数组的电机转向是否正确，如有需要，修改
 4. 在main.cpp中，检查CAT_Init("enp3s0")中的网口名称是否正确，如有需要，修改
-5. 可以调用函数squat_control()和read_arm_control()来控制和读取电机数据
- 这两个函数需要根据需要进行修改和拓展，比如输入数组来一次性控制多个电机，输出数组来一次性读取多个电机数据
-这两个函数的电机id号参考app/motor_control.c中的g_slaves的global_id，与上位机显示的序列差1。
+5. 如果使用python控制，检查上述内容后在中终端中打开就行了，换一个终端使用python对齐修改
+
 #### python控制电机运动：
 1. 完成c++的第一步，打开一个终端将./build/YKS_SDK运行起来
-2. 首先打开安装了dds库的python环境，如果没有安装参开dds_int和example/yksddss/文件夹中的readme.md安装环境，包括dds的py库和个人定义的消息库
-3. 找到./example/yksddss/yksddspy/z1rc.py
-4. 调用其中的squat_control()和read_arm_control()即可，与c++版本使用方法一样
-
+2. 首先打开安装了dds库的python环境，如果没有安装参开dds_int中的readme.md安装环境和example/yksddss/文件夹中的readme.md安装消息库
+3. 例程为./example/yksddss/yksddspy/z1rc.py，认真阅读后可以只打开ethercat板子但是不打开电机进行测试，看./YKS_SDK
+页面是否有收到消息，通信成功后参考这个例程写自己收发程序或者调用这个例程的函数皆可
+4. 所写的发送程序为z1_5_wb.z1_5_wb_squat_control(),请阅读函数注释，将函数参数修改为需要发送的数据，然后调用该函数，需要
+修改的值一般为index，这个是电机的全局id号，和./YKS_SDK终端所显示的一致，每次发送都是30个数据一块发送，要是
+只需要控制双足，那么可以修改for i in range(12): z1_5_wb.z1_5_wb_squat_control(),其余的不改即可
+5. id 设置为 双足：0-11 双臂 12-23 躯干 24-29
 
 #### 接线说明
 1. 接入一个5V电源：将电池线连接至Ethercat板子的电源一端，这一端是靠近STM32芯片的一端，另一端连接至上位机网口。
 ### 注意，这一步不能接反，不确定请找接过的人！！！
 2. 修改电机的can id，然后接到板子上，CAN1通道为电机can id 1，2，3；CAN2通道为电机can id 4，5，6；
 
+
+### 注意事项
+1. 电机id号参考app/motor_control.c中的g_slaves的global_id，与上位机显示的序列相同。
+2. 请先杀掉./YKS_SDK程序后再拍急停关闭电机，如果先关闭了电机再关程序，请同时将ethercat版也断电，即将电池断电
 
 #### 获得原始数据
 1. 调用：z1_leg.cpp里面的EtherCAT_Send_Command（）用户发送数据给ethercat的地方
