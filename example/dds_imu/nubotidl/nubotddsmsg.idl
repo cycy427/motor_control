@@ -98,18 +98,6 @@ module nubotddsmsg {
 
   };
   //// 传感器 end/////////////////////////////////////////////////////////
-
-  //// SBUS begin/////////////////////////////////////////////////////////
-  module sbus {
-
-      @extensibility(FINAL)
-      struct sbusdata {
-          boolean lost_frame;    // 表示是否丢失帧
-          boolean failsafe;      // 表示是否进入失效保护模式
-          long ch[16];           // 16个通道的数组，每个通道存储整型值
-      };
-  };
-
-
+  
 };
 

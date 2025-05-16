@@ -48,7 +48,9 @@ set(CMAKE_CXX_EXTENSIONS OFF) # 如果你不想使用 GNU 扩展，可以将此�
 idlcxx_generate(TARGET nubotddsmsg FILES nubotddsmsg.idl)
 
 # 添加可执行文件 YKS_SDK
-add_executable(YKS_SDK main.cpp JoyStickHandler.cpp Z1Legs.cpp BmsHandler.cpp SBusReceiver.cpp SocketSender.cpp SocketReceiver.cpp)
+add_executable(YKS_SDK main.cpp JoyStickHandler.cpp Z1Legs.cpp BmsHandler.cpp SBusReceiver.cpp SocketSender.cpp SocketReceiver.cpp
+        DDSRelate.cpp
+        DDSRelate.h)
 
 # 为 YKS_SDK 添加头文件搜索路径
 target_include_directories(YKS_SDK PRIVATE

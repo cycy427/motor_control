@@ -22,8 +22,11 @@
 #define WHOLEBODYCMDTOPIC  "/nubot/z1/wholebodymotorcmds"
 #define WHOLEBODYSTATETOPIC  "/nubot/z1/wholebodymotorstates"
 
+#define SBUSSTATETOPIC  "/nubot/z1/wholebodymotorstates"
+
 using namespace org::eclipse::cyclonedds;
 using namespace nubotddsmsg::hr;
+using namespace nubotddsmsg::sbus;
 
 
 YKSMotorData my_motor_data[Z1_NUM_MOTOR];
@@ -158,6 +161,21 @@ void DDS_Pub_Z1_5_WB_Motor_Data(motorstates &states, dds::pub::DataWriter<motors
         state.tem(motor_data_[i].temperature_);
         state.mos_tem(motor_data_[i].mos_temperature_);
     }
+    writer.write(states);
+}
+
+void DDS_Pub_Sbus_Data(sbusdata &states, dds::pub::DataWriter<sbusdata> &writer,
+                                const SBusData *sbus_data_) {
+    // 发布SBUS数据
+    states.lost_frame(sbus_data_->lost_frame);
+    states.failsafe(sbus_data_->failsafe);
+    std::array<int32_t, 16> ch_values;
+
+    for (size_t i = 0; i < 16; ++i) {
+        ch_values[i] = sbus_data_->ch[i];
+    }
+        states.ch(ch_values);
+
     writer.write(states);
 }
 
@@ -354,6 +372,20 @@ int main() {
     dds::pub::qos::DataWriterQos z1_5_wb_writerQos(z1_5_wb_topicpubQos); // datawriter的qos应当继承自topic的qos
     dds::pub::DataWriter<motorstates> z1_5_wb_Writer(z1_5_wb_Publisher, z1_5_wb_topicpub, z1_5_wb_writerQos);
     std::cout << "=== [z1_5_wb publisher] get ready! " << std::endl;
+
+    // // SBUS发布 =======================================================================================
+    // // 定义SBUS发布者话题
+    dds::topic::qos::TopicQos sbus_topicpubQos;
+    sbus_topicpubQos << dds::core::policy::Reliability::BestEffort() //尽力传输，只发一次
+            << dds::core::policy::Durability::Volatile() //持久化，比如订阅者后加入，则不接受历史信息，只接收自加入以来的消息
+            << dds::core::policy::History::KeepLast(5); //保留近5条消息
+    dds::topic::Topic<sbusdata> sbus_topicpub(participant, SBUSSTATETOPIC);
+    // 创建 Publisher 和 DataWriter
+    dds::pub::Publisher sbus_Publisher(participant);
+    dds::pub::qos::DataWriterQos sbus_writerQos(sbus_topicpubQos); // datawriter的qos应当继承自topic的qos
+    dds::pub::DataWriter<sbusdata> sbus_Writer(sbus_Publisher, sbus_topicpub, sbus_writerQos);
+    std::cout << "=== [z1_5_wb publisher] get ready! " << std::endl;
+
     //////////////////////////////////////////////////////////////////////////////////////////////////
     /////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -362,13 +394,14 @@ int main() {
     // auto battery = "/dev/ttyUSB1";
     const auto joystick_handler = std::make_shared<JoyStickHandler>(joystick_device);
     // const auto battery_handler = std::make_shared<BmsHandler>(battery);
-    const SBusReceiver sbus_receiver("/dev/SBUS1");
+    const SBusReceiver sbus_receiver("/dev/ttyACM0");
+
     Z1Legs z1_legs;
     z1_legs.setJoyStickHandler(joystick_handler);
     // z1_legs.setBatteryHandler(battery_handler);
 
-    SocketReceiver receiver(YKS_PORT);
-    SocketSender sender("127.0.0.1",USR_PORT);
+    // SocketReceiver receiver(YKS_PORT);
+    // SocketSender sender("127.0.0.1",USR_PORT);
     // receiver.startListening();
     // sender.sendDataPeriodically();
 
@@ -387,6 +420,9 @@ int main() {
     motorstates z1_5_wb_States;
     z1_5_wb_States.level(3); // 设置为z1_5_wb
     z1_5_wb_States.states().resize(TOTAL_MOTOR_NUMBER);
+
+    sbusdata  sbus_States;
+
 
     dds::sub::LoanedSamples<motorcmds> samples_leg;
     dds::sub::LoanedSamples<motorcmds> samples_arm;
@@ -437,9 +473,11 @@ int main() {
         ///将Z1_5_WB电机状态写入消息 啦啦啦啦啦啦啦啦啦啦啦
         DDS_Pub_Z1_5_WB_Motor_Data(z1_5_wb_States, z1_5_wb_Writer, my_motor_data);
         ///通过Socket将电机状态发送给用户端
-        sender.sendSocketMotorData(my_motor_data); //通过Socket反馈电机当前的数据
-        // SBusData data = sbus_receiver.getData();
-        // SBusReceiver::print_data(data);
+        // sender.sendSocketMotorData(my_motor_data); //通过Socket反馈电机当前的数据
+        SBusData data = sbus_receiver.getData();
+        SBusReceiver::print_data(data);
+
+        DDS_Pub_Sbus_Data(sbus_States, sbus_Writer, &data);
         // pos = data.ch[2] / 672.0 * 4;
         // JoystickState state = joystick_handler->getState();
         // JoyStickHandler::print_state(state);
