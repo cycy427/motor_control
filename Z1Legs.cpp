@@ -351,6 +351,9 @@ void Z1Legs::getMotorData(YKSMotorData *data) {
                 data[i].pos_ = motor_data_[i].pos_ * LegDirectionMotor_[i];
                 data[i].vel_ = motor_data_[i].vel_ * LegDirectionMotor_[i];
                 data[i].tau_ = motor_data_[i].tau_ * LegDirectionMotor_[i];
+                data[i].error_ = motor_data_[i].error_;
+                data[i].mos_temperature_ = motor_data_[i].mos_temperature_;
+                data[i].temperature_ = motor_data_[i].temperature_;
             }
         }
     } else {
@@ -358,6 +361,9 @@ void Z1Legs::getMotorData(YKSMotorData *data) {
             data[i].pos_ = motor_data_[i].pos_ * LegDirectionMotor_[i];
             data[i].vel_ = motor_data_[i].vel_ * LegDirectionMotor_[i];
             data[i].tau_ = motor_data_[i].tau_ * LegDirectionMotor_[i];
+            data[i].error_ = motor_data_[i].error_;
+            data[i].mos_temperature_ = motor_data_[i].mos_temperature_;
+            data[i].temperature_ = motor_data_[i].temperature_;
         }
     }
     

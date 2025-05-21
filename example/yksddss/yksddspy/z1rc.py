@@ -66,12 +66,7 @@ class Z1RemoteClient(threading.Thread):
                                               states=[hrmsg.motorstate(0, 0, 0, 0, 0, 0, 0, 0, 0, 0) for _ in
                                                       range(motornum[role])])
 
-        self.running = True
-        self._lockcmd = threading.RLock()
-        self._lockstate = threading.RLock()
-        self.start()
 
-    def run(self):
         # 创建域参与者
         participant = DomainParticipant(0)
 
@@ -84,7 +79,7 @@ class Z1RemoteClient(threading.Thread):
             Policy.History.KeepLast(5),  # 保留最后5条消息
         )
         publisher = Publisher(participant)
-        writer = DataWriter(publisher, cmdtopic, qos=cmdqos)
+        self.writer = DataWriter(publisher, cmdtopic, qos=cmdqos)
 
         ###########################################################################
         ### 订阅
@@ -94,11 +89,19 @@ class Z1RemoteClient(threading.Thread):
             Policy.History.KeepLast(5)
         )
         statetopic = Topic(participant, self.statetopic, hrmsg.motorstates, qos=stateqos)
-        reader = DataReader(participant, statetopic)
+        self.reader = DataReader(participant, statetopic)
+        self.running = True
+        self._lockcmd = threading.RLock()
+        self._lockstate = threading.RLock()
+
+        self.start()
+
+    def run(self):
+
 
         while self.running:
             ## 处理订阅
-            msgs = reader.take()
+            msgs = self.reader.take()
             if len(msgs) > 0:
                 self._lockstate.acquire()
                 self._motorStates = msgs[-1]
@@ -106,7 +109,7 @@ class Z1RemoteClient(threading.Thread):
 
             ## 处理发布
             self._lockcmd.acquire()
-            writer.write(self._motorCmds)
+            self.writer.write(self._motorCmds)
             self._lockcmd.release()
 
             time.sleep(0.002)  # 500Hz

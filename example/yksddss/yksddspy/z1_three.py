@@ -15,6 +15,9 @@ from copy import deepcopy
 
 import threading
 
+from cyclonedds.idl import IdlStruct, IdlUnion, IdlBitmask, IdlEnum, types
+
+
 ARMCMDTOPIC = "/nubot/z1/armmotorcmds"
 LEGCMDTOPIC = "/nubot/z1/legmotorcmds"
 
@@ -23,7 +26,6 @@ LEGSTATETOPIC = "/nubot/z1/legmotorstates"
 
 BODYCMDTOPIC = "/nubot/z1/bodymotorcmds"
 BODYSTATETOPIC = "/nubot/z1/bodymotorstates"
-
 
 class Z1RemoteClient(threading.Thread):
     def __init__(self, cmdtopic, statetopic, role):
@@ -56,15 +58,12 @@ class Z1RemoteClient(threading.Thread):
         self._motorStates = hrmsg.motorstates(level=levels[role],
                                               states=[hrmsg.motorstate(0, 0, 0, 0, 0, 0, 0, 0, 0, 0) for _ in
                                                       range(motornum[role])])
-
-        self.running = True
-        self._lockcmd = threading.RLock()
-        self._lockstate = threading.RLock()
-        self.start()
-
-    def run(self):
-        # 创建域参与者
-        participant = DomainParticipant(0)
+        # try:
+        participant = DomainParticipant(domain_id=0)
+        # 其他DDS实体创建
+        # except Exception as e:
+        #     print(f"DDS初始化失败: {e}")
+        # return
 
         ###########################################################################
         ### 发布
@@ -75,7 +74,7 @@ class Z1RemoteClient(threading.Thread):
             Policy.History.KeepLast(5),  # 保留最后5条消息
         )
         publisher = Publisher(participant)
-        writer = DataWriter(publisher, cmdtopic, qos=cmdqos)
+        self.writer = DataWriter(publisher, cmdtopic, qos=cmdqos)
 
         ###########################################################################
         ### 订阅
@@ -85,11 +84,24 @@ class Z1RemoteClient(threading.Thread):
             Policy.History.KeepLast(5)
         )
         statetopic = Topic(participant, self.statetopic, hrmsg.motorstates, qos=stateqos)
-        reader = DataReader(participant, statetopic)
+        self.reader = DataReader(participant, statetopic)
+
+        self.running = True
+        self._lockcmd = threading.RLock()
+        self._lockstate = threading.RLock()
+
+        self.start()
+        # time.sleep(0.1)
+
+
+
+    def run(self):
+                # 创建域参与者
+
 
         while self.running:
             ## 处理订阅
-            msgs = reader.take()
+            msgs = self.reader.take()
             if len(msgs) > 0:
                 self._lockstate.acquire()
                 self._motorStates = msgs[-1]
@@ -97,7 +109,7 @@ class Z1RemoteClient(threading.Thread):
 
             ## 处理发布
             self._lockcmd.acquire()
-            writer.write(self._motorCmds)
+            self.writer.write(self._motorCmds)
             self._lockcmd.release()
 
             time.sleep(0.002)  # 500Hz
@@ -116,11 +128,12 @@ class Z1RemoteClient(threading.Thread):
         self._lockstate.release()
         return states
 
+
     def arm_ti5_squat_control(self, arm_index, value, mode):
         """
-        :param arm_index: 关节索引
-        :param value: 目标值
-        :param mode: 控制模式 (1: position, 2: torque, 3: velocity)
+            :param arm_index: 关节索引
+            :param value: 目标值
+            :param mode: 控制模式 (1: position, 2: torque, 3: velocity)
         """
         arm_index = arm_index - 11
         if not (0 <= arm_index < len(self.motorCmds.cmds)):
@@ -212,37 +225,42 @@ class Z1RemoteClient(threading.Thread):
             return 0
 
 
+
 if __name__ == '__main__':
     z1_arm = Z1RemoteClient(ARMCMDTOPIC, ARMSTATETOPIC, 'arm')
+
+
     z1_leg = Z1RemoteClient(LEGCMDTOPIC, LEGSTATETOPIC, 'leg')
+
     z1_body = Z1RemoteClient(BODYCMDTOPIC, BODYSTATETOPIC, 'body')
 
-    z1_arm.arm_yks_squat_control(23, 0, 1, 0, 0, 400, 40)#0-11
-    z1_leg.leg_squat_control(10, 0, 4, 0, 0, 400, 40)#12-23
-    z1_leg.leg_squat_control(11, 0, 0, 0, 0, 400, 40)
-    z1_body.body_yks_squat_control(25, 0, 1, 0, 0, 400, 40)#24-26
+    print("系统已启动，请按回车键退出...")
+    input()  # 阻塞在这里，等待用户按回车
+    # z1_arm.arm_yks_squat_control(23, 0, 1, 0, 0, 400, 40)#0-11
+    # z1_leg.leg_squat_control(10, 0, 4, 0, 0, 400, 40)#12-23
+    # z1_body.body_yks_squat_control(25, 0, 1, 0, 0, 400, 40)#24-26
 
-    while True:
+    # while True:
         # z1.squat_control(11, 0.5, 1)
 
-        z1_arm.setCommand()
-        print("pub %f  %f" % (13, z1_arm.motorCmds.cmds[6].pos))
+        # z1_arm.setCommand()
+        # print("pub %f  %f" % (13, z1_arm.motorCmds.cmds[6].pos))
 
-        st = z1_arm.getStates()
-        print("sub %f" % (st.states[1].pos))
+        # st = z1_arm.getStates()
+        # print("sub %f" % (st.states[1].pos))
 
-        z1_leg.setCommand()
+        # z1_leg.setCommand()
         # print("pub %f  %f" % (0, z1_leg.motorCmds.cmds[0].pos))
 
-        st = z1_leg.getStates()
+        # st = z1_leg.getStates()
         # print("sub %f" % (st.states[0].pos))
-        z1_body.setCommand()
+        # z1_body.setCommand()
         # print("pub %f  %f" % (0, z1_leg.motorCmds.cmds[0].pos))
 
-        st = z1_body.getStates()
+        # st = z1_body.getStates()
         # print("sub %f" % (st.states[0].pos))
         # pos = z1_arm.read_arm_control(13, 1)  # 获取第13个关节的位置
         # torque = z1_arm.read_arm_control(13, 2)  # 获取力矩
         # vel = z1_arm.read_arm_control(13, 3)  # 获取速度
         # print(f"Position: {pos}, Torque: {torque}, Velocity: {vel}")
-        time.sleep(0.01)
+        # time.sleep(0.01)
