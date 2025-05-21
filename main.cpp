@@ -1,6 +1,7 @@
 #include "SBusReceiver.h"
 #include "JoyStickHandler.h"
 #include "Z1Legs.h"
+#include "MotorDataLogger.h"
 #include "BmsHandler.h"
 #include "SocketReceiver.h"
 #include "SocketSender.h"
@@ -398,6 +399,9 @@ int main() {
 
     Z1Legs z1_legs;
     z1_legs.setJoyStickHandler(joystick_handler);
+
+    MotorDataLogger motor_data_logger;
+
     // z1_legs.setBatteryHandler(battery_handler);
 
     // SocketReceiver receiver(YKS_PORT);
@@ -463,6 +467,7 @@ int main() {
         //获取所有电机的状态
         z1_legs.getMotorData(my_motor_data); //获取电机数据
 
+        motor_data_logger.print_log(my_motor_data); //保存电机数据
         // ///////////////////////////////////////////////////////////////////////////////////////////
         // ///将上肢电机状态写入消息 啦啦啦啦啦啦啦啦啦啦啦
         // DDS_Pub_Arm_Motor_Data(armStates, armWriter, my_motor_data);
