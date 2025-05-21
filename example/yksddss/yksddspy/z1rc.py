@@ -98,7 +98,6 @@ class Z1RemoteClient(threading.Thread):
 
     def run(self):
 
-
         while self.running:
             ## 处理订阅
             msgs = self.reader.take()

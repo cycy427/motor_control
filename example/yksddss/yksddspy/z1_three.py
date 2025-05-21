@@ -58,12 +58,8 @@ class Z1RemoteClient(threading.Thread):
         self._motorStates = hrmsg.motorstates(level=levels[role],
                                               states=[hrmsg.motorstate(0, 0, 0, 0, 0, 0, 0, 0, 0, 0) for _ in
                                                       range(motornum[role])])
-        # try:
+
         participant = DomainParticipant(domain_id=0)
-        # 其他DDS实体创建
-        # except Exception as e:
-        #     print(f"DDS初始化失败: {e}")
-        # return
 
         ###########################################################################
         ### 发布
@@ -96,8 +92,6 @@ class Z1RemoteClient(threading.Thread):
 
 
     def run(self):
-                # 创建域参与者
-
 
         while self.running:
             ## 处理订阅
