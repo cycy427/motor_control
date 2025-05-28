@@ -2,6 +2,7 @@
 author: GoldenPhilosophy
 date: 2025-03-11
 ---
+## 可以直接阅读下方的简要说明，这里作为补充说明
 
 ## YKS_SDK 简介
 
@@ -161,9 +162,12 @@ https://gitcode.com/gh_mirrors/xo/xone
 
 更多教程参见app文件夹下的[YKS官方教程](app/README.md#SOEM主站)
 
-### 钛虎电机使用简要说明，请先阅读上述完整教程
+### 使用简要说明，先阅读这个，不行再阅读上述完整教程（旧）
 
 C++使用方法：
+
+0. 安装依赖库：
+`sudo apt install libtinfo-dev libreadline-dev libboost-all-dev libncurses5-dev libncursesw5-dev net-tools`
 
 1. 将build文件夹删除，重新创建工程后编译
     ```shell
@@ -172,6 +176,9 @@ C++使用方法：
        cmake .. //这一步如果提示错误,请删除build文件夹,重新创建
        make
        sudo ./YKS_SDK
+     cmake .. 这一步如果提示错误,请删除build文件夹,重新创建
+     如果还不行，请先解压example中的dds_int，然后按照其中的readme.md安装环境，再重新编译
+
 2. 检查app/motor_control.c文件中的电机型号设置是否正确，如有需要，修改，电机的型号是否正确
    也就是检查Z1_MOTOR_ID_Type和g_slaves数组初始化是否正确，前者是电机的顺序
 3. 检查Z1_legs.h中LegDirectionMotor_数组的电机转向是否正确，如有需要，修改
@@ -184,10 +191,24 @@ C++使用方法：
 2. 首先打开安装了dds库的python环境，如果没有安装参开dds_int中的readme.md安装环境和example/yksddss/文件夹中的readme.md安装消息库
 3. 例程为./example/yksddss/yksddspy/z1rc.py，认真阅读后可以只打开ethercat板子但是不打开电机进行测试，看./YKS_SDK
    页面是否有收到消息，通信成功后参考这个例程写自己收发程序或者调用这个例程的函数皆可
+   比如：No module named 'nubotddsmsg' 进入example/yksddss/文件夹中的readme.md安装消息库
+
 4. 所写的发送程序为z1_5_wb.z1_5_wb_squat_control(),请阅读函数注释，将函数参数修改为需要发送的数据，然后调用该函数，需要
    修改的值一般为index，这个是电机的全局id号，和./YKS_SDK终端所显示的一致，每次发送都是30个数据一块发送，要是
    只需要控制双足，那么可以修改for i in range(12): z1_5_wb.z1_5_wb_squat_control(),其余的不改即可
 5. id 设置为 双足：0-11 双臂 12-23 躯干 24-29
+
+#### imu使用说明：
+1. example/dds_imu/imu_pub.py为imu发布节点，开启一个新终端，进入相关环境运行即可
+2. example/dds_imu/imu_sub.py为imu订阅节点，开启一个新终端，进入相关环境运行即可，可以调用其中的函数自己使用
+
+#### SBUS接收机使用说明：
+1. 主程序中已经打开了为SBUS发布节点，运行sudo ./YKS_SDK即可
+2. example/yksddss/yksddspy/sbus_sub.py为sbus订阅节点，开启一个新终端，进入相关环境运行即可，可以调用其中的函数自己使用
+
+#### imu使用说明：
+1. example/logitech/logic_pub.py为logic发布节点，开启一个新终端，进入相关环境运行即可
+2. example/logitech/logic_sub.py为logic订阅节点，开启一个新终端，进入相关环境运行即可，可以调用其中的函数自己使用
 
 #### 接线说明
 

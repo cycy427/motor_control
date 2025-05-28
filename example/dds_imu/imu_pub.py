@@ -22,13 +22,13 @@ import threading
 
 IMUPUBDATATOPIC = "/nubot/z1/imupubdata"
 
-class Z1IMUClient(threading.Thread):
+class Z1IMUPUBClient(threading.Thread):
     def __init__(self, statetopic):
         '''
         :param statetopic: 订阅状态的topic
         '''
 
-        super(Z1IMUClient, self).__init__()
+        super(Z1IMUPUBClient, self).__init__()
 
         # 设置串口号和波特率
         self._port = '/dev/ttyUSB0'  # 修改为你实际使用的串口号
@@ -159,7 +159,7 @@ class Z1IMUClient(threading.Thread):
 
 
 if __name__ == '__main__':
-    z1_imu = Z1IMUClient(IMUPUBDATATOPIC)
+    z1_imu = Z1IMUPUBClient(IMUPUBDATATOPIC)
 
     while True:
 

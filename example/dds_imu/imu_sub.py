@@ -19,13 +19,13 @@ IMUSUBDATATOPIC = "/nubot/z1/imusubdata"
 IMUPUBDATATOPIC = "/nubot/z1/imupubdata"
 
 
-class Z1RemoteClient(threading.Thread):
+class Z1IMUSUBClient(threading.Thread):
     def __init__(self, statetopic):
         '''
         :param statetopic: 订阅状态的topic
         '''
 
-        super(Z1RemoteClient, self).__init__()
+        super(Z1IMUSUBClient, self).__init__()
 
         self.statetopic = statetopic
 
@@ -82,7 +82,7 @@ class Z1RemoteClient(threading.Thread):
 
 
 if __name__ == '__main__':
-    z1_imu = Z1RemoteClient(IMUPUBDATATOPIC)
+    z1_imu = Z1IMUSUBClient(IMUPUBDATATOPIC)
 
     # z1_leg.leg_squat_control(12, 0, 2, 0, 0, 400, 40)
 

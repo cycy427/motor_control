@@ -109,7 +109,18 @@ module nubotddsmsg {
           long ch[16];           // 16个通道的数组，每个通道存储整型值
       };
   };
+  //// SBUS end/////////////////////////////////////////////////////////
 
+  //// LOGIC begin/////////////////////////////////////////////////////////
+  module logic {
+
+      @extensibility(FINAL)
+      struct logicdata {
+          sequence<float> button_map; // 存储按钮映射数据
+          sequence<float> axes_map;   // 存储轴映射数据
+      };
+  };
+  //// LOGIC end/////////////////////////////////////////////////////////
 
 };
 

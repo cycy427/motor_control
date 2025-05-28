@@ -1,0 +1,52 @@
+module unitree_go {
+    module msg {
+        module dds_ {
+            @final
+            @autoid(SEQUENTIAL)
+            struct MotorCmd_ {
+                octet mode;
+                float q;
+                float dq;
+                float tau;
+                float kp;
+                float kd;
+                uint32 reserve[3];
+            };
+
+            @final
+            @autoid(SEQUENTIAL)
+            struct MotorCmds_ {
+                sequence<unitree_go::msg::dds_::MotorCmd_> cmds;
+            };
+            
+            @final
+            @autoid(SEQUENTIAL)
+            struct MotorState_ {
+                octet mode;
+                float q;
+                float dq;
+                float ddq;
+                float tau_est;
+                float q_raw;
+                float dq_raw;
+                float ddq_raw;
+                octet temperature;
+                unsigned long lost;
+                unsigned long reserve[2];
+            };
+
+            @final
+            @autoid(SEQUENTIAL)
+            struct MotorStates_ {
+                sequence<unitree_go::msg::dds_::MotorState_> states;
+            };
+            
+        };
+        
+    };
+    
+};
+
+
+
+
