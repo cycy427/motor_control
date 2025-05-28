@@ -238,7 +238,15 @@ C++使用方法：
 #### 获得原始数据
 
 1. 调用：z1_leg.cpp里面的EtherCAT_Send_Command（）用户发送数据给ethercat的地方
-2.
-
-进入transmit.cpp里面的EtherCAT_Send_Command,根据mode的不同调用不同的解码函数，其中力位混合模式在mode==0的set_ti5_current()
+2. 进入transmit.cpp里面的EtherCAT_Send_Command,根据mode的不同调用不同的解码函数，其中力位混合模式在mode==0的set_ti5_current()
 上修改，要拿到原始数据，可以进入这些set_ti5_xxx函数，修改返回值
+
+#### 完整更改消息包
+
+- 改变example/yksddss/nubotidl/nubotddsmsg.idl 的内容，与最外层的nubotddsmsg.idl文件统一
+
+- 使用命令重新生成 nubotddsmsg库
+  ```
+  idlc -l py nubotddsmsg.idl
+  ```
+- 重新进入nubotidl文件夹，在该目录下执行 pip install .
