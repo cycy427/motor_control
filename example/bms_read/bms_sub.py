@@ -8,38 +8,38 @@ from cyclonedds.sub import DataReader
 from cyclonedds.topic import Topic
 from cyclonedds.qos import Qos, Policy
 
-import nubotddsmsg.unitree as unitreemsg
+import nubotddsmsg.logic as logicmsg
 from copy import deepcopy
 
 import threading
 
-UNITREEPUBDATATOPIC = "/nubot/z1/unitreepubdata"
+LOGICPUBDATATOPIC = "/nubot/z1/logicpubdata"
 
 
-class Z1UnitreeSUBClient(threading.Thread):
+class Z1LogicSUBClient(threading.Thread):
     def __init__(self, statetopic):
         '''
         :param statetopic: 订阅状态的topic
         '''
 
-        super(Z1UnitreeSUBClient, self).__init__()
+        super(Z1LogicSUBClient, self).__init__()
 
         self.statetopic = statetopic
 
         self.daemon = True
 
-        self._unitreeStates = unitreemsg.unitreedata(vx=0., vy=0.,omega=0.)
+        self._logicStates = logicmsg.logicdata(button_map=[0.]*11,axes_map=[0.]*8)
         # 创建域参与者
         participant = DomainParticipant(0)
 
         ###########################################################################
         ### 订阅
         stateqos = Qos(
-            Policy.Reliability.BestEffort,
+            Policy.Reliability.Reliable(1000),
             Policy.Durability.Volatile,
             Policy.History.KeepLast(5)
         )
-        statetopic = Topic(participant, self.statetopic, unitreemsg.unitreedata, qos=stateqos)
+        statetopic = Topic(participant, self.statetopic, logicmsg.logicdata, qos=stateqos)
         self.reader = DataReader(participant, statetopic)
         ###########################################################################
 
@@ -53,26 +53,26 @@ class Z1UnitreeSUBClient(threading.Thread):
             msgs = self.reader.take()
             if len(msgs) > 0:
                 self._lockstate.acquire()
-                self._unitreeStates = msgs[-1]
+                self._logicStates = msgs[-1]
                 self._lockstate.release()
 
-            time.sleep(0.01)  # 100Hz
+            time.sleep(0.02)  # 100Hz
 
     def stop(self):
         self.running = False
 
     def getStates(self):  # 返回值 nubotddsmsg.hr.motorstates
         self._lockstate.acquire()
-        states = deepcopy(self._unitreeStates)
+        states = deepcopy(self._logicStates)
         self._lockstate.release()
         return states
 
 
 if __name__ == '__main__':
-    z1_unitree = Z1UnitreeSUBClient(UNITREEPUBDATATOPIC)
+    z1_logic = Z1LogicSUBClient(LOGICPUBDATATOPIC)
 
     while True:
-        st = z1_unitree.getStates()
+        st = z1_logic.getStates()
         print("sub :" ,st)
 
-        time.sleep(0.1)
+        time.sleep(0.01)

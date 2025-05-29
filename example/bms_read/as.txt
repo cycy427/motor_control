@@ -1,0 +1,22 @@
+
+//// bms begin/////////////////////////////////////////////////////////
+
+module bms
+{
+@extensibility(FINAL)
+struct bmsdata
+{
+    sequence<float> Battery_Voltage; // 存储电压数据
+sequence<float> Temperature; // 存储温度数据
+
+float Total_Voltage;
+float Current;
+float SOC;
+
+float Remaining_Capacity;
+string<32> Limit_Status;
+float Limit_Current;
+string<32> RTC_Time;
+};
+};
+//// bms end/////////////////////////////////////////////////////////
