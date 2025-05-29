@@ -56,7 +56,7 @@ class Z1LogicSUBClient(threading.Thread):
                 self._logicStates = msgs[-1]
                 self._lockstate.release()
 
-            time.sleep(0.01)  # 100Hz
+            time.sleep(0.02)  # 100Hz
 
     def stop(self):
         self.running = False

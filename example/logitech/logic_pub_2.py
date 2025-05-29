@@ -46,6 +46,50 @@ AXIS_MAP = {
     16: 'DPAD_X',       # 方向键 X 轴（圆盘）
     17: 'DPAD_Y'        # 方向键 Y 轴（圆盘）
 }
+
+class GamepadReaderThread(threading.Thread):
+    def __init__(self, parent):
+        super().__init__()
+        self.parent = parent
+        self.daemon = True
+        self.running = True
+
+    def run(self):
+        for event in self.parent.gamepad.read_loop():
+            if not self.running:
+                break
+
+            # 处理按键事件
+            if event.type == ecodes.EV_KEY:
+                if event.code in BUTTON_MAP:
+                    index = list(BUTTON_MAP.keys()).index(event.code)
+                    self.parent._logicStates.button_map[index] = 1.0 if event.value else 0.0
+                    button = BUTTON_MAP[event.code]
+                    state = "按下" if event.value else "释放"
+                    print(f"按钮 {button}: {state}")
+
+            # 处理摇杆事件
+            elif event.type == ecodes.EV_ABS:
+                if event.code in AXIS_MAP:
+                    axis_name = AXIS_MAP[event.code]
+                    axis_index = {
+                        'LEFT_X': 0,
+                        'LEFT_Y': 1,
+                        'LT': 2,
+                        'RIGHT_X': 3,
+                        'RIGHT_Y': 4,
+                        'RT': 5,
+                        'DPAD_X': 6,
+                        'DPAD_Y': 7,
+                    }.get(axis_name, -1)
+                    if axis_index >= 0:
+                        value = event.value / 32767.0 if event.value > 0 else event.value / 32768.0
+                        self.parent._logicStates.axes_map[axis_index] = value
+
+    def stop(self):
+        self.running = False
+
+
 class Z1LogicPUBClient(threading.Thread):
     def __init__(self, statetopic):
         '''
@@ -87,54 +131,26 @@ class Z1LogicPUBClient(threading.Thread):
         self.running = True
         self._lockcmd = threading.RLock()
 
+        # 启动单独的线程读取手柄事件
+        self.gamepad_reader_thread = GamepadReaderThread(self)
+        self.gamepad_reader_thread.start()
         # self.start()
 
     def run(self):
-        # 读取事件循环
-        for event in self.gamepad.read_loop():
-            # 处理按键事件
-            if event.type == ecodes.EV_KEY:
-                # 过滤未定义的按钮
-                if event.code in BUTTON_MAP:
-                    index = list(BUTTON_MAP.keys()).index(event.code)
-                    self._logicStates.button_map[index] = 1.0 if event.value else 0.0
-                    # button = BUTTON_MAP[event.code]
-                    # state = "按下" if event.value else "释放"
-                    # print(f"按钮 {button}: {state}")
-
-            # 处理摇杆事件
-            elif event.type == ecodes.EV_ABS:
-                if event.code in AXIS_MAP:
-                    axis_name = AXIS_MAP[event.code]
-                    # 根据轴名称映射到 axesMap 索引
-                    axis_index = {
-                        'LEFT_X': 0,
-                        'LEFT_Y': 1,
-                        'LT': 2,
-                        'RIGHT_X': 3,
-                        'RIGHT_Y': 4,
-                        'RT': 5,
-                        'DPAD_X': 6,
-                        'DPAD_Y': 7,
-                    }.get(axis_name, -1)
-                    if axis_index >= 0:
-                        # 标准化为 [-1.0, 1.0]
-                        value = event.value / 32767.0 if event.value > 0 else event.value / 32768.0
-                        self._logicStates.axes_map[axis_index] = value
-
-                # axis = AXIS_MAP.get(event.code, f"未知轴{event.code}")
-                # # 将原始值转换为标准化值 (-1.0 到 1.0)
-                # value = event.value / 32767.0 if event.value > 0 else event.value / 32768.0
-                # print(f"摇杆 {axis}: {value:.3f}")
+        while self.running:
 
             ## 处理发布
             self._lockcmd.acquire()
             self.writer.write(self._logicStates)
             self._lockcmd.release()
+
             time.sleep(0.01)  # 1000Hz
 
     def stop(self):
         self.running = False
+        if hasattr(self, 'gamepad_reader_thread'):
+            self.gamepad_reader_thread.stop()
+            self.gamepad_reader_thread.join()
 
     def find_gamepad(self):
         devices = [evdev.InputDevice(path) for path in evdev.list_devices()]
