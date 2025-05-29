@@ -63,7 +63,8 @@ class GamepadReaderThread(threading.Thread):
             if event.type == ecodes.EV_KEY:
                 if event.code in BUTTON_MAP:
                     index = list(BUTTON_MAP.keys()).index(event.code)
-                    self.parent._logicStates.button_map[index] = 1.0 if event.value else 0.0
+                    with self.parent._lockcmd:
+                        self.parent._logicStates.button_map[index] = 1.0 if event.value else 0.0
                     button = BUTTON_MAP[event.code]
                     state = "按下" if event.value else "释放"
                     print(f"按钮 {button}: {state}")
@@ -84,7 +85,8 @@ class GamepadReaderThread(threading.Thread):
                     }.get(axis_name, -1)
                     if axis_index >= 0:
                         value = event.value / 32767.0 if event.value > 0 else event.value / 32768.0
-                        self.parent._logicStates.axes_map[axis_index] = value
+                        with self.parent._lockcmd:
+                            self.parent._logicStates.axes_map[axis_index] = value
 
     def stop(self):
         self.running = False

@@ -122,5 +122,17 @@ module nubotddsmsg {
   };
   //// LOGIC end/////////////////////////////////////////////////////////
 
+  //// unitree begin/////////////////////////////////////////////////////////
+  module unitree {
+
+      @extensibility(FINAL)
+      struct unitreedata {
+          float vx;  //x方向速度
+          float vy;  //y方向速度
+          float omega;  //角速度
+      };
+
+  };
+  //// unitree end/////////////////////////////////////////////////////////
 };
 

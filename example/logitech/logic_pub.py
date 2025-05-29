@@ -68,7 +68,7 @@ class Z1LogicPUBClient(threading.Thread):
         ### 发布
         cmdtopic = Topic(participant, self.statetopic, logicmsg.logicdata)
         cmdqos = Qos(
-            Policy.Reliability.BestEffort,  # 或 Policy.Reliability.Reliable
+            Policy.Reliability.Reliable(1000),  # 或 Policy.Reliability.Reliable
             Policy.Durability.Volatile,  # 或 Policy.Durability.TransientLocal
             Policy.History.KeepLast(5),  # 保留最后5条消息
         )
