@@ -55,8 +55,8 @@ class Z1BMSPUBClient(threading.Thread):
         # CSV输出文件
         self.output_file = 'processed_data_log.csv'
         """
-        :param Battery_Voltage: 电池电压*7 Max_Cell_Voltage: 最大电池电压 Min_Cell_Voltage: 最小电池电压 Average_Voltage: 平均电压
-        :param Temperature : 电池温度*2 Max_Temperature：最大温度 MOS_Temperature：MOS管温度
+        :param Battery_Voltage: 电池电压*12 Max_Cell_Voltage: 最大电池电压 Min_Cell_Voltage: 最小电池电压 Average_Voltage: 平均电压
+        :param Temperature : 电池温度*5 Max_Temperature：最大温度 MOS_Temperature：MOS管温度
         :param Total_Voltage: 总电压
         :param Current: 电流
         :param SOC: 剩余容量
@@ -65,10 +65,12 @@ class Z1BMSPUBClient(threading.Thread):
         :param Limit_Current: 限流电流
         :param RTC_Time: 实时时间
         """
-        self.BmsStates = bmsmsg.bmsdata(Battery_Voltage=[0.] * 10, Temperature=[0.] * 4, Total_Voltage=0., Current=0.,
+        self.BmsStates = bmsmsg.bmsdata(timestamp='', Battery_Voltage=[0.] * 15, Temperature=[0.] * 7, Total_Voltage=0.,
+                                        Current=0.,
                                         SOC=0., Remaining_Capacity=0., Limit_Status='', Limit_Current=0., RTC_Time='')
 
-        self._BmsStates = bmsmsg.bmsdata(Battery_Voltage=[0.] * 10, Temperature=[0.] * 4, Total_Voltage=0., Current=0.,
+        self._BmsStates = bmsmsg.bmsdata(timestamp='', Battery_Voltage=[0.] * 15, Temperature=[0.] * 7,
+                                         Total_Voltage=0., Current=0.,
                                          SOC=0., Remaining_Capacity=0., Limit_Status='', Limit_Current=0., RTC_Time='')
 
         # 创建域参与者
@@ -89,6 +91,7 @@ class Z1BMSPUBClient(threading.Thread):
         self._lockcmd = threading.RLock()
 
         # self.start()
+
     def run(self):
         try:
             while self.running:
@@ -164,14 +167,14 @@ class Z1BMSPUBClient(threading.Thread):
         """解析寄存器数据"""
         parsed_data = {}
 
-        # 单体电池电压 (0x00 ~ 0x06)，提取前7个值
-        for i in range(7):  # 提取前7个寄存器的值
+        # 单体电池电压 (0x00 ~ 0x06)，提取前12个值
+        for i in range(12):  # 提取前12个寄存器的值
             register_value = int(row[f"Register_{i + 1}"])
             voltage = register_value * 0.001
             parsed_data[f"Battery_{i + 1}"] = voltage
 
-        # 电池温度 (0x30 ~ 0x31)，提取前2个值
-        for i in range(2):  # 提取前2个寄存器的值
+        # 电池温度 (0x30 ~ 0x31)，提取前5个值
+        for i in range(5):  # 提取前5个寄存器的值
             register_value = int(row[f"Register_{48 + i + 1}"])
             temperature = register_value - 40
             parsed_data[f"Temperature_{i + 1}"] = temperature
@@ -230,7 +233,9 @@ class Z1BMSPUBClient(threading.Thread):
         minute = (rtc_hour_minute_second >> 4) & 0xF
         second = rtc_hour_minute_second & 0xF
         parsed_data["RTC_Time"] = f"{year:02d}-{month:02d}-{day:02d} {hour:02d}:{minute:02d}:{second:02d}"
-
+        #添加时间戳
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]  # 毫秒级时间戳
+        parsed_data["Timestamp"] = timestamp
         return parsed_data
 
     def write_parsed_data_to_csv(self, parsed_data):
@@ -257,8 +262,8 @@ class Z1BMSPUBClient(threading.Thread):
         with self._lockcmd:  # 使用锁保护共享资源
             bms_states = self.BmsStates
 
-            # 电池电压 (Battery_1 ~ Battery_7): 原始7个单体电压
-            battery_voltages = [parsed_data[f"Battery_{i + 1}"] for i in range(7)]
+            # 电池电压 (Battery_1 ~ Battery_7): 原始12个单体电压
+            battery_voltages = [parsed_data[f"Battery_{i + 1}"] for i in range(12)]
 
             # 添加 Max_Cell_Voltage, Min_Cell_Voltage, Average_Voltage 到数组后三位
             battery_voltages += [
@@ -266,19 +271,20 @@ class Z1BMSPUBClient(threading.Thread):
                 parsed_data["Min_Cell_Voltage"],
                 parsed_data["Average_Voltage"]
             ]
-            bms_states.Battery_Voltage = battery_voltages  # 长度应为 10
+            bms_states.Battery_Voltage = battery_voltages  # 长度应为 15
 
-            # 温度传感器 (Temperature_1 ~ Temperature_2): 原始2个温度传感器数据
-            temperatures = [parsed_data[f"Temperature_{i + 1}"] for i in range(2)]
+            # 温度传感器 (Temperature_1 ~ Temperature_2): 原始5个温度传感器数据
+            temperatures = [parsed_data[f"Temperature_{i + 1}"] for i in range(5)]
 
             # 添加 Max_Temperature, MOS_Temperature 到数组后两位
             temperatures += [
                 parsed_data["Max_Temperature"],
                 parsed_data["MOS_Temperature"]
             ]
-            bms_states.Temperature = temperatures  # 长度应为 4
+            bms_states.Temperature = temperatures  # 长度应为 7
 
             # 其他字段保持不变
+            bms_states.timestamp = parsed_data["Timestamp"]
             bms_states.Total_Voltage = parsed_data["Total_Voltage"]
             bms_states.Current = parsed_data["Current"]
             bms_states.SOC = parsed_data["SOC"]

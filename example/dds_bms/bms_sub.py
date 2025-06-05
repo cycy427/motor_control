@@ -40,7 +40,8 @@ class Z1BMmsSUBClient(threading.Thread):
         :param RTC_Time: 实时时间
         """
 
-        self._BmsStates =bmsmsg.bmsdata(Battery_Voltage=[0.] * 10, Temperature=[0.] * 4, Total_Voltage=0., Current=0.,
+        self._BmsStates =bmsmsg.bmsdata(timestamp='', Battery_Voltage=[0.] * 15, Temperature=[0.] * 7,
+                                        Total_Voltage=0., Current=0.,
                                         SOC=0., Remaining_Capacity=0., Limit_Status='', Limit_Current=0., RTC_Time='')
 
         # 创建域参与者

@@ -9,7 +9,7 @@ import csv
 
 
 # 配置串口参数
-SERIAL_PORT = '/dev/ttyUSB0'  # 根据实际情况修改串口号
+SERIAL_PORT = '/dev/ttyACM0'  # 根据实际情况修改串口号
 BAUD_RATE = 9600
 PARITY = serial.PARITY_NONE
 STOP_BITS = serial.STOPBITS_ONE
@@ -68,13 +68,13 @@ def parse_register_data(row):
     parsed_data = {}
 
     # 单体电池电压 (0x00 ~ 0x06)，提取前7个值
-    for i in range(7):  # 提取前7个寄存器的值
+    for i in range(12):  # 提取前7个寄存器的值
         register_value = int(row[f"Register_{i+1}"])
         voltage = register_value * 0.001
         parsed_data[f"Battery_{i+1}"] = voltage
 
-    # 电池温度 (0x30 ~ 0x31)，提取前2个值
-    for i in range(2):  # 提取前2个寄存器的值
+    # 电池温度 (0x30 ~ 0x31)，提取前4个值
+    for i in range(4):  # 提取前4个寄存器的值
         register_value = int(row[f"Register_{48+i+1}"])
         temperature = register_value - 40
         parsed_data[f"Temperature_{i+1}"] = temperature
@@ -144,7 +144,8 @@ def write_parsed_data_to_csv(parsed_data, filename='processed_data_log.csv'):
     # 定义字段顺序
     fieldnames = ["Timestamp",
                   "Battery_1", "Battery_2", "Battery_3", "Battery_4", "Battery_5", "Battery_6", "Battery_7",
-                  "Temperature_1", "Temperature_2",
+                  "Battery_8", "Battery_9", "Battery_10", "Battery_11", "Battery_12",
+                  "Temperature_1", "Temperature_2","Temperature_3", "Temperature_4",
                   "Total_Voltage", "Current", "SOC", "Max_Cell_Voltage", "Min_Cell_Voltage", "Max_Temperature",
                   "Remaining_Capacity", "Average_Voltage", "MOS_Temperature",
                   "Limit_Status", "Limit_Current", "RTC_Time"]
@@ -161,15 +162,17 @@ def write_parsed_data_to_csv(parsed_data, filename='processed_data_log.csv'):
 try:
     while True:
         send_command(SEND_COMMAND)
+        time.sleep(0.01)  # 等待0.01秒后再次发送命令
         response = read_response()
         try:
             registers = parse_response(response)
             parsed_data = parse_register_data({f"Register_{i+1}": val for i, val in enumerate(registers)})
             write_parsed_data_to_csv(parsed_data)
             print(f"Processed and saved data: {parsed_data}")
+            time.sleep(0.01)  # 等待0.01秒后再次发送命令
         except Exception as e:
             print(f"Error parsing response: {e}")
-        time.sleep(0.01)  # 等待0.01秒后再次发送命令
+
 finally:
     ser.close()
 
