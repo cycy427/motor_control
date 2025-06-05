@@ -120,6 +120,8 @@ class Z1LogicPUBClient(threading.Thread):
                     if axis_index >= 0:
                         # 标准化为 [-1.0, 1.0]
                         value = event.value / 32767.0 if event.value > 0 else event.value / 32768.0
+                        if axis_name == 'LEFT_X' or axis_name == 'LEFT_Y' or axis_name == 'RIGHT_X' or axis_name == 'RIGHT_Y':
+                            value  = value * (-1.0)
                         self._logicStates.axes_map[axis_index] = value
 
                 # axis = AXIS_MAP.get(event.code, f"未知轴{event.code}")

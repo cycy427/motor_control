@@ -75,4 +75,4 @@ if __name__ == '__main__':
         st = z1_logic.getStates()
         print("sub :" ,st)
 
-        time.sleep(0.01)
+        time.sleep(0.1)

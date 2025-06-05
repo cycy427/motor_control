@@ -134,6 +134,7 @@ void Z1Legs::Control() {
             //可以安全地对 motor_data_ 进行读写操作，因为此时 mutex_ 已经被锁定，
             //其他线程无法同时修改 motor_data_。注意他只在花括号内有效，
             //离开花括号作用域后，mutex_ 自动解锁。
+            // SaveMotorDataToCSV("motor_data_log.csv");  // 每次循环都追加写入
             std::lock_guard lock(mutex_);
             EtherCAT_Send_Command(motor_data_);
             // EtherCAT_Send_Command(motorDate_recv);
@@ -368,3 +369,36 @@ void Z1Legs::getMotorData(YKSMotorData *data) {
     }
     
 }
+void Z1Legs::SaveMotorDataToCSV(const std::string& filename) const {
+    std::ofstream file(filename, std::ios_base::app); // 使用 app 模式进行追加
+    if (!file.is_open()) {
+        std::cerr << "Failed to open file: " << filename << std::endl;
+        return;
+    }
+
+    // 如果是第一次写入，添加表头
+    if (file.tellp() == 0) {
+        file << "ID,pos_,vel_,tau_,pos_des_,vel_des_,kp_,kd_,ff_,mode,error_,temperature_,mos_temperature_\n";
+    }
+    std::lock_guard lock(mutex_);
+    // 遍历 motor_data_ 并写入数据
+    for (int i = 0; i < Z1_NUM_MOTOR; ++i) {
+        const auto& data = motor_data_[i];
+        file << i << ","
+             << data.pos_ << ","
+             << data.vel_ << ","
+             << data.tau_ << ","
+             << data.pos_des_ << ","
+             << data.vel_des_ << ","
+             << data.kp_ << ","
+             << data.kd_ << ","
+             << data.ff_ << ","
+             << static_cast<int>(data.mode) << ","
+             << data.error_ << ","
+             << data.temperature_ << ","
+             << data.mos_temperature_ << "\n";
+    }
+
+    file.close();
+}
+

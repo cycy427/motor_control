@@ -249,7 +249,7 @@ if __name__ == '__main__':
     
     for i in range(30):
         # print(i)
-        z1_5_wb.z1_5_wb_squat_control(i, 0, 0, 0, 0, 0, 10)
+        z1_5_wb.z1_5_wb_squat_control(i, 0, 0, 0, 0, 100, 10)
 
         time.sleep(0.01)
 
@@ -257,10 +257,10 @@ if __name__ == '__main__':
         
     while True:
         z1_5_wb.setCommand()
-        print("pub %f  %f" % (0, z1_5_wb.motorCmds.cmds[0].pos))
+        print("pub %f  %f" % (0, z1_5_wb.motorCmds.cmds[0].kd))
 
         st = z1_5_wb.getStates()
-        print("sub %f" % (st.states[0].pos))
+        # print("sub %f" % (st.states[0].pos))
         # z1_body.setCommand()
         # print("pub %f  %f" % (0, z1_leg.motorCmds.cmds[0].pos))
 

@@ -19,6 +19,8 @@
 #include <string>
 #include <ncurses.h>
 #include <cstring>
+#include <fstream>
+
 
 extern "C" {
 #include "ethercat.h"
@@ -99,21 +101,19 @@ private:
     std::shared_ptr<std::thread> control_thread_;
     // Stiffness for all Z1 Joints
     std::array<float, Z1_NUM_MOTOR> Kp{
-        150, 150, 150, 150, 15, 15, // legs
-        150, 150, 150, 150, 150, 150, // legs
-        150 // waist
-        //        60, 40, 40,                   // waist
-        //        40, 40, 40, 40, 40, 40, 40,  // arms
-        //        40, 40, 40, 40, 40, 40, 40   // arms
+        0, 0, 0, 0, 0, 0, // legs
+        0, 0, 0, 0, 0, 0, // legs
+        0, 0, 0, 0, 0, 0,//
+        0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0
     };
     // Damping for all Z1 Joints
     std::array<float, Z1_NUM_MOTOR> Kd{
-        50, 50, 50, 50, 0.5, 0.5, // legs
-        50, 50, 50, 50, 50, 50, // legs
-        50 // waist
-        //        1, 1, 1,              // waist
-        //        1, 1, 1, 1, 1, 1, 1,  // arms
-        //        1, 1, 1, 1, 1, 1, 1   // arms
+        0, 0, 0, 0, 0, 0, // legs
+        0, 0, 0, 0, 0, 0, // legs
+        0, 0, 0, 0, 0, 0,//
+        0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0
     };
     double time_;
     int control_dt_; // [2ms]
@@ -137,6 +137,8 @@ private:
     std::shared_ptr<JoyStickHandler> joy_stick_handler_; // 添加 JoyStickHandler 成员变量
     bool battery_enable_ = false; //是否在这个类当中传入了电池的句柄
     std::shared_ptr<BmsHandler> battery_handler_; // 添加BatteryHandler成员变量
+
+    void SaveMotorDataToCSV(const std::string& filename) const ;
 };
 
 #endif //YKS_SDK_Z1LEGS_H
