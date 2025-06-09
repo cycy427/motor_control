@@ -7,6 +7,8 @@
 #include "SocketSender.h"
 #include "dds/dds.hpp"
 #include "nubotddsmsg.hpp"
+#include <mutex>
+#include <condition_variable>
 
 #define DDS  //如果想要使用Socket通信，那么就注释，如果想使用DDS通信，那么请取消注释
 
@@ -25,12 +27,30 @@
 
 #define SBUSSTATETOPIC  "/nubot/z1/wholebodymotorstates"
 
+#define IMUPUBDATATOPIC  "/nubot/z1/imupubdata"
+#define HCMDPUBDATATOPIC  "/nubot/z1/hcmdpubdata"
+#define LOGICPUBDATATOPIC  "/nubot/z1/logicpubdata"
+
 using namespace org::eclipse::cyclonedds;
 using namespace nubotddsmsg::hr;
+using namespace nubotddsmsg::sensor;
+using namespace nubotddsmsg::logic;
+using namespace nubotddsmsg::hcmd;
 using namespace nubotddsmsg::sbus;
 
-
+// 用于同步 imu 状态的 flag 和线程唤醒
+std::mutex imu_mutex;
+std::condition_variable imu_cv;
+// 用于同步 hcmd 状态的 flag 和线程唤醒
+std::mutex hcmd_mutex;
+std::condition_variable hcmd_cv;
+// 用于同步 logic 状态的 flag 和线程唤醒
+std::mutex logic_mutex;
+std::condition_variable logic_cv;
 YKSMotorData my_motor_data[Z1_NUM_MOTOR];
+bool is_imu_run = false;
+bool is_hcmd_run = false;
+bool is_logic_run = false;
 
 ///非常简单的测试函数，用于测试下肢的运动控制
 void squat_control(const float pos) {
@@ -103,6 +123,18 @@ void DDS_Get_Body_Motor_Cmds(const int motor_num, const motorcmds &cmds, YKSMoto
     }
 }
 
+// void DDS_Get_IMU_States(const int motor_num, const imudata &cmds, YKSMotorData *motor_cmds) {
+//     // 拿到所有DDS传过来的电机指令数据，然后传给main函数当中的全局数组，通过电机数量可以区分到底是上肢还是下肢的指令
+//     for (int i = 0; i < motor_num; i++) {
+//         motor_cmds[i].pos_des_ = cmds.cmds()[i].pos();
+//         motor_cmds[i].vel_des_ = cmds.cmds()[i].vel();
+//         motor_cmds[i].ff_ = cmds.cmds()[i].tau();
+//         motor_cmds[i].mode = cmds.cmds()[i].mode();
+//         motor_cmds[i].kp_ = cmds.cmds()[i].kp();
+//         motor_cmds[i].kd_ = cmds.cmds()[i].kd();
+//     }
+// }
+
 void DDS_Pub_Arm_Motor_Data(motorstates &states, dds::pub::DataWriter<motorstates> &writer,
                             const YKSMotorData *motor_data_) {
     // 拿到所有DDS传过来的电机指令数据，然后传给main函数当中的全局数组，通过电机数量可以区分到底是上肢还是下肢的指令
@@ -166,7 +198,7 @@ void DDS_Pub_Z1_5_WB_Motor_Data(motorstates &states, dds::pub::DataWriter<motors
 }
 
 void DDS_Pub_Sbus_Data(sbusdata &states, dds::pub::DataWriter<sbusdata> &writer,
-                                const SBusData *sbus_data_) {
+                       const SBusData *sbus_data_) {
     // 发布SBUS数据
     states.lost_frame(sbus_data_->lost_frame);
     states.failsafe(sbus_data_->failsafe);
@@ -175,7 +207,7 @@ void DDS_Pub_Sbus_Data(sbusdata &states, dds::pub::DataWriter<sbusdata> &writer,
     for (size_t i = 0; i < 16; ++i) {
         ch_values[i] = sbus_data_->ch[i];
     }
-        states.ch(ch_values);
+    states.ch(ch_values);
 
     writer.write(states);
 }
@@ -254,6 +286,59 @@ void DDS_Body_SUB(dds::sub::DataReader<motorcmds> &Reader, dds::sub::LoanedSampl
     }
 }
 
+void DDS_IMU_SUB(dds::sub::DataReader<imudata> &Reader, dds::sub::LoanedSamples<imudata> &samples) {
+    samples = Reader.take();
+    if (samples.length() > 0) {
+        for (auto sample_iter = samples.begin(); sample_iter < samples.end(); ++sample_iter) {
+            const imudata &states = sample_iter->data();
+            const dds::sub::SampleInfo &info = sample_iter->info();
+            if (info.valid()) {
+                is_imu_run = true;
+                // DDS_Get_IMU_States(TOTAL_MOTOR_NUMBER, states, my_motor_data);
+            }
+        }
+    } else {
+        // is_imu_run = false;
+        // std::cout << "no imu data received" << std::endl;
+    }
+}
+
+void DDS_HCMD_SUB(dds::sub::DataReader<hcmddata> &Reader, dds::sub::LoanedSamples<hcmddata> &samples) {
+    samples = Reader.take();
+    if (samples.length() > 0) {
+        for (auto sample_iter = samples.begin(); sample_iter < samples.end(); ++sample_iter) {
+            const hcmddata &states = sample_iter->data();
+            const dds::sub::SampleInfo &info = sample_iter->info();
+            if (info.valid()) {
+                is_hcmd_run = true;
+
+                // DDS_Get_IMU_States(TOTAL_MOTOR_NUMBER, states, my_motor_data);
+            }
+        }
+    } else {
+        // is_hcmd_run = false;
+        // std::cout << "no hcmd data received" << std::endl;
+    }
+}
+
+void DDS_LOGIC_SUB(dds::sub::DataReader<logicdata> &Reader, dds::sub::LoanedSamples<logicdata> &samples) {
+    samples = Reader.take();
+    if (samples.length() > 0) {
+        for (auto sample_iter = samples.begin(); sample_iter < samples.end(); ++sample_iter) {
+            const logicdata &states = sample_iter->data();
+            const dds::sub::SampleInfo &info = sample_iter->info();
+            if (info.valid()) {
+                is_logic_run = true;
+
+                // DDS_Get_IMU_States(TOTAL_MOTOR_NUMBER, states, my_motor_data);
+            }
+        }
+    } else {
+        // is_logic_run = false;
+        // std::cout << "no logic data received" << std::endl;
+    }
+}
+
 int main() {
     //////////////////////////////////////////////////////////////////////////////////////////////////
     // DDS相关处理 ////////////////////////////////////////////////////////////////////////////////////
@@ -262,49 +347,49 @@ int main() {
         std::cerr << "Failed to create participant!" << std::endl;
         return -1;
     }
-    //////////////////////////////////////////////////////////////////////////////////////////////////
-    // 订阅 //////////////////////////////////////////////////////////////////////////////////////////
-    // 下肢订阅 ========================================================================================
-    //定义下肢订阅者话题
-    dds::topic::Topic<motorcmds> legtopicsub(participant, LEGCMDTOPIC);
-    //定义下肢订阅者话题Qos
-    dds::sub::Subscriber legSubscriber(participant);
-    dds::sub::qos::DataReaderQos legReadQos = legSubscriber.default_datareader_qos();
-    legReadQos << dds::core::policy::Reliability::BestEffort() //尽力传输，只发一次
-            << dds::core::policy::Durability::Volatile() //持久化，比如订阅者后加入，则不接受历史信息，只接收自加入以来的消息
-            << dds::core::policy::History::KeepLast(5); //保留近5条消息
-
-    //定义下肢Reader
-    dds::sub::DataReader<motorcmds> legReader(legSubscriber, legtopicsub, legReadQos);
-    std::cout << "=== [Leg subscriber] get ready! " << std::endl;
-
-    // 上肢订阅 ======================================================================================
-    //定义上肢订阅者话题
-    dds::topic::Topic<motorcmds> armtopicsub(participant, ARMCMDTOPIC);
-    //定义下肢订阅者话题Qos
-    dds::sub::Subscriber armSubscriber(participant);
-    dds::sub::qos::DataReaderQos armReadQos = armSubscriber.default_datareader_qos();
-    armReadQos << dds::core::policy::Reliability::BestEffort() //尽力传输，只发一次
-            << dds::core::policy::Durability::Volatile() //持久化，比如订阅者后加入，则不接受历史信息，只接收自加入以来的消息
-            << dds::core::policy::History::KeepLast(5); //保留近5条消息
-
-    //定义上肢Reader
-    dds::sub::DataReader<motorcmds> armReader(armSubscriber, armtopicsub, armReadQos);
-    std::cout << "=== [Arm subscriber] get ready! " << std::endl;
-
-    // 躯干订阅 ========================================================================================
-    //定义躯干订阅者话题
-    dds::topic::Topic<motorcmds> bodytopicsub(participant, BODYCMDTOPIC);
-    //定义躯干订阅者话题Qos
-    dds::sub::Subscriber bodySubscriber(participant);
-    dds::sub::qos::DataReaderQos bodyReadQos = bodySubscriber.default_datareader_qos();
-    bodyReadQos << dds::core::policy::Reliability::BestEffort() //尽力传输，只发一次
-            << dds::core::policy::Durability::Volatile() //持久化，比如订阅者后加入，则不接受历史信息，只接收自加入以来的消息
-            << dds::core::policy::History::KeepLast(5); //保留近5条消息
-
-    //定义躯干Reader
-    dds::sub::DataReader<motorcmds> bodyReader(bodySubscriber, bodytopicsub, bodyReadQos);
-    std::cout << "=== [body subscriber] get ready! " << std::endl;
+    // //////////////////////////////////////////////////////////////////////////////////////////////////
+    // // 订阅 //////////////////////////////////////////////////////////////////////////////////////////
+    // // 下肢订阅 ========================================================================================
+    // //定义下肢订阅者话题
+    // dds::topic::Topic<motorcmds> legtopicsub(participant, LEGCMDTOPIC);
+    // //定义下肢订阅者话题Qos
+    // dds::sub::Subscriber legSubscriber(participant);
+    // dds::sub::qos::DataReaderQos legReadQos = legSubscriber.default_datareader_qos();
+    // legReadQos << dds::core::policy::Reliability::BestEffort() //尽力传输，只发一次
+    //         << dds::core::policy::Durability::Volatile() //持久化，比如订阅者后加入，则不接受历史信息，只接收自加入以来的消息
+    //         << dds::core::policy::History::KeepLast(5); //保留近5条消息
+    //
+    // //定义下肢Reader
+    // dds::sub::DataReader<motorcmds> legReader(legSubscriber, legtopicsub, legReadQos);
+    // std::cout << "=== [Leg subscriber] get ready! " << std::endl;
+    //
+    // // 上肢订阅 ======================================================================================
+    // //定义上肢订阅者话题
+    // dds::topic::Topic<motorcmds> armtopicsub(participant, ARMCMDTOPIC);
+    // //定义下肢订阅者话题Qos
+    // dds::sub::Subscriber armSubscriber(participant);
+    // dds::sub::qos::DataReaderQos armReadQos = armSubscriber.default_datareader_qos();
+    // armReadQos << dds::core::policy::Reliability::BestEffort() //尽力传输，只发一次
+    //         << dds::core::policy::Durability::Volatile() //持久化，比如订阅者后加入，则不接受历史信息，只接收自加入以来的消息
+    //         << dds::core::policy::History::KeepLast(5); //保留近5条消息
+    //
+    // //定义上肢Reader
+    // dds::sub::DataReader<motorcmds> armReader(armSubscriber, armtopicsub, armReadQos);
+    // std::cout << "=== [Arm subscriber] get ready! " << std::endl;
+    //
+    // // 躯干订阅 ========================================================================================
+    // //定义躯干订阅者话题
+    // dds::topic::Topic<motorcmds> bodytopicsub(participant, BODYCMDTOPIC);
+    // //定义躯干订阅者话题Qos
+    // dds::sub::Subscriber bodySubscriber(participant);
+    // dds::sub::qos::DataReaderQos bodyReadQos = bodySubscriber.default_datareader_qos();
+    // bodyReadQos << dds::core::policy::Reliability::BestEffort() //尽力传输，只发一次
+    //         << dds::core::policy::Durability::Volatile() //持久化，比如订阅者后加入，则不接受历史信息，只接收自加入以来的消息
+    //         << dds::core::policy::History::KeepLast(5); //保留近5条消息
+    //
+    // //定义躯干Reader
+    // dds::sub::DataReader<motorcmds> bodyReader(bodySubscriber, bodytopicsub, bodyReadQos);
+    // std::cout << "=== [body subscriber] get ready! " << std::endl;
 
     // z1_5_wb订阅 ========================================================================================
     //定义z1_5_wb订阅者话题
@@ -320,46 +405,88 @@ int main() {
     dds::sub::DataReader<motorcmds> z1_5_wb_Reader(z1_5_wb_Subscriber, z1_5_wb_topicsub, z1_5_wb_ReadQos);
     std::cout << "=== [z1_5_wb subscriber] get ready! " << std::endl;
 
-    // //////////////////////////////////////////////////////////////////////////////////////////////////
-    // // 发布 ///////////////////////////////////////////////////////////////////////////////////////////
-    // // 下肢发布 =======================================================================================
-    // // 定义下肢发布者话题
-    dds::topic::qos::TopicQos legtopicpubQos;
-    legtopicpubQos << dds::core::policy::Reliability::BestEffort() //尽力传输，只发一次
+    // imu订阅 ========================================================================================
+    //定义imu订阅者话题
+    dds::topic::Topic<imudata> imu_topicsub(participant, IMUPUBDATATOPIC);
+    //定义imu订阅者话题Qos
+    dds::sub::Subscriber imu_Subscriber(participant);
+    dds::sub::qos::DataReaderQos imu_ReadQos = imu_Subscriber.default_datareader_qos();
+    imu_ReadQos << dds::core::policy::Reliability::BestEffort() //尽力传输，只发一次
             << dds::core::policy::Durability::Volatile() //持久化，比如订阅者后加入，则不接受历史信息，只接收自加入以来的消息
             << dds::core::policy::History::KeepLast(5); //保留近5条消息
-    dds::topic::Topic<motorstates> legtopicpub(participant, LEGSTATETOPIC);
-    // 创建 Publisher 和 DataWriter
-    dds::pub::Publisher legPublisher(participant);
-    dds::pub::qos::DataWriterQos legwriterQos(legtopicpubQos); // datawriter的qos应当继承自topic的qos
-    dds::pub::DataWriter<motorstates> legWriter(legPublisher, legtopicpub, legwriterQos);
-    std::cout << "=== [Leg publisher] get ready! " << std::endl;
 
-    // // 上肢发布 =======================================================================================
-    // // 定义上肢发布者话题
-    dds::topic::qos::TopicQos armtopicpubQos;
-    armtopicpubQos << dds::core::policy::Reliability::BestEffort() //尽力传输，只发一次
-            << dds::core::policy::Durability::Volatile() //持久化，比如订阅者后加入，则不接受历史信息，只接收自加入以来的消息
-            << dds::core::policy::History::KeepLast(5); //保留近5条消息
-    dds::topic::Topic<motorstates> armtopicpub(participant, ARMSTATETOPIC);
-    // 创建 Publisher 和 DataWriter
-    dds::pub::Publisher armPublisher(participant);
-    dds::pub::qos::DataWriterQos armwriterQos(armtopicpubQos); // datawriter的qos应当继承自topic的qos
-    dds::pub::DataWriter<motorstates> armWriter(armPublisher, armtopicpub, armwriterQos);
-    std::cout << "=== [arm publisher] get ready! " << std::endl;
+    //定义imu_Reader
+    dds::sub::DataReader<imudata> imu_Reader(imu_Subscriber, imu_topicsub, imu_ReadQos);
+    std::cout << "=== [imu subscriber] get ready! " << std::endl;
 
-    // // 躯干发布 =======================================================================================
-    // // 定义躯干发布者话题
-    dds::topic::qos::TopicQos bodytopicpubQos;
-    bodytopicpubQos << dds::core::policy::Reliability::BestEffort() //尽力传输，只发一次
+    // hcmd订阅 ========================================================================================
+    //定义z1_5_wb订阅者话题
+    dds::topic::Topic<hcmddata> hcmd_topicsub(participant, HCMDPUBDATATOPIC);
+    //定义z1_5_wb订阅者话题Qos
+    dds::sub::Subscriber hcmd_Subscriber(participant);
+    dds::sub::qos::DataReaderQos hcmd_ReadQos = hcmd_Subscriber.default_datareader_qos();
+    hcmd_ReadQos << dds::core::policy::Reliability::BestEffort() //尽力传输，只发一次
             << dds::core::policy::Durability::Volatile() //持久化，比如订阅者后加入，则不接受历史信息，只接收自加入以来的消息
             << dds::core::policy::History::KeepLast(5); //保留近5条消息
-    dds::topic::Topic<motorstates> bodytopicpub(participant, BODYSTATETOPIC);
-    // 创建 Publisher 和 DataWriter
-    dds::pub::Publisher bodyPublisher(participant);
-    dds::pub::qos::DataWriterQos bodywriterQos(bodytopicpubQos); // datawriter的qos应当继承自topic的qos
-    dds::pub::DataWriter<motorstates> bodyWriter(bodyPublisher, bodytopicpub, bodywriterQos);
-    std::cout << "=== [body publisher] get ready! " << std::endl;
+
+    //定义hcmd_Reader
+    dds::sub::DataReader<hcmddata> hcmd_Reader(hcmd_Subscriber, hcmd_topicsub, hcmd_ReadQos);
+    std::cout << "=== [hcmd subscriber] get ready! " << std::endl;
+
+    // logic订阅 ========================================================================================
+    //定义logic订阅者话题
+    dds::topic::Topic<logicdata> logic_topicsub(participant, LOGICPUBDATATOPIC);
+    //定义logic订阅者话题Qos
+    dds::sub::Subscriber logic_Subscriber(participant);
+    dds::sub::qos::DataReaderQos logic_ReadQos = logic_Subscriber.default_datareader_qos();
+    logic_ReadQos << dds::core::policy::Reliability::BestEffort() //尽力传输，只发一次
+            << dds::core::policy::Durability::Volatile() //持久化，比如订阅者后加入，则不接受历史信息，只接收自加入以来的消息
+            << dds::core::policy::History::KeepLast(5); //保留近5条消息
+
+    //定义logic_Reader
+    dds::sub::DataReader<logicdata> logic_Reader(logic_Subscriber, logic_topicsub, logic_ReadQos);
+    std::cout << "=== [logic subscriber] get ready! " << std::endl;
+
+    // // //////////////////////////////////////////////////////////////////////////////////////////////////
+    // // // 发布 ///////////////////////////////////////////////////////////////////////////////////////////
+    // // // 下肢发布 =======================================================================================
+    // // // 定义下肢发布者话题
+    // dds::topic::qos::TopicQos legtopicpubQos;
+    // legtopicpubQos << dds::core::policy::Reliability::BestEffort() //尽力传输，只发一次
+    //         << dds::core::policy::Durability::Volatile() //持久化，比如订阅者后加入，则不接受历史信息，只接收自加入以来的消息
+    //         << dds::core::policy::History::KeepLast(5); //保留近5条消息
+    // dds::topic::Topic<motorstates> legtopicpub(participant, LEGSTATETOPIC);
+    // // 创建 Publisher 和 DataWriter
+    // dds::pub::Publisher legPublisher(participant);
+    // dds::pub::qos::DataWriterQos legwriterQos(legtopicpubQos); // datawriter的qos应当继承自topic的qos
+    // dds::pub::DataWriter<motorstates> legWriter(legPublisher, legtopicpub, legwriterQos);
+    // std::cout << "=== [Leg publisher] get ready! " << std::endl;
+    //
+    // // // 上肢发布 =======================================================================================
+    // // // 定义上肢发布者话题
+    // dds::topic::qos::TopicQos armtopicpubQos;
+    // armtopicpubQos << dds::core::policy::Reliability::BestEffort() //尽力传输，只发一次
+    //         << dds::core::policy::Durability::Volatile() //持久化，比如订阅者后加入，则不接受历史信息，只接收自加入以来的消息
+    //         << dds::core::policy::History::KeepLast(5); //保留近5条消息
+    // dds::topic::Topic<motorstates> armtopicpub(participant, ARMSTATETOPIC);
+    // // 创建 Publisher 和 DataWriter
+    // dds::pub::Publisher armPublisher(participant);
+    // dds::pub::qos::DataWriterQos armwriterQos(armtopicpubQos); // datawriter的qos应当继承自topic的qos
+    // dds::pub::DataWriter<motorstates> armWriter(armPublisher, armtopicpub, armwriterQos);
+    // std::cout << "=== [arm publisher] get ready! " << std::endl;
+    //
+    // // // 躯干发布 =======================================================================================
+    // // // 定义躯干发布者话题
+    // dds::topic::qos::TopicQos bodytopicpubQos;
+    // bodytopicpubQos << dds::core::policy::Reliability::BestEffort() //尽力传输，只发一次
+    //         << dds::core::policy::Durability::Volatile() //持久化，比如订阅者后加入，则不接受历史信息，只接收自加入以来的消息
+    //         << dds::core::policy::History::KeepLast(5); //保留近5条消息
+    // dds::topic::Topic<motorstates> bodytopicpub(participant, BODYSTATETOPIC);
+    // // 创建 Publisher 和 DataWriter
+    // dds::pub::Publisher bodyPublisher(participant);
+    // dds::pub::qos::DataWriterQos bodywriterQos(bodytopicpubQos); // datawriter的qos应当继承自topic的qos
+    // dds::pub::DataWriter<motorstates> bodyWriter(bodyPublisher, bodytopicpub, bodywriterQos);
+    // std::cout << "=== [body publisher] get ready! " << std::endl;
 
     // // z1_5_wb发布 =======================================================================================
     // // 定义z1_5_wb发布者话题
@@ -385,7 +512,7 @@ int main() {
     dds::pub::Publisher sbus_Publisher(participant);
     dds::pub::qos::DataWriterQos sbus_writerQos(sbus_topicpubQos); // datawriter的qos应当继承自topic的qos
     dds::pub::DataWriter<sbusdata> sbus_Writer(sbus_Publisher, sbus_topicpub, sbus_writerQos);
-    std::cout << "=== [z1_5_wb publisher] get ready! " << std::endl;
+    std::cout << "=== [SBUS publisher] get ready! " << std::endl;
 
     //////////////////////////////////////////////////////////////////////////////////////////////////
     /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -399,7 +526,6 @@ int main() {
 
     Z1Legs z1_legs;
     z1_legs.setJoyStickHandler(joystick_handler);
-
     // MotorDataLogger motor_data_logger;
 
     // z1_legs.setBatteryHandler(battery_handler);
@@ -409,29 +535,53 @@ int main() {
     // receiver.startListening();
     // sender.sendDataPeriodically();
 
-    motorstates armStates;
-    armStates.level(1); // 设置为上肢
-    armStates.states().resize(ARM_MOTOR_NUMBER);
-
-    motorstates legStates;
-    legStates.level(0); // 设置为下肢
-    legStates.states().resize(LEG_MOTOR_NUMBER);
-
-    motorstates bodyStates;
-    bodyStates.level(2); // 设置为躯干
-    bodyStates.states().resize(BODY_MOTOR_NUMBER);
+    // motorstates armStates;
+    // armStates.level(1); // 设置为上肢
+    // armStates.states().resize(ARM_MOTOR_NUMBER);
+    //
+    // motorstates legStates;
+    // legStates.level(0); // 设置为下肢
+    // legStates.states().resize(LEG_MOTOR_NUMBER);
+    //
+    // motorstates bodyStates;
+    // bodyStates.level(2); // 设置为躯干
+    // bodyStates.states().resize(BODY_MOTOR_NUMBER);
 
     motorstates z1_5_wb_States;
     z1_5_wb_States.level(3); // 设置为z1_5_wb
     z1_5_wb_States.states().resize(TOTAL_MOTOR_NUMBER);
 
-    sbusdata  sbus_States;
+    sbusdata sbus_States;
 
 
-    dds::sub::LoanedSamples<motorcmds> samples_leg;
-    dds::sub::LoanedSamples<motorcmds> samples_arm;
-    dds::sub::LoanedSamples<motorcmds> samples_body;
+    // dds::sub::LoanedSamples<motorcmds> samples_leg;
+    // dds::sub::LoanedSamples<motorcmds> samples_arm;
+    // dds::sub::LoanedSamples<motorcmds> samples_body;
     dds::sub::LoanedSamples<motorcmds> samples_z1_5_wb;
+    dds::sub::LoanedSamples<imudata> samples_imu;
+    dds::sub::LoanedSamples<hcmddata> samples_hcmd;
+    dds::sub::LoanedSamples<logicdata> samples_logic;
+
+    while (true) {
+        //读取imu订阅的消息 -----------------------------------------------------------------------------
+        DDS_IMU_SUB(imu_Reader, samples_imu); //
+        z1_legs.getIMUFlag(is_imu_run); // 通知后执行对应操作
+
+        //读取hcmd订阅的消息 -----------------------------------------------------------------------------
+        DDS_HCMD_SUB(hcmd_Reader, samples_hcmd); //
+        z1_legs.getHcmdFlag(is_hcmd_run);
+
+        //读取logic订阅的消息 -----------------------------------------------------------------------------
+        DDS_LOGIC_SUB(logic_Reader, samples_logic); //
+        z1_legs.getLogicFlag(is_logic_run);
+        std::this_thread::sleep_for(std::chrono::milliseconds(1)); //读取周期为1ms
+
+        // if (is_logic_run == true && is_hcmd_run == true && is_imu_run == true) {
+        if (is_logic_run == true ) {
+            break;
+        }
+    }
+
 
     // double pos_pitch = 0;
     // double pos_roll = 0;
@@ -448,8 +598,14 @@ int main() {
         // DDS_Arm_SUB(armReader, samples_arm); //
         // //读取body订阅的消息 -----------------------------------------------------------------------------
         // DDS_Body_SUB(bodyReader, samples_body); //
-        //读取Z1_5_WB订阅的消息 -----------------------------------------------------------------------------
-        DDS_Z1_5_WB_SUB(z1_5_wb_Reader, samples_z1_5_wb); //
+        //消息断开连接处理
+        // if (is_hcmd_run == true && is_imu_run == true && is_logic_run == true) {
+        //     //读取Z1_5_WB订阅的消息 -----------------------------------------------------------------------------
+        //     DDS_Z1_5_WB_SUB(z1_5_wb_Reader, samples_z1_5_wb);
+        // }
+        DDS_Z1_5_WB_SUB(z1_5_wb_Reader, samples_z1_5_wb);
+
+
         /////////////////////////////////////////////////////////////////////////////////////////////
 #endif
 #ifndef DDS

@@ -14,13 +14,13 @@
 #include <mutex>
 #include "app/command.h"
 #include "JoyStickHandler.h"
+#include "MotorDataLogger.h"
 #include "BmsHandler.h"
 #include <chrono>
 #include <string>
 #include <ncurses.h>
 #include <cstring>
 #include <fstream>
-
 
 extern "C" {
 #include "ethercat.h"
@@ -70,6 +70,12 @@ public:
     void setMotorCommand(const YKSMotorData *data); //设置电机的位置、速度、力
 
     void setMotorKpKd(const YKSMotorData *data); //设置电机的Kp和Kd
+
+    void getIMUFlag(bool flag); //获取IMU的状态
+
+    void getHcmdFlag(bool flag); //获取Hcmd的状态
+
+    void getLogicFlag(bool flag); //获取Logic的状态
 
     ~Z1Legs();
 
@@ -129,10 +135,15 @@ private:
                                          1, 1, 1, 1, 1, 1,
                                          1, 1, 1, 1, 1, 1}; // 明确指定大小
 
+    bool is_imu_run_ = false;
+    bool is_hcmd_run_ = false;
+    bool is_logic_run_ = false;
 
     uint8_t mode_machine_;
     YKSMotorData motor_data_[Z1_NUM_MOTOR]{}; //私有的电机结构体数组
     mutable std::mutex mutex_; //用于电机数据读取与写入的互斥锁
+    mutable std::mutex flag_mutex_; //用于电机数据读取与写入的互斥锁
+
     bool joystick_enable_ = false; //是否在这个类当中开启了JoyStick
     std::shared_ptr<JoyStickHandler> joy_stick_handler_; // 添加 JoyStickHandler 成员变量
     bool battery_enable_ = false; //是否在这个类当中传入了电池的句柄

@@ -19,6 +19,8 @@
 #include <sstream>
 #include <filesystem>
 #include <ctime>
+#include <stdexcept>  // 用于 std::runtime_error
+
 constexpr int NUM_MOTOR = TOTAL_MOTOR_NUMBER;
 
 
@@ -44,7 +46,8 @@ private:
     YKSMotorData motor_data_[NUM_MOTOR]{}; //私有的电机结构体数组
     mutable std::mutex mutex_; //用于电机数据读取与写入的互斥锁
 
-
+    std::chrono::steady_clock::time_point start_time_;
+    std::string logDir_ = "/tmp/logs";
 };
 
 #endif // MOTORDATALOGGER_H

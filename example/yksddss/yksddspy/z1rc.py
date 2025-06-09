@@ -177,6 +177,7 @@ class Z1RemoteClient(threading.Thread):
         if not (0 <= arm_index < len(self.motorCmds.cmds)):
             raise IndexError("Invalid motor index")
 
+
         cmd = self.motorCmds.cmds[arm_index]
         cmd.mode = mode
         cmd.pos = pos

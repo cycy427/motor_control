@@ -68,35 +68,42 @@ void Z1Legs::PrintMotorState(const int size) const {
 
     mvprintw(3, 0,
              "------------------------------------------------------------------------------------------------------------------");
+    // 打印 flag 状态
+    attron(COLOR_PAIR(3));
+    mvprintw(5, 10, "IMU: %s", is_imu_run_ ? "OK" : "ERR");
+    mvprintw(6, 10, "Hcmd: %s", is_hcmd_run_ ? "OK" : "ERR");
+    mvprintw(7, 10, "Logic: %s", is_logic_run_ ? "OK" : "ERR");
+    attroff(COLOR_PAIR(3));
 
+    // 打印电机状态
     for (int i = 0; i < size; ++i) {
         attron(COLOR_PAIR(1));
-        mvprintw(i + 4, 0, "%d", i );
+        mvprintw(i + 8, 0, "%d", i );
         attroff(COLOR_PAIR(1));
 
         attron(COLOR_PAIR(2));
-        mvprintw(i + 4, 11, "%.3f", motor_data_[i].pos_);
+        mvprintw(i + 8, 11, "%.3f", motor_data_[i].pos_);
         attroff(COLOR_PAIR(2));
 
         attron(COLOR_PAIR(3));
-        mvprintw(i + 4, 24, "%.3f", motor_data_[i].vel_);
+        mvprintw(i + 8, 24, "%.3f", motor_data_[i].vel_);
         attroff(COLOR_PAIR(3));
 
         attron(COLOR_PAIR(4));
-        mvprintw(i + 4, 35, "%.3f", motor_data_[i].tau_);
+        mvprintw(i + 8, 35, "%.3f", motor_data_[i].tau_);
         attroff(COLOR_PAIR(4));
 
         attron(COLOR_PAIR(5));
-        mvprintw(i + 4, 46, "%.3f", motor_data_[i].pos_des_);
+        mvprintw(i + 8, 46, "%.3f", motor_data_[i].pos_des_);
         attroff(COLOR_PAIR(5));
 
         attron(COLOR_PAIR(6));
-        mvprintw(i + 4, 63, "%.3f", motor_data_[i].vel_des_);
+        mvprintw(i + 8, 63, "%.3f", motor_data_[i].vel_des_);
         attroff(COLOR_PAIR(6));
 
-        mvprintw(i + 4, 79, "%.3f", motor_data_[i].kp_);
-        mvprintw(i + 4, 87, "%.3f", motor_data_[i].kd_);
-        mvprintw(i + 4, 95, "%.3f", motor_data_[i].ff_);
+        mvprintw(i + 8, 79, "%.3f", motor_data_[i].kp_);
+        mvprintw(i + 8, 87, "%.3f", motor_data_[i].kd_);
+        mvprintw(i + 8, 95, "%.3f", motor_data_[i].ff_);
     }
 }
 
@@ -122,6 +129,7 @@ void Z1Legs::Control() {
     float pos = 0;
     auto start_time = std::chrono::high_resolution_clock::now(); // 记录开始时间
     int iteration_count = 0;
+    MotorDataLogger motor_data_logger;
 
     while (true) {
         {
@@ -147,6 +155,8 @@ void Z1Legs::Control() {
         //打印电机状态
         PrintMotorState(Z1_NUM_MOTOR); //只有头文件中的宏定义PRINT_MOTOR_STATE打开时才会打印电机状态，否则调用无效 13代表有13个电机，对应会产生13行数据
         refresh(); // Refresh the screen
+        motor_data_logger.print_log(motor_data_); //保存电机数据
+
     }
     endwin(); // End curses mode
 }
@@ -265,6 +275,25 @@ void Z1Legs::setBatteryHandler(const std::shared_ptr<BmsHandler> &handler) {
     battery_enable_ = true;
 }
 
+//获取IMU的状态
+void Z1Legs::getIMUFlag(bool flag){
+    std::lock_guard lock(mutex_);
+    is_imu_run_ = flag;
+}
+//获取Hcmd的状态
+void Z1Legs::getHcmdFlag(bool flag){
+    std::lock_guard lock(mutex_);
+    is_hcmd_run_ = flag;
+}
+//获取Logic的状态
+void Z1Legs::getLogicFlag(bool flag){
+    std::lock_guard lock(mutex_);
+    is_logic_run_ = flag;
+}
+
+void getHcmdFlag(bool flag); //获取Hcmd的状态
+
+void getLogicFlag(bool flag); //获取Logic的状态
 
 void Z1Legs::setMotorCommand(const YKSMotorData *data) {
     // 检查输入数据指针是否为空
