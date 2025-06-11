@@ -40,9 +40,7 @@ class Z1IMUClient(threading.Thread):
         self.running = True
         self._lockcmd = threading.RLock()
         self._lockstate = threading.RLock()
-        self.start()
 
-    def run(self):
         # 创建域参与者
         participant = DomainParticipant(0)
 
@@ -54,11 +52,15 @@ class Z1IMUClient(threading.Thread):
             Policy.History.KeepLast(5)
         )
         statetopic = Topic(participant, self.statetopic, sensormsg.imudata, qos=stateqos)
-        reader = DataReader(participant, statetopic)
+        self.reader = DataReader(participant, statetopic)
+        self.start()
+
+    def run(self):
+
 
         while self.running:
             ## 处理订阅
-            msgs = reader.take()
+            msgs = self.reader.take()
             if len(msgs) > 0:
                 self._lockstate.acquire()
                 self._imuStates = msgs[-1]
@@ -68,7 +70,8 @@ class Z1IMUClient(threading.Thread):
 
     def stop(self):
         self.running = False
-
+        if self.reader is not None:
+            del self.reader
     def getStates(self):  # 返回值 nubotddsmsg.hr.motorstates
         self._lockstate.acquire()
         states = deepcopy(self._imuStates)

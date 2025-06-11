@@ -8,6 +8,7 @@ from cyclonedds.domain import DomainParticipant
 from cyclonedds.pub import Publisher, DataWriter
 from cyclonedds.topic import Topic
 from cyclonedds.qos import Qos, Policy
+from cyclonedds.core import DDSException, Listener
 
 import nubotddsmsg.hcmd as hcmdmsg
 from copy import deepcopy
@@ -55,12 +56,21 @@ class Z1HcmdPUBClient(threading.Thread):
         while self.running:
             ## 处理发布
             self._lockcmd.acquire()
-            self.writer.write(self._hcmdStates)
+            try:
+                self.writer.write(self._hcmdStates)
+            except DDSException as e:
+                print("[Writer] catch DDSException error. msg:", e.msg)
+            except Exception as e:
+                print("[Writer] write sample error. msg:", e.args())
+            # except:
+            #     print("[Writer] write sample error.")
             self._lockcmd.release()
             time.sleep(0.01)  # 1000Hz
 
     def stop(self):
         self.running = False
+        if self.writer is not None:
+            del self.writer
 
     def Move(self,vx, vy,omega):
         self._lockcmd.acquire()

@@ -7,6 +7,8 @@ from cyclonedds.domain import DomainParticipant
 from cyclonedds.sub import DataReader
 from cyclonedds.topic import Topic
 from cyclonedds.qos import Qos, Policy
+from cyclonedds.core import DDSException, Listener
+from cyclonedds.internal import dds_c_t, InvalidSample
 
 import nubotddsmsg.hcmd as hcmdmsg
 from copy import deepcopy
@@ -27,6 +29,8 @@ class Z1HcmdSUBClient(threading.Thread):
         self.statetopic = statetopic
 
         self.daemon = True
+
+        self.reader_valid = False
 
         self._hcmdStates = hcmdmsg.hcmddata(vx=0., vy=0.,omega=0.)
         # 创建域参与者
@@ -49,18 +53,32 @@ class Z1HcmdSUBClient(threading.Thread):
 
     def run(self):
         while self.running:
+            msgs = []
             ## 处理订阅
-            msgs = self.reader.take()
+            try:
+                msgs = self.reader.take()
+            except DDSException as e:
+                print("[Reader] catch DDSException msg:", e.msg)
+            except TimeoutError as e:
+                print("[Reader] take sample timeout")
+            except:
+                print("[Reader] take sample error")
             if len(msgs) > 0:
                 self._lockstate.acquire()
                 self._hcmdStates = msgs[-1]
                 self._lockstate.release()
-
+            # check invalid sample
+            # sample = msgs[0]
+            # if isinstance(sample, InvalidSample):
+            #     self.reader_valid = False
+            # else:
+            #     self.reader_valid = True
             time.sleep(0.01)  # 100Hz
 
     def stop(self):
         self.running = False
-
+        if self.reader is not None:
+            del self.reader
     def getStates(self):  # 返回值 nubotddsmsg.hr.motorstates
         self._lockstate.acquire()
         states = deepcopy(self._hcmdStates)

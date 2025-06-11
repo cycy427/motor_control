@@ -9,7 +9,7 @@ import csv
 
 
 # 配置串口参数
-SERIAL_PORT = '/dev/ttyACM0'  # 根据实际情况修改串口号
+SERIAL_PORT = '/dev/ttyUSB0'  # 根据实际情况修改串口号
 BAUD_RATE = 9600
 PARITY = serial.PARITY_NONE
 STOP_BITS = serial.STOPBITS_ONE
@@ -169,7 +169,7 @@ try:
             parsed_data = parse_register_data({f"Register_{i+1}": val for i, val in enumerate(registers)})
             write_parsed_data_to_csv(parsed_data)
             print(f"Processed and saved data: {parsed_data}")
-            time.sleep(0.01)  # 等待0.01秒后再次发送命令
+            # time.sleep(0.01)  # 等待0.01秒后再次发送命令
         except Exception as e:
             print(f"Error parsing response: {e}")
 

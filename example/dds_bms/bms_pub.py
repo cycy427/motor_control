@@ -24,10 +24,11 @@ from copy import deepcopy
 import threading
 
 BMSPUBDATATOPIC = "/nubot/z1/bmspubdata"
-
+INTERVAL = 0.014 #  发送指令的间隔时间（单位：秒）
+DURATION = 1  # 采集时间（单位：秒）
 
 class Z1BMSPUBClient(threading.Thread):
-    def __init__(self, statetopic, port='/dev/ttyACM0', baudrate=9600):
+    def __init__(self, statetopic, port='/dev/ttyUSB0', baudrate=9600):
         '''
         :param statetopic: 订阅状态的topic
         '''
@@ -53,7 +54,9 @@ class Z1BMSPUBClient(threading.Thread):
         # CRC计算函数
         self.crc16_func = mkCrcFun('modbus')
         # CSV输出文件
-        self.output_file = 'processed_data_log.csv'
+        # self.start_time_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+        # self.output_file = f'/tmp/bmslog/bms_data_{self.start_time_str}.csv'
+        self.output_file = f'/tmp/bmslog/bms_data_.csv'
         """
         :param Battery_Voltage: 电池电压*12 Max_Cell_Voltage: 最大电池电压 Min_Cell_Voltage: 最小电池电压 Average_Voltage: 平均电压
         :param Temperature : 电池温度*5 Max_Temperature：最大温度 MOS_Temperature：MOS管温度
@@ -90,23 +93,49 @@ class Z1BMSPUBClient(threading.Thread):
         self.running = True
         self._lockcmd = threading.RLock()
 
-        # self.start()
+        # self.start_time = None
+        # self.save_duration = 300  # 5分钟（单位：秒）
+        # self.saving_enabled = True
+
+        self.recent_data = []  # 用于缓存最近5分钟的数据
+        self.data_interval = INTERVAL
+        self.cache_duration = DURATION
+        self.max_cache_size = int(self.cache_duration / self.data_interval)
+
+        self.start()
 
     def run(self):
         try:
             while self.running:
                 self.send_command()
-                time.sleep(0.01)  # 增加等待时间，让设备有时间响应
+                time.sleep(INTERVAL)  # 增加等待时间，让设备有时间响应
                 response = self.read_response()
                 try:
                     registers = self.parse_response(response)
                     parsed_data = self.parse_register_data(
                         {f"Register_{i + 1}": val for i, val in enumerate(registers)}
                     )
+                    #保留开始的5分钟的数据
+                    # if self.start_time is None:
+                    #     self.start_time = time.time()  # 第一次收到数据时开始计时
+                    # current_time = time.time()
+                    #
+                    # if self.saving_enabled and (current_time - self.start_time) <= self.save_duration:
+                    #     self.write_parsed_data_to_csv(parsed_data)
+                    # else:
+                    #     if self.saving_enabled:
+                    #         print("10分钟数据采集完成，停止写入CSV")
+                    #         self.saving_enabled = False  # 关闭写入标志
+
+                    # 保留最新的5分钟数据
+                    self.recent_data.append(parsed_data)
+                    if len(self.recent_data) > self.max_cache_size:
+                        self.recent_data.pop(0)  # 删除最早的数据
 
                     self.update_bms_states(parsed_data)  # 发布
                     print(f"Processed and saved data: {parsed_data}")
-                    time.sleep(0.01)  # 增加等待时间，让设备有时间响应
+
+                    time.sleep(0.001)  # 增加等待时间，让设备有时间响应
 
                 except Exception as e:
                     print(f"Error parsing response: {e}")
@@ -115,6 +144,12 @@ class Z1BMSPUBClient(threading.Thread):
 
     def stop(self):
         self.running = False
+        # 写入最近5分钟的数据到CSV
+        if self.recent_data:
+            print("正在写入最近5分钟的数据到CSV...")
+            for data in self.recent_data:
+                self.write_parsed_data_to_csv(data)
+
         if self.ser and self.ser.is_open:
             self.ser.reset_input_buffer()
             self.ser.reset_output_buffer()
@@ -145,7 +180,7 @@ class Z1BMSPUBClient(threading.Thread):
                     if len(response) == expected_length:
                         break
 
-            elif time.time() - start_time > 0.5:  # 设置超时避免死循环
+            elif time.time() - start_time > 2:  # 设置超时避免死循环
                 raise TimeoutError("Response timeout")
         return response
 
@@ -239,13 +274,17 @@ class Z1BMSPUBClient(threading.Thread):
         return parsed_data
 
     def write_parsed_data_to_csv(self, parsed_data):
+        # 创建目录（如果不存在）
+        os.makedirs(os.path.dirname(self.output_file), exist_ok=True)
+
         """写入解析后的数据到CSV"""
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]  # 毫秒级时间戳
         parsed_data["Timestamp"] = timestamp
 
         fieldnames = ["Timestamp",
                       "Battery_1", "Battery_2", "Battery_3", "Battery_4", "Battery_5", "Battery_6", "Battery_7",
-                      "Temperature_1", "Temperature_2",
+                      "Battery_8", "Battery_9", "Battery_10", "Battery_11", "Battery_12",
+                      "Temperature_1", "Temperature_2","Temperature_3", "Temperature_4","Temperature_5",
                       "Total_Voltage", "Current", "SOC", "Max_Cell_Voltage", "Min_Cell_Voltage", "Max_Temperature",
                       "Remaining_Capacity", "Average_Voltage", "MOS_Temperature",
                       "Limit_Status", "Limit_Current", "RTC_Time"]
@@ -302,7 +341,13 @@ class Z1BMSPUBClient(threading.Thread):
 
 if __name__ == '__main__':
     z1_bms = Z1BMSPUBClient(BMSPUBDATATOPIC)
-    z1_bms.run()
+    # z1_bms.run()
+    try:
+        # 等待用户输入以停止程序
+        input("按 Enter 键退出...\n")
+    finally:
+        z1_bms.stop()
+print("程序已退出。")
 
     # while True:
     #

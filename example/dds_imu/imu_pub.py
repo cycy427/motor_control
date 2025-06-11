@@ -14,6 +14,7 @@ from cyclonedds.pub import Publisher, DataWriter
 from cyclonedds.sub import DataReader
 from cyclonedds.topic import Topic
 from cyclonedds.qos import Qos, Policy
+from cyclonedds.core import DDSException, Listener
 
 import nubotddsmsg.sensor as sensormsg
 from copy import deepcopy
@@ -31,7 +32,7 @@ class Z1IMUPUBClient(threading.Thread):
         super(Z1IMUPUBClient, self).__init__()
 
         # 设置串口号和波特率
-        self._port = '/dev/ttyUSB0'  # 修改为你实际使用的串口号
+        self._port = '/dev/ttyUSB1'  # 修改为你实际使用的串口号
         self._baudrate = 921600     # 修改为你需要的波特率
         self.latest_hipnuc_frame = None
         self.latest_nmea_frames = []
@@ -56,9 +57,7 @@ class Z1IMUPUBClient(threading.Thread):
         self.running = True
         self._lockcmd = threading.RLock()
         self._lockstate = threading.RLock()
-        self.start()
 
-    def run(self):
         # 创建域参与者
         participant = DomainParticipant(0)
         ###########################################################################
@@ -70,7 +69,11 @@ class Z1IMUPUBClient(threading.Thread):
             Policy.History.KeepLast(5),  # 保留最后5条消息
         )
         publisher = Publisher(participant)
-        writer = DataWriter(publisher, cmdtopic, qos=cmdqos)
+        self.writer = DataWriter(publisher, cmdtopic, qos=cmdqos)
+        self.start()
+
+    def run(self):
+
 
         serial_parser = hipnuc_parser()
         nmea_parser = hipnuc_nmea_parser()
@@ -138,7 +141,14 @@ class Z1IMUPUBClient(threading.Thread):
 
                             ## 处理发布
                             self._lockcmd.acquire()
-                            writer.write(self._imuStates)
+                            try:
+                                self.writer.write(self._imuStates)
+                            except DDSException as e:
+                                print("[Writer] catch DDSException error. msg:", e.msg)
+                                return False
+                            except Exception as e:
+                                print("[Writer] write sample error. msg:", e.args())
+                                return False
                             self._lockcmd.release()
                             time.sleep(0.001)  # 1000Hz
 
@@ -156,6 +166,8 @@ class Z1IMUPUBClient(threading.Thread):
 
     def stop(self):
         self.running = False
+        if self.writer is not None:
+            del self.writer
 
 
 if __name__ == '__main__':

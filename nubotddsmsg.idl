@@ -157,6 +157,14 @@ module nubotddsmsg {
           string<32> timestamp;
       };
 
+
+      @extensibility(FINAL)
+      struct bmsdata_short
+      {
+          float all_voltage;
+          float all_current;
+
+      };
   };
   //// bms end/////////////////////////////////////////////////////////
 

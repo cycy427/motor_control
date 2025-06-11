@@ -13,11 +13,11 @@ from cyclonedds.util import duration
 from cyclonedds.internal import dds_c_t, InvalidSample
 
 # for channel config
-from .channel_config import ChannelConfigAutoDetermine, ChannelConfigHasInterface
+from channel_config import ChannelConfigAutoDetermine, ChannelConfigHasInterface
 
 # for singleton
-from .utils.singleton import Singleton
-from .utils.bqueue import BQueue
+from utils.singleton import Singleton
+from utils.bqueue import BQueue
 
 
 """
