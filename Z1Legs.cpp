@@ -29,56 +29,59 @@ void Z1Legs::PrintFrequency(int &iteration_count, std::chrono::high_resolution_c
 }
 
 void Z1Legs::PrintMotorState(const int size) const {
+
+    // 打印 flag 状态
+    attron(COLOR_PAIR(3));
+    mvprintw(2, 2, "IMU: %s", is_imu_run_ ? "OK" : "ERR");
+    mvprintw(2, 12, "Hcmd: %s", is_hcmd_run_ ? "OK" : "ERR");
+    mvprintw(2, 22, "Logic: %s", is_logic_run_ ? "OK" : "ERR");
+    mvprintw(2, 36, "Bms: %s", is_bms_run_ ? "OK" : "ERR");
+    attroff(COLOR_PAIR(3));
+
     attron(COLOR_PAIR(1)); // Blue for position
-    mvprintw(2, 0, "Motor ID | ");
+    mvprintw(4, 0, "Motor ID | ");
     attroff(COLOR_PAIR(1));
 
     attron(COLOR_PAIR(2)); // Green for velocity
-    mvprintw(2, 11, "Pos (pos_) | ");
+    mvprintw(4, 11, "Pos (pos_) | ");
     attroff(COLOR_PAIR(2));
 
     attron(COLOR_PAIR(3)); // Red for torque
-    mvprintw(2, 23, "Vel (vel_) | ");
+    mvprintw(4, 23, "Vel (vel_) | ");
     attroff(COLOR_PAIR(3));
 
     attron(COLOR_PAIR(4)); // Yellow for desired position
-    mvprintw(2, 34, "Tau (tau_) | ");
+    mvprintw(4, 34, "Tau (tau_) | ");
     attroff(COLOR_PAIR(4));
 
     attron(COLOR_PAIR(5)); // Magenta for desired velocity
-    mvprintw(2, 46, "Des Pos (pos_des_) | ");
+    mvprintw(4, 46, "Des Pos (pos_des_) | ");
     attroff(COLOR_PAIR(5));
 
     attron(COLOR_PAIR(6)); // Cyan for KP, KD, FF
-    mvprintw(2, 63, "Des Vel (vel_des_) | ");
+    mvprintw(4, 63, "Des Vel (vel_des_) | ");
     attroff(COLOR_PAIR(6));
 
-    mvprintw(2, 79, "KP (kp_) | ");
-    mvprintw(2, 87, "KD (kd_) | ");
-    mvprintw(2, 95, "FF (ff_)");
+    mvprintw(4, 79, "KP (kp_) | ");
+    mvprintw(4, 87, "KD (kd_) | ");
+    mvprintw(4, 95, "FF (ff_)");
     if (battery_enable_) {
         attron(COLOR_PAIR(3));
-        mvprintw(2, 103, "Soc | ");
-        mvprintw(2, 111, "Temperature | ");
+        mvprintw(4, 103, "Soc | ");
+        mvprintw(4, 111, "Temperature | ");
         BmsState state = battery_handler_->getState();
-        mvprintw(4, 103, "%.2f", state.soc);
-        mvprintw(4, 111, "%.2f", state.temperature);
+        mvprintw(6, 103, "%.2f", state.soc);
+        mvprintw(6, 111, "%.2f", state.temperature);
         attroff(COLOR_PAIR(3));
     }
 
-    mvprintw(3, 0,
+    mvprintw(5, 0,
              "------------------------------------------------------------------------------------------------------------------");
-    // 打印 flag 状态
-    attron(COLOR_PAIR(3));
-    mvprintw(5, 10, "IMU: %s", is_imu_run_ ? "OK" : "ERR");
-    mvprintw(6, 10, "Hcmd: %s", is_hcmd_run_ ? "OK" : "ERR");
-    mvprintw(7, 10, "Logic: %s", is_logic_run_ ? "OK" : "ERR");
-    attroff(COLOR_PAIR(3));
 
     // 打印电机状态
     for (int i = 0; i < size; ++i) {
         attron(COLOR_PAIR(1));
-        mvprintw(i + 8, 0, "%d", i );
+        mvprintw(i + 8, 0, "%d", i);
         attroff(COLOR_PAIR(1));
 
         attron(COLOR_PAIR(2));
@@ -156,7 +159,6 @@ void Z1Legs::Control() {
         PrintMotorState(Z1_NUM_MOTOR); //只有头文件中的宏定义PRINT_MOTOR_STATE打开时才会打印电机状态，否则调用无效 13代表有13个电机，对应会产生13行数据
         refresh(); // Refresh the screen
         motor_data_logger.print_log(motor_data_); //保存电机数据
-
     }
     endwin(); // End curses mode
 }
@@ -233,7 +235,7 @@ YKSMotorData Z1Legs::Pitch_forward_kinematics(const YKSMotorData &Ankle_A_motors
 }
 
 YKSMotorData Z1Legs::Roll_forward_kinematics(const YKSMotorData &Ankle_A_motors,
-                                             const YKSMotorData &Ankle_B_motors)  {
+                                             const YKSMotorData &Ankle_B_motors) {
     YKSMotorData pitch_joint_data = {};
     const double theta1 = Ankle_A_motors.pos_ * PR_directionMotor_[0];
     const double theta2 = Ankle_B_motors.pos_ * PR_directionMotor_[1];
@@ -276,24 +278,28 @@ void Z1Legs::setBatteryHandler(const std::shared_ptr<BmsHandler> &handler) {
 }
 
 //获取IMU的状态
-void Z1Legs::getIMUFlag(bool flag){
+void Z1Legs::getIMUFlag(bool flag) {
     std::lock_guard lock(mutex_);
     is_imu_run_ = flag;
 }
+
 //获取Hcmd的状态
-void Z1Legs::getHcmdFlag(bool flag){
+void Z1Legs::getHcmdFlag(bool flag) {
     std::lock_guard lock(mutex_);
     is_hcmd_run_ = flag;
 }
+
 //获取Logic的状态
-void Z1Legs::getLogicFlag(bool flag){
+void Z1Legs::getLogicFlag(bool flag) {
     std::lock_guard lock(mutex_);
     is_logic_run_ = flag;
 }
 
-void getHcmdFlag(bool flag); //获取Hcmd的状态
-
-void getLogicFlag(bool flag); //获取Logic的状态
+//获取Bms的状态
+void Z1Legs::getBmsFlag(bool flag) {
+    std::lock_guard lock(mutex_);
+    is_bms_run_ = flag;
+}
 
 void Z1Legs::setMotorCommand(const YKSMotorData *data) {
     // 检查输入数据指针是否为空
@@ -396,9 +402,9 @@ void Z1Legs::getMotorData(YKSMotorData *data) {
             data[i].temperature_ = motor_data_[i].temperature_;
         }
     }
-    
 }
-void Z1Legs::SaveMotorDataToCSV(const std::string& filename) const {
+
+void Z1Legs::SaveMotorDataToCSV(const std::string &filename) const {
     std::ofstream file(filename, std::ios_base::app); // 使用 app 模式进行追加
     if (!file.is_open()) {
         std::cerr << "Failed to open file: " << filename << std::endl;
@@ -412,22 +418,21 @@ void Z1Legs::SaveMotorDataToCSV(const std::string& filename) const {
     std::lock_guard lock(mutex_);
     // 遍历 motor_data_ 并写入数据
     for (int i = 0; i < Z1_NUM_MOTOR; ++i) {
-        const auto& data = motor_data_[i];
+        const auto &data = motor_data_[i];
         file << i << ","
-             << data.pos_ << ","
-             << data.vel_ << ","
-             << data.tau_ << ","
-             << data.pos_des_ << ","
-             << data.vel_des_ << ","
-             << data.kp_ << ","
-             << data.kd_ << ","
-             << data.ff_ << ","
-             << static_cast<int>(data.mode) << ","
-             << data.error_ << ","
-             << data.temperature_ << ","
-             << data.mos_temperature_ << "\n";
+                << data.pos_ << ","
+                << data.vel_ << ","
+                << data.tau_ << ","
+                << data.pos_des_ << ","
+                << data.vel_des_ << ","
+                << data.kp_ << ","
+                << data.kd_ << ","
+                << data.ff_ << ","
+                << static_cast<int>(data.mode) << ","
+                << data.error_ << ","
+                << data.temperature_ << ","
+                << data.mos_temperature_ << "\n";
     }
 
     file.close();
 }
-

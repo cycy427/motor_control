@@ -30,6 +30,7 @@
 #define IMUPUBDATATOPIC  "/nubot/z1/imupubdata"
 #define HCMDPUBDATATOPIC  "/nubot/z1/hcmdpubdata"
 #define LOGICPUBDATATOPIC  "/nubot/z1/logicpubdata"
+#define BMSPUBDATATOPIC  "/nubot/z1/bmspubdata"
 
 using namespace org::eclipse::cyclonedds;
 using namespace nubotddsmsg::hr;
@@ -37,6 +38,7 @@ using namespace nubotddsmsg::sensor;
 using namespace nubotddsmsg::logic;
 using namespace nubotddsmsg::hcmd;
 using namespace nubotddsmsg::sbus;
+using namespace nubotddsmsg::bms;
 
 // 用于同步 imu 状态的 flag 和线程唤醒
 std::mutex imu_mutex;
@@ -51,6 +53,7 @@ YKSMotorData my_motor_data[Z1_NUM_MOTOR];
 bool is_imu_run = false;
 bool is_hcmd_run = false;
 bool is_logic_run = false;
+bool is_bms_run = false;
 
 ///非常简单的测试函数，用于测试下肢的运动控制
 void squat_control(const float pos) {
@@ -339,6 +342,23 @@ void DDS_LOGIC_SUB(dds::sub::DataReader<logicdata> &Reader, dds::sub::LoanedSamp
     }
 }
 
+void DDS_BMS_SUB(dds::sub::DataReader<bmsdata_short> &Reader, dds::sub::LoanedSamples<bmsdata_short> &samples) {
+    samples = Reader.take();
+    if (samples.length() > 0) {
+        for (auto sample_iter = samples.begin(); sample_iter < samples.end(); ++sample_iter) {
+            const bmsdata_short &states = sample_iter->data();
+            const dds::sub::SampleInfo &info = sample_iter->info();
+            if (info.valid()) {
+                is_bms_run = true;
+
+                // DDS_Get_IMU_States(TOTAL_MOTOR_NUMBER, states, my_motor_data);
+            }
+        }
+    } else {
+        // is_logic_run = false;
+        // std::cout << "no logic data received" << std::endl;
+    }
+}
 int main() {
     //////////////////////////////////////////////////////////////////////////////////////////////////
     // DDS相关处理 ////////////////////////////////////////////////////////////////////////////////////
@@ -447,6 +467,19 @@ int main() {
     dds::sub::DataReader<logicdata> logic_Reader(logic_Subscriber, logic_topicsub, logic_ReadQos);
     std::cout << "=== [logic subscriber] get ready! " << std::endl;
 
+    // bms订阅 ========================================================================================
+    //定义bms订阅者话题
+    dds::topic::Topic<bmsdata_short> bms_topicsub(participant, BMSPUBDATATOPIC);
+    //定义bms订阅者话题Qos
+    dds::sub::Subscriber bms_Subscriber(participant);
+    dds::sub::qos::DataReaderQos bms_ReadQos = bms_Subscriber.default_datareader_qos();
+    bms_ReadQos << dds::core::policy::Reliability::BestEffort() //尽力传输，只发一次
+            << dds::core::policy::Durability::Volatile() //持久化，比如订阅者后加入，则不接受历史信息，只接收自加入以来的消息
+            << dds::core::policy::History::KeepLast(5); //保留近5条消息
+
+    //定义bms_Reader
+    dds::sub::DataReader<bmsdata_short> bms_Reader(bms_Subscriber, bms_topicsub, bms_ReadQos);
+    std::cout << "=== [bms subscriber] get ready! " << std::endl;
     // // //////////////////////////////////////////////////////////////////////////////////////////////////
     // // // 发布 ///////////////////////////////////////////////////////////////////////////////////////////
     // // // 下肢发布 =======================================================================================
@@ -561,6 +594,7 @@ int main() {
     dds::sub::LoanedSamples<imudata> samples_imu;
     dds::sub::LoanedSamples<hcmddata> samples_hcmd;
     dds::sub::LoanedSamples<logicdata> samples_logic;
+    dds::sub::LoanedSamples<bmsdata_short> samples_bms;
 
     while (true) {
         //读取imu订阅的消息 -----------------------------------------------------------------------------
@@ -574,10 +608,15 @@ int main() {
         //读取logic订阅的消息 -----------------------------------------------------------------------------
         DDS_LOGIC_SUB(logic_Reader, samples_logic); //
         z1_legs.getLogicFlag(is_logic_run);
+
+        //读取bms订阅的消息 -----------------------------------------------------------------------------
+        DDS_BMS_SUB(bms_Reader, samples_bms); //
+        z1_legs.getBmsFlag(is_bms_run);
+
         std::this_thread::sleep_for(std::chrono::milliseconds(1)); //读取周期为1ms
 
         // if (is_logic_run == true && is_hcmd_run == true && is_imu_run == true) {
-        if (is_logic_run == true ) {
+        if (is_logic_run == true && is_imu_run == true && is_bms_run == true) {
             break;
         }
     }

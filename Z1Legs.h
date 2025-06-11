@@ -77,6 +77,8 @@ public:
 
     void getLogicFlag(bool flag); //获取Logic的状态
 
+    void getBmsFlag(bool flag); //获取Bms的状态
+
     ~Z1Legs();
 
     std::atomic<bool> stop_{};
@@ -90,26 +92,26 @@ private:
 
     void PrintMotorState(int size) const;
 
-    YKSMotorData Pitch_forward_kinematics(const YKSMotorData &Ankle_A_motors, const YKSMotorData &Ankle_B_motors) ;
+    YKSMotorData Pitch_forward_kinematics(const YKSMotorData &Ankle_A_motors, const YKSMotorData &Ankle_B_motors);
 
     //通过脚踝AB电机的角度计算耦合的踝关节的俯仰角
-    YKSMotorData Roll_forward_kinematics(const YKSMotorData &Ankle_A_motors, const YKSMotorData &Ankle_B_motors) ;
+    YKSMotorData Roll_forward_kinematics(const YKSMotorData &Ankle_A_motors, const YKSMotorData &Ankle_B_motors);
 
     //通过脚踝电机的位置计算耦合的踝关节的横滚角
     //输入目标踝关节的俯仰角横滚角计算脚踝A电机的旋转角度
     YKSMotorData AnkleA_inverse_kinematics(const YKSMotorData &pitch_joint_cmd,
-                                           const YKSMotorData &roll_joint_cmd) ;
+                                           const YKSMotorData &roll_joint_cmd);
 
     //输入目标踝关节的俯仰角横滚角计算脚踝B电机的旋转角度
     YKSMotorData AnkleB_inverse_kinematics(const YKSMotorData &pitch_joint_cmd,
-                                           const YKSMotorData &roll_joint_cmd) ;
+                                           const YKSMotorData &roll_joint_cmd);
 
     std::shared_ptr<std::thread> control_thread_;
     // Stiffness for all Z1 Joints
     std::array<float, Z1_NUM_MOTOR> Kp{
         0, 0, 0, 0, 0, 0, // legs
         0, 0, 0, 0, 0, 0, // legs
-        0, 0, 0, 0, 0, 0,//
+        0, 0, 0, 0, 0, 0, //
         0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0
     };
@@ -117,7 +119,7 @@ private:
     std::array<float, Z1_NUM_MOTOR> Kd{
         0, 0, 0, 0, 0, 0, // legs
         0, 0, 0, 0, 0, 0, // legs
-        0, 0, 0, 0, 0, 0,//
+        0, 0, 0, 0, 0, 0, //
         0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0
     };
@@ -129,15 +131,18 @@ private:
     const std::vector<double> PR_directionMotor_ = {-1, 1};
     // const std::vector<int> LegDirectionMotor_ = {-1, 1,-1,-1,1,1,
     //     -1,1,-1,1,1,1 ,        1,1,1,1,1,1,       1,1,1,1,1,1  ,1,1,1,1,1};//用于根据实际电机的正方向来进行针对性设置，以适配URDF模型的坐标系
-    const int LegDirectionMotor_[TOTAL_MOTOR_NUMBER] = {-1, 1, -1, -1, 1, 1,
-                                         -1, 1, -1, 1, 1, 1,
-                                         1, 1, 1, 1, 1, 1,
-                                         1, 1, 1, 1, 1, 1,
-                                         1, 1, 1, 1, 1, 1}; // 明确指定大小
+    const int LegDirectionMotor_[TOTAL_MOTOR_NUMBER] = {
+        -1, 1, -1, -1, 1, 1,
+        -1, 1, -1, 1, 1, 1,
+        1, 1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1, 1
+    }; // 明确指定大小
 
     bool is_imu_run_ = false;
     bool is_hcmd_run_ = false;
     bool is_logic_run_ = false;
+    bool is_bms_run_ = false;
 
     uint8_t mode_machine_;
     YKSMotorData motor_data_[Z1_NUM_MOTOR]{}; //私有的电机结构体数组
@@ -149,7 +154,7 @@ private:
     bool battery_enable_ = false; //是否在这个类当中传入了电池的句柄
     std::shared_ptr<BmsHandler> battery_handler_; // 添加BatteryHandler成员变量
 
-    void SaveMotorDataToCSV(const std::string& filename) const ;
+    void SaveMotorDataToCSV(const std::string &filename) const;
 };
 
 #endif //YKS_SDK_Z1LEGS_H

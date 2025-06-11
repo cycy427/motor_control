@@ -231,12 +231,8 @@ class Z1BMSPUBClient(threading.Thread):
 if __name__ == '__main__':
     z1_bms = Z1BMSPUBClient(BMSPUBDATATOPIC)
     # z1_bms.run()
-    try:
-        # 等待用户输入以停止程序
-        input("按 Enter 键退出...\n")
-    finally:
-        z1_bms.stop()
-print("程序已退出。")
+    while True:
+        time.sleep(1)
 
     # while True:
     #
