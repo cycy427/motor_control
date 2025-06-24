@@ -17,6 +17,7 @@ from cyclonedds.domain import DomainParticipant
 from cyclonedds.pub import Publisher, DataWriter
 from cyclonedds.topic import Topic
 from cyclonedds.qos import Qos, Policy
+from cyclonedds.core import DDSException, Listener
 
 import nubotddsmsg.bms as bmsmsg
 from copy import deepcopy
@@ -132,6 +133,8 @@ class Z1BMSPUBClient(threading.Thread):
 
     def stop(self):
         self.running = False
+        if self.writer is not None:
+            del self.writer
         # 写入最近5分钟的数据到CSV
         if self.recent_data:
             print("正在写入最近5分钟的数据到CSV...")
@@ -224,9 +227,16 @@ class Z1BMSPUBClient(threading.Thread):
 
             # 更新状态
             self._BmsStates = bms_states
-
             # 发布消息
-            self.writer.write(self._BmsStates)
+            try:
+                self.writer.write(self._BmsStates)
+            except DDSException as e:
+                print("[Writer] catch DDSException error. msg:", e.msg)
+            except Exception as e:
+                print("[Writer] write sample error. msg:", e.args())
+            except:
+                print("[Writer] write sample error.")
+
 
 if __name__ == '__main__':
     z1_bms = Z1BMSPUBClient(BMSPUBDATATOPIC)

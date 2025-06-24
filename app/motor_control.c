@@ -22,14 +22,13 @@ TI5_MOTOR_RANGE ti5_motor_range = {
 //int Z1_YKS_MOTOR_ID_Type[6] = {A13720, A10020_1, A8112, A13715, A6408, A6408};//这个是Z1的第一版机器人的腿部电机的顺序
 //int Z1_YKS_MOTOR_ID_Type[6] = {A13715, A10020_2, A10020_1, A13720, A8112, A8112};//这个是Z1.5机器人的腿部电机的顺序
 //这个要根据实际的Z1机器人电机型号来设置，canid 1-6往上,结构体globalid从0开始 依次对应于Slave中的glboalid
-int Z1_MOTOR_ID_Type[30] = {
+int Z1_MOTOR_ID_Type[TOTAL_MOTOR_NUMBER] = {
     A13715, A10020_2, A10020_1, A13720, A8112, A8112, //下肢 左腿
     A13715, A10020_2, A10020_1, A13720, A8112, A8112, //下肢 右腿
     A8112, A6408, A6408, A4310, A4310, A4310, //上肢 左臂
     A8112, A6408, A6408, A4310, A4310, A4310, //上肢 右臂
     A8112, A8112, A8112, A10020_1, A10020_1, A10020_1 //两肩和腰部
 };
-
 
 //-------------------------------------
 // 初始化从站和电机配置
@@ -79,7 +78,7 @@ Slave g_slaves[SLAVE_NUMBER] = {
     // SLAVE ID 5: YKS 1-6
     {
         .slave_id = 5,
-        .motor_count = 5,
+        .motor_count = 6,
         .motors = {
             {MOTOR_YKS, 1, 24}, {MOTOR_YKS, 2, 25},
             {MOTOR_YKS, 3, 26}, {MOTOR_YKS, 4, 27},
@@ -89,7 +88,7 @@ Slave g_slaves[SLAVE_NUMBER] = {
     // SLAVE ID 6: YKS 1-5
     {
         .slave_id = 6,
-        .motor_count = 5,
+        .motor_count = 6,
         .motors = {
             {MOTOR_YKS, 1, 30}, {MOTOR_YKS, 2, 31},
             {MOTOR_YKS, 3, 32}, {MOTOR_YKS, 4, 33},
@@ -223,7 +222,7 @@ send_motor_ctrl_cmd(EtherCAT_Msg *TxMessage, const uint8_t data_channel, const u
     const float T_MIN = yks_motor_range.T_MIN[Z1_MOTOR_ID_Type[motor_id]];
     const float T_MAX = yks_motor_range.T_MAX[Z1_MOTOR_ID_Type[motor_id]];
 
-
+    //电机型号限位
     if (kp > KP_MAX)
         kp = KP_MAX;
     else if (kp < KP_MIN)
@@ -244,6 +243,22 @@ send_motor_ctrl_cmd(EtherCAT_Msg *TxMessage, const uint8_t data_channel, const u
         cur = T_MAX;
     else if (cur < T_MIN)
         cur = T_MIN;
+
+    //关节限位
+    if (pos > Z1_MOTOR_POS_MAX[motor_id])
+        pos = Z1_MOTOR_POS_MAX[motor_id];
+    else if (pos < Z1_MOTOR_POS_MIN[motor_id])
+        pos = Z1_MOTOR_POS_MIN[motor_id];
+    if (spd > Z1_MOTOR_SPE_MAX[motor_id])
+        spd = Z1_MOTOR_SPE_MAX[motor_id];
+    else if (spd < Z1_MOTOR_SPE_MIN[motor_id])
+        spd = Z1_MOTOR_SPE_MIN[motor_id];
+    if (cur > Z1_MOTOR_TOR_MAX[motor_id])
+        cur = Z1_MOTOR_TOR_MAX[motor_id];
+    else if (cur < Z1_MOTOR_TOR_MIN[motor_id])
+        cur = Z1_MOTOR_TOR_MIN[motor_id];
+
+
 
     const int kp_int = float_to_uint(kp, KP_MIN, KP_MAX, 12);
     const int kd_int = float_to_uint(kd, KD_MIN, KD_MAX, 9);

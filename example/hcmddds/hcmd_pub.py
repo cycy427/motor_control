@@ -16,6 +16,7 @@ from copy import deepcopy
 import threading
 
 HCMDPUBDATATOPIC = "/nubot/z1/hcmdpubdata"
+INTERVAL = 0.01 #  发送指令的间隔时间（单位：秒）
 
 class Z1HcmdPUBClient(threading.Thread):
     def __init__(self, statetopic):
@@ -62,10 +63,10 @@ class Z1HcmdPUBClient(threading.Thread):
                 print("[Writer] catch DDSException error. msg:", e.msg)
             except Exception as e:
                 print("[Writer] write sample error. msg:", e.args())
-            # except:
-            #     print("[Writer] write sample error.")
+            except:
+                print("[Writer] write sample error.")
             self._lockcmd.release()
-            time.sleep(0.01)  # 1000Hz
+            time.sleep(INTERVAL)  # 100Hz
 
     def stop(self):
         self.running = False

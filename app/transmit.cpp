@@ -33,6 +33,59 @@ uint64_t num;
 bool isConfig[SLAVE_NUMBER]{false};
 
 #define EC_TIMEOUT_MON 500
+#define POS_LEG_MECH_MIN -3.14
+#define POS_LEG_MECH_MAX 3.14
+
+float Z1_MOTOR_POS_MAX[TOTAL_CAN_NUMBER] = {
+    POS_LEG_MECH_MAX, POS_LEG_MECH_MAX, POS_LEG_MECH_MAX, POS_LEG_MECH_MAX, POS_LEG_MECH_MAX, POS_LEG_MECH_MAX, //下肢 左腿
+    POS_LEG_MECH_MAX, POS_LEG_MECH_MAX, POS_LEG_MECH_MAX, POS_LEG_MECH_MAX, POS_LEG_MECH_MAX, POS_LEG_MECH_MAX, //下肢 右腿
+    POS_MAX, POS_MAX, POS_MAX, POS_MAX, POS_MAX, POS_MAX, //上肢 左臂
+    POS_MAX, POS_MAX, POS_MAX, POS_MAX, POS_MAX, POS_MAX, //上肢 右臂
+    POS_MAX, POS_MAX, POS_MAX, POS_MAX, POS_MAX, POS_MAX, //两肩和腰部
+    POS_MAX, POS_MAX, POS_MAX, POS_MAX, POS_MAX, POS_MAX //两肩和腰部
+};
+float Z1_MOTOR_POS_MIN[TOTAL_CAN_NUMBER] = {
+    POS_LEG_MECH_MIN, POS_LEG_MECH_MIN, POS_LEG_MECH_MIN, POS_LEG_MECH_MIN, POS_LEG_MECH_MIN, POS_LEG_MECH_MIN, //下肢 左腿
+    POS_LEG_MECH_MIN, POS_LEG_MECH_MIN, POS_LEG_MECH_MIN, POS_LEG_MECH_MIN, POS_LEG_MECH_MIN, POS_LEG_MECH_MIN, //下肢 右腿
+    POS_MIN, POS_MIN, POS_MIN, POS_MIN, POS_MIN, POS_MIN, //上肢 左臂
+    POS_MIN, POS_MIN, POS_MIN, POS_MIN, POS_MIN, POS_MIN, //上肢 右臂
+    POS_MIN, POS_MIN, POS_MIN, POS_MIN, POS_MIN, POS_MIN, //两肩和腰部
+    POS_MIN, POS_MIN, POS_MIN, POS_MIN, POS_MIN, POS_MIN //两肩和腰部
+};
+float Z1_MOTOR_SPE_MAX[TOTAL_CAN_NUMBER]= {
+    SPD_MAX,SPD_MAX,SPD_MAX,SPD_MAX,SPD_MAX,SPD_MAX, //下肢 左腿
+    SPD_MAX,SPD_MAX,SPD_MAX,SPD_MAX,SPD_MAX,SPD_MAX, //下肢 右腿
+    SPD_MAX,SPD_MAX,SPD_MAX,SPD_MAX,SPD_MAX,SPD_MAX, //下肢 左臂
+    SPD_MAX,SPD_MAX,SPD_MAX,SPD_MAX,SPD_MAX,SPD_MAX, //下肢 右臂
+    SPD_MAX,SPD_MAX,SPD_MAX,SPD_MAX,SPD_MAX,SPD_MAX, //两肩和腰部
+    SPD_MAX,SPD_MAX,SPD_MAX,SPD_MAX,SPD_MAX,SPD_MAX //两肩和腰部
+};
+float Z1_MOTOR_SPE_MIN[TOTAL_CAN_NUMBER] = {
+    SPD_MIN, SPD_MIN, SPD_MIN, SPD_MIN, SPD_MIN, SPD_MIN, //下肢 左腿
+    SPD_MIN, SPD_MIN, SPD_MIN, SPD_MIN, SPD_MIN, SPD_MIN, //下肢 右腿
+    SPD_MIN, SPD_MIN, SPD_MIN, SPD_MIN, SPD_MIN, SPD_MIN, //上肢 左臂
+    SPD_MIN, SPD_MIN, SPD_MIN, SPD_MIN, SPD_MIN, SPD_MIN, //上肢 右臂
+    SPD_MIN, SPD_MIN, SPD_MIN, SPD_MIN, SPD_MIN, SPD_MIN, //两肩和腰部
+    SPD_MIN, SPD_MIN, SPD_MIN, SPD_MIN, SPD_MIN, SPD_MIN //两肩和腰部
+};
+float Z1_MOTOR_TOR_MAX[TOTAL_CAN_NUMBER] = {
+    T13715_MAX, T10020_2_MAX, T10020_1_MAX, T13720_MAX, T8112_MAX, T8112_MAX, //下肢 左腿
+    T13715_MAX, T10020_2_MAX, T10020_1_MAX, T13720_MAX, T8112_MAX, T8112_MAX, //下肢 右腿
+    T8112_MAX, T6408_MAX, T6408_MAX, T4310_MAX, T4310_MAX, T4310_MAX, //上肢 左臂
+    T8112_MAX, T6408_MAX, T6408_MAX, T4310_MAX, T4310_MAX, T4310_MAX, //上肢 右臂
+    T8112_MAX, T8112_MAX, T8112_MAX, T10020_1_MAX, T10020_1_MAX, T10020_1_MAX, //两肩和腰部
+    T8112_MIN, T8112_MIN, T8112_MIN, T10020_1_MIN, T10020_1_MIN, T10020_1_MIN //两肩和腰部
+
+};
+float Z1_MOTOR_TOR_MIN[TOTAL_CAN_NUMBER] = {
+    T13715_MIN, T10020_2_MIN, T10020_1_MIN, T13720_MIN, T8112_MIN, T8112_MIN, //下肢 左腿
+    T13715_MIN, T10020_2_MIN, T10020_1_MIN, T13720_MIN, T8112_MIN, T8112_MIN, //下肢 右腿
+    T8112_MIN, T6408_MIN, T6408_MIN, T4310_MIN, T4310_MIN, T4310_MIN, //上肢 左臂
+    T8112_MIN, T6408_MIN, T6408_MIN, T4310_MIN, T4310_MIN, T4310_MIN, //上肢 右臂
+    T8112_MIN, T8112_MIN, T8112_MIN, T10020_1_MIN, T10020_1_MIN, T10020_1_MIN, //两肩和腰部
+    T8112_MIN, T8112_MIN, T8112_MIN, T10020_1_MIN, T10020_1_MIN, T10020_1_MIN //两肩和腰部
+
+};
 
 void EtherCAT_Data_Get();
 
@@ -396,7 +449,7 @@ void EtherCAT_Send_Command(const YKSMotorData *mot_data) {
             const Motor *motor = &slave->motors[index % 6];
 
             if (motor->type == MOTOR_YKS) {
-                // printf("slave %d command_id %d \n", slave, command_id);
+                // printf("slave command_id  \n");
                 if (mot_data[index].mode == 0) {
                     send_motor_ctrl_cmd(&Tx_Message[slave_idx], motor->motor_id, motor->global_id, mot_data[index].kp_,
                                         mot_data[index].kd_, mot_data[index].pos_des_, mot_data[index].vel_des_,

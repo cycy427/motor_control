@@ -148,6 +148,7 @@ void Z1Legs::Control() {
             // SaveMotorDataToCSV("motor_data_log.csv");  // 每次循环都追加写入
             std::lock_guard lock(mutex_);
             EtherCAT_Send_Command(motor_data_);
+            // printf( "MotorData:)");
             // EtherCAT_Send_Command(motorDate_recv);
         }
         updateMotorData();

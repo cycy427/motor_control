@@ -12,6 +12,7 @@
 #define ARM_MOTOR_NUMBER 12 //双臂的电机数
 #define BODY_MOTOR_NUMBER 6 //身体的电机数
 #define TOTAL_MOTOR_NUMBER 30 //接入的总电机数
+#define TOTAL_CAN_NUMBER 36 //接入的can数量
 
 #include <inttypes.h>
 #include <stdio.h>
@@ -45,6 +46,12 @@ typedef struct {
 
 extern YKS_IMUData imuData_recv;
 
+extern float Z1_MOTOR_POS_MAX[TOTAL_CAN_NUMBER];
+extern float Z1_MOTOR_POS_MIN[TOTAL_CAN_NUMBER];
+extern float Z1_MOTOR_SPE_MAX[TOTAL_CAN_NUMBER];
+extern float Z1_MOTOR_SPE_MIN[TOTAL_CAN_NUMBER];
+extern float Z1_MOTOR_TOR_MAX[TOTAL_CAN_NUMBER];
+extern float Z1_MOTOR_TOR_MIN[TOTAL_CAN_NUMBER];
 
 int CAT_Init(const char *device_name);
 

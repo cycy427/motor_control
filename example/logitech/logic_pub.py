@@ -12,6 +12,7 @@ from cyclonedds.domain import DomainParticipant
 from cyclonedds.pub import Publisher, DataWriter
 from cyclonedds.topic import Topic
 from cyclonedds.qos import Qos, Policy
+from cyclonedds.core import DDSException, Listener
 
 import nubotddsmsg.logic as logicmsg
 from copy import deepcopy
@@ -19,6 +20,7 @@ from copy import deepcopy
 import threading
 
 LOGICPUBDATATOPIC = "/nubot/z1/logicpubdata"
+INTERVAL = 0.01 #  发送指令的间隔时间（单位：秒）
 
 # 映射按钮名称
 BUTTON_MAP = {
@@ -131,13 +133,21 @@ class Z1LogicPUBClient(threading.Thread):
 
             ## 处理发布
             self._lockcmd.acquire()
-            self.writer.write(self._logicStates)
+            try:
+                self.writer.write(self._logicStates)
+            except DDSException as e:
+                print("[Writer] catch DDSException error. msg:", e.msg)
+            except Exception as e:
+                print("[Writer] write sample error. msg:", e.args())
+            except:
+                print("[Writer] write sample error.")
             self._lockcmd.release()
-            time.sleep(0.01)  # 1000Hz
+            time.sleep(INTERVAL)  # 100Hz
 
     def stop(self):
         self.running = False
-
+        if self.writer is not None:
+            del self.writer
     def find_gamepad(self):
         devices = [evdev.InputDevice(path) for path in evdev.list_devices()]
         for device in devices:

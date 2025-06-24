@@ -47,7 +47,7 @@ private:
     mutable std::mutex mutex_; //用于电机数据读取与写入的互斥锁
 
     std::chrono::steady_clock::time_point start_time_;
-    std::string logDir_ = "/tmp/logs";
+    std::string logDir_ = "/tmp/motor_logs";
 };
 
 #endif // MOTORDATALOGGER_H

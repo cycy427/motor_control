@@ -9,6 +9,8 @@ from cyclonedds.pub import Publisher, DataWriter
 from cyclonedds.sub import DataReader
 from cyclonedds.topic import Topic
 from cyclonedds.qos import Qos, Policy
+from cyclonedds.core import DDSException, Listener
+
 from cyclonedds.idl.types import sequence
 import nubotddsmsg.hr as hrmsg
 from copy import deepcopy
@@ -51,13 +53,6 @@ class Z1RemoteClient(threading.Thread):
         self._motorCmds = hrmsg.motorcmds(level=levels[role],
                                           cmds=[hrmsg.motorcmd(0, 0, 0, 0, 0, 0, 0) for _ in range(motornum[role])])
 
-        # MotorCmdSeq = sequence(hrmsg.motorcmd)
-        # cmd_list = [hrmsg.motorcmd(mode=0, index=i, pos=0.0, vel=0.0, tau=0.0, kp=0.0, kd=0.0) for i in range(12)]
-        # cmds = sequence(hrmsg.motorcmd, cmd_list)  # 或者 MotorCmdSeq(cmd_list)
-        # cmds = MotorCmdSeq
-        #
-        # self._motorCmds = hrmsg.motorcmds(level=levels[role],
-        #                                   cmds=MotorCmdSeq)
 
         self.motorCmds = hrmsg.motorcmds(level=levels[role],
                                          cmds=[hrmsg.motorcmd(0, 0, 0, 0, 0, 0, 0) for _ in range(motornum[role])])
@@ -91,6 +86,8 @@ class Z1RemoteClient(threading.Thread):
         statetopic = Topic(participant, self.statetopic, hrmsg.motorstates, qos=stateqos)
         self.reader = DataReader(participant, statetopic)
         self.running = True
+        self.reader_valid = False
+
         self._lockcmd = threading.RLock()
         self._lockstate = threading.RLock()
 
@@ -99,8 +96,20 @@ class Z1RemoteClient(threading.Thread):
     def run(self):
 
         while self.running:
+            msgs = []
             ## 处理订阅
-            msgs = self.reader.take()
+            try:
+                msgs = self.reader.take()
+                if not msgs:
+                    self.reader_valid = False
+                else:
+                    self.reader_valid = True
+            except DDSException as e:
+                print("[Reader] catch DDSException msg:", e.msg)
+            except TimeoutError as e:
+                print("[Reader] take sample timeout")
+            except:
+                print("[Reader] take sample error")
             if len(msgs) > 0:
                 self._lockstate.acquire()
                 self._motorStates = msgs[-1]
@@ -108,14 +117,25 @@ class Z1RemoteClient(threading.Thread):
 
             ## 处理发布
             self._lockcmd.acquire()
-            self.writer.write(self._motorCmds)
+            try:
+                self.writer.write(self._motorCmds)
+            except DDSException as e:
+                print("[Writer] catch DDSException error. msg:", e.msg)
+            except Exception as e:
+                print("[Writer] write sample error. msg:", e.args())
+            except:
+                print("[Writer] write sample error.")
+
             self._lockcmd.release()
 
             time.sleep(0.002)  # 500Hz
 
     def stop(self):
         self.running = False
-
+        if self.reader is not None:
+            del self.reader
+        if self.writer is not None:
+            del self.writer
     def setCommand(self):
         self._lockcmd.acquire()
         self._motorCmds = deepcopy(self.motorCmds)
@@ -245,22 +265,28 @@ if __name__ == '__main__':
     # z1_arm = Z1RemoteClient(ARMCMDTOPIC, ARMSTATETOPIC, 'arm')
     z1_5_wb = Z1RemoteClient(WHOLEBODYCMDTOPIC, WHOLEBODYSTATETOPIC, 'Z1_5_WB')
     # z1_body = Z1RemoteClient(BODYCMDTOPIC, BODYSTATETOPIC, 'body')
-
+    # z1_leg = Z1RemoteClient(LEGCMDTOPIC, LEGSTATETOPIC, 'leg')
     # z1_5_wb.leg_squat_control(22, 0, 1, 0, 0, 400, 40)#0-11
     
     for i in range(30):
         # print(i)
         z1_5_wb.z1_5_wb_squat_control(i, 0, 0, 0, 0, 100, 10)
-
+    #
         time.sleep(0.01)
+    # z1_leg.leg_squat_control(1, 0, 0, 0, 0, 0, 10)
 
 
         
     while True:
         z1_5_wb.setCommand()
         print("pub %f  %f" % (0, z1_5_wb.motorCmds.cmds[0].kd))
-
+        # z1_leg.setCommand()
+        # z1_body.setCommand()
+        # z1_arm.setCommand()
         st = z1_5_wb.getStates()
+        # st_leg = z1_leg.getStates()
+        # st_body = z1_body.getStates()
+        # st_arm = z1_arm.getStates()
         # print("sub %f" % (st.states[0].pos))
         # z1_body.setCommand()
         # print("pub %f  %f" % (0, z1_leg.motorCmds.cmds[0].pos))

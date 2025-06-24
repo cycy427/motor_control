@@ -115,8 +115,8 @@ void MotorDataLogger::logMotorDataToFile() {
 
         outFile.flush(); // 刷新缓冲区，确保数据写入磁盘
 
-        // 控制频率为100Hz（10ms）
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        // 控制频率为500Hz（2ms）
+        std::this_thread::sleep_for(std::chrono::milliseconds(2));
     }
 
     outFile.close();

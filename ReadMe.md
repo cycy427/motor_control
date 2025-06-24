@@ -181,9 +181,11 @@ C++使用方法：
 
 2. 检查app/motor_control.c文件中的电机型号设置是否正确，如有需要，修改，电机的型号是否正确
    也就是检查Z1_MOTOR_ID_Type和g_slaves数组初始化是否正确，前者是电机的顺序
-3. 检查Z1_legs.h中LegDirectionMotor_数组的电机转向是否正确，如有需要，修改
-4. 在main.cpp中，检查CAT_Init("enp3s0")中的网口名称是否正确，如有需要，修改
-5. 如果使用python控制，检查上述内容后在中终端中打开就行了，换一个终端使用python对齐修改
+3. 检查app/transmit.cpp文件中的Z1_MOTOR_POS_MAX到Z1_MOTOR_TOR_MIN是否正确，这里是限制位置等量（速度和力矩有待实验证明）
+4. 检查Z1_legs.h中LegDirectionMotor_数组的电机转向是否正确，如有需要，修改
+5. 在main.cpp中，检查第一行CYCLONEDDS_URI的路径是否正确，如有需要，修改
+6. 在main.cpp中，检查CAT_Init("enp3s0")中的网口名称是否正确，如有需要，修改
+7. 如果使用python控制，检查上述内容后在中终端中打开就行了，换一个终端使用python对齐修改
 
 #### python控制电机运动：
 
@@ -250,3 +252,7 @@ C++使用方法：
   idlc -l py nubotddsmsg.idl
   ```
 - 重新进入nubotidl文件夹，在该目录下执行 pip install .
+
+#### 解耦使用简要说明 解耦和不解耦不能同时使用,请确保底层和上层一致
+1. 解耦：底层注释掉DDS_Z1_5_WB_SUB(z1_5_wb_Reader, samples_z1_5_wb);和DDS_Pub_Z1_5_WB_Motor_Data(z1_5_wb_States, z1_5_wb_Writer, my_motor_data);
+2. 不解耦：底层注释掉DDS_Leg_SUB，DDS_Arm_SUB，DDS_Body_SUB，DDS_Pub_Arm_Motor_Data，DDS_Pub_Leg_Motor_Data，DDS_Pub_Body_Motor_Data

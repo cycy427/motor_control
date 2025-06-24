@@ -32,7 +32,7 @@ class Z1IMUPUBClient(threading.Thread):
         super(Z1IMUPUBClient, self).__init__()
 
         # 设置串口号和波特率
-        self._port = '/dev/ttyUSB1'  # 修改为你实际使用的串口号
+        self._port = '/dev/ttyUSB0'  # 修改为你实际使用的串口号
         self._baudrate = 921600     # 修改为你需要的波特率
         self.latest_hipnuc_frame = None
         self.latest_nmea_frames = []
@@ -73,7 +73,6 @@ class Z1IMUPUBClient(threading.Thread):
         self.start()
 
     def run(self):
-
 
         serial_parser = hipnuc_parser()
         nmea_parser = hipnuc_nmea_parser()
@@ -145,10 +144,10 @@ class Z1IMUPUBClient(threading.Thread):
                                 self.writer.write(self._imuStates)
                             except DDSException as e:
                                 print("[Writer] catch DDSException error. msg:", e.msg)
-                                return False
                             except Exception as e:
                                 print("[Writer] write sample error. msg:", e.args())
-                                return False
+                            except:
+                                print("[Writer] write sample error.")
                             self._lockcmd.release()
                             time.sleep(0.001)  # 1000Hz
 

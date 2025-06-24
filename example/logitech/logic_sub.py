@@ -7,6 +7,7 @@ from cyclonedds.domain import DomainParticipant
 from cyclonedds.sub import DataReader
 from cyclonedds.topic import Topic
 from cyclonedds.qos import Qos, Policy
+from cyclonedds.core import DDSException, Listener
 
 import nubotddsmsg.logic as logicmsg
 from copy import deepcopy
@@ -44,13 +45,27 @@ class Z1LogicSUBClient(threading.Thread):
         ###########################################################################
 
         self.running = True
+        self.reader_valid = False
+
         self._lockstate = threading.RLock()
         self.start()
 
     def run(self):
         while self.running:
+            msgs = []
             ## 处理订阅
-            msgs = self.reader.take()
+            try:
+                msgs = self.reader.take()
+                if not msgs:
+                    self.reader_valid = False
+                else:
+                    self.reader_valid = True
+            except DDSException as e:
+                print("[Reader] catch DDSException msg:", e.msg)
+            except TimeoutError as e:
+                print("[Reader] take sample timeout")
+            except:
+                print("[Reader] take sample error")
             if len(msgs) > 0:
                 self._lockstate.acquire()
                 self._logicStates = msgs[-1]
@@ -60,7 +75,8 @@ class Z1LogicSUBClient(threading.Thread):
 
     def stop(self):
         self.running = False
-
+        if self.reader is not None:
+            del self.reader
     def getStates(self):  # 返回值 nubotddsmsg.hr.motorstates
         self._lockstate.acquire()
         states = deepcopy(self._logicStates)

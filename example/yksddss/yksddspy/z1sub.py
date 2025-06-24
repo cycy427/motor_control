@@ -11,13 +11,11 @@ from cyclonedds.topic import Topic
 from cyclonedds.qos import Qos, Policy
 from cyclonedds.core import DDSException, Listener
 
+from cyclonedds.idl.types import sequence
 import nubotddsmsg.hr as hrmsg
 from copy import deepcopy
 
 import threading
-
-from cyclonedds.idl import IdlStruct, IdlUnion, IdlBitmask, IdlEnum, types
-
 
 ARMCMDTOPIC = "/nubot/z1/armmotorcmds"
 LEGCMDTOPIC = "/nubot/z1/legmotorcmds"
@@ -28,6 +26,8 @@ LEGSTATETOPIC = "/nubot/z1/legmotorstates"
 BODYCMDTOPIC = "/nubot/z1/bodymotorcmds"
 BODYSTATETOPIC = "/nubot/z1/bodymotorstates"
 
+WHOLEBODYCMDTOPIC = "/nubot/z1/wholebodymotorcmds"
+WHOLEBODYSTATETOPIC = "/nubot/z1/wholebodymotorstates"
 class Z1RemoteClient(threading.Thread):
     def __init__(self, cmdtopic, statetopic, role):
         '''
@@ -41,17 +41,18 @@ class Z1RemoteClient(threading.Thread):
         self.cmdtopic = cmdtopic
         self.statetopic = statetopic
 
-        if role not in ['arm', 'leg','body']:
-            raise ValueError("role must be 'arm' or 'leg'")
+        if role not in ['arm', 'leg', 'body', 'Z1_5_WB']:
+            raise ValueError("role must be 'arm' or 'leg' or 'body' or 'Z1_5_WB'")
 
-        motornum = {'arm': 12, 'leg': 12, 'body': 6}
-        levels = {'leg': 0, 'arm': 1, 'body': 2}
+        motornum = {'arm': 12, 'leg': 12, 'body': 6, 'Z1_5_WB': 30}
+        levels = {'leg': 0, 'arm': 1, 'body': 2, 'Z1_5_WB': 3}
 
         self.daemon = True
 
         # 初始化消息
         self._motorCmds = hrmsg.motorcmds(level=levels[role],
                                           cmds=[hrmsg.motorcmd(0, 0, 0, 0, 0, 0, 0) for _ in range(motornum[role])])
+
 
         self.motorCmds = hrmsg.motorcmds(level=levels[role],
                                          cmds=[hrmsg.motorcmd(0, 0, 0, 0, 0, 0, 0) for _ in range(motornum[role])])
@@ -60,7 +61,9 @@ class Z1RemoteClient(threading.Thread):
                                               states=[hrmsg.motorstate(0, 0, 0, 0, 0, 0, 0, 0, 0, 0) for _ in
                                                       range(motornum[role])])
 
-        participant = DomainParticipant(domain_id=0)
+
+        # 创建域参与者
+        participant = DomainParticipant(0)
 
         ###########################################################################
         ### 发布
@@ -82,15 +85,13 @@ class Z1RemoteClient(threading.Thread):
         )
         statetopic = Topic(participant, self.statetopic, hrmsg.motorstates, qos=stateqos)
         self.reader = DataReader(participant, statetopic)
-
         self.running = True
+        self.reader_valid = False
+
         self._lockcmd = threading.RLock()
         self._lockstate = threading.RLock()
 
         self.start()
-        # time.sleep(0.1)
-
-
 
     def run(self):
 
@@ -131,7 +132,10 @@ class Z1RemoteClient(threading.Thread):
 
     def stop(self):
         self.running = False
-
+        if self.reader is not None:
+            del self.reader
+        if self.writer is not None:
+            del self.writer
     def setCommand(self):
         self._lockcmd.acquire()
         self._motorCmds = deepcopy(self.motorCmds)
@@ -143,14 +147,13 @@ class Z1RemoteClient(threading.Thread):
         self._lockstate.release()
         return states
 
-
     def arm_ti5_squat_control(self, arm_index, value, mode):
         """
-            :param arm_index: 关节索引
-            :param value: 目标值
-            :param mode: 控制模式 (1: position, 2: torque, 3: velocity)
+        :param arm_index: 关节索引
+        :param value: 目标值
+        :param mode: 控制模式 (1: position, 2: torque, 3: velocity)
         """
-        arm_index = arm_index - 12
+        arm_index = arm_index - 11
         if not (0 <= arm_index < len(self.motorCmds.cmds)):
             raise IndexError("Invalid motor index")
 
@@ -170,9 +173,10 @@ class Z1RemoteClient(threading.Thread):
         :param value: 目标值
         :param mode: 控制模式 (1: position, 2: torque, 3: velocity)
         """
-        if not (12 <= arm_index < 24):
-            raise IndexError("Invalid motor index")
         arm_index = arm_index - 12
+
+        if not (0 <= arm_index < len(self.motorCmds.cmds)):
+            raise IndexError("Invalid motor index")
 
         cmd = self.motorCmds.cmds[arm_index]
         cmd.mode = mode
@@ -181,15 +185,18 @@ class Z1RemoteClient(threading.Thread):
         cmd.tau = tau
         cmd.kp = kp
         cmd.kd = kd
+
     def body_yks_squat_control(self, arm_index, mode, pos, vel, tau, kp, kd):
         """
         :param arm_index: 关节索引
         :param value: 目标值
         :param mode: 控制模式 (1: position, 2: torque, 3: velocity)
         """
-        if not (24 <= arm_index < 30):
-            raise IndexError("Invalid motor index")
         arm_index = arm_index - 24
+
+        if not (0 <= arm_index < len(self.motorCmds.cmds)):
+            raise IndexError("Invalid motor index")
+
 
         cmd = self.motorCmds.cmds[arm_index]
         cmd.mode = mode
@@ -205,7 +212,7 @@ class Z1RemoteClient(threading.Thread):
         :param value: 目标值
         :param mode: 控制模式 (1: position, 2: torque, 3: velocity)
         """
-        if not (0 <= leg_index < 12):
+        if not (0 <= leg_index < len(self.motorCmds.cmds)):
             raise IndexError("Invalid motor index")
 
         cmd = self.motorCmds.cmds[leg_index]
@@ -216,13 +223,29 @@ class Z1RemoteClient(threading.Thread):
         cmd.kp = kp
         cmd.kd = kd
 
-    def read_arm_ti5_control(self, arm_index, mode):
+    def z1_5_wb_squat_control(self, index, mode, pos, vel, tau, kp, kd):
+        """
+        :param index: 关节索引（全局ID）双足：0-11 双臂 12-23 躯干 24-29
+        :param pos, vel, tau, kp, kd: 目标值
+        :param mode: 控制模式 (0: 力位混合 1: position, 2: torque, 3: velocity)
+        """
+        if not (0 <= index < len(self.motorCmds.cmds)):
+            raise IndexError("Invalid motor index")
+
+        cmd = self.motorCmds.cmds[index]
+        cmd.mode = mode
+        cmd.pos = pos
+        cmd.vel = vel
+        cmd.tau = tau
+        cmd.kp = kp
+        cmd.kd = kd
+    def read_arm_control(self, arm_index, mode):
         """
         :param arm_index: 关节索引（全局ID）
         :param mode: 读取模式 (0: 力位混合 1: position, 2: torque, 3: velocity)
         :return: 对应模式下的状态值
         """
-        arm_index = arm_index - 12  # 转换为本地索引
+        arm_index = arm_index - 11  # 转换为本地索引
         if not (0 <= arm_index < len(self._motorStates.states)):
             raise IndexError("Invalid motor index")
 
@@ -238,39 +261,24 @@ class Z1RemoteClient(threading.Thread):
             return 0
 
 
-
 if __name__ == '__main__':
-    z1_arm = Z1RemoteClient(ARMCMDTOPIC, ARMSTATETOPIC, 'arm')
+    z1_5_wb = Z1RemoteClient(WHOLEBODYCMDTOPIC, WHOLEBODYSTATETOPIC, 'Z1_5_WB')
 
+    # for i in range(30):
+    #     # print(i)
+    #     z1_5_wb.z1_5_wb_squat_control(i, 0, 0, 0, 0, 100, 10)
+    #
+    #     time.sleep(0.01)
 
-    z1_leg = Z1RemoteClient(LEGCMDTOPIC, LEGSTATETOPIC, 'leg')
-
-    z1_body = Z1RemoteClient(BODYCMDTOPIC, BODYSTATETOPIC, 'body')
-
-    # print("系统已启动，请按回车键退出...")
-    # input()  # 阻塞在这里，等待用户按回车
-    z1_arm.arm_yks_squat_control(23, 0, 1, 0, 0, 500, 10)#12-23
-    z1_leg.leg_squat_control(0, 0, 0.4, 0, 0, 100, 10)#0-11
-    z1_body.body_yks_squat_control(24, 0, 1, 0, 0, 100, 10)#24-26
-
+        
     while True:
-        # z1.squat_control(11, 0.5, 1)
-
-        z1_arm.setCommand()
-        # print("pub %f  %f" % (13, z1_arm.motorCmds.cmds[6].pos))
-
-        st = z1_arm.getStates()
-        # print(st.states)
-
-        z1_leg.setCommand()
+        # z1_5_wb.setCommand()
+        # print("pub %f  %f" % (0, z1_5_wb.motorCmds.cmds[0].kd))
+        st = z1_5_wb.getStates()
+        # for i in range(len(st.states)):
+        #     print("sub %d %f" % (i, st.states[i].pos))
+        # z1_body.setCommand()
         # print("pub %f  %f" % (0, z1_leg.motorCmds.cmds[0].pos))
-
-        st = z1_leg.getStates()
-        # print(st.states)
-        z1_body.setCommand()
-        # print("pub %f  %f" % (0, z1_leg.motorCmds.cmds[0].pos))
-
-        st = z1_body.getStates()
-        # print(st.states)
+        print("sub %d %f" % (0, st.states[0].pos))
 
         time.sleep(0.01)
