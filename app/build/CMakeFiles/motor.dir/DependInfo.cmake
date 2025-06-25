@@ -1,41 +1,22 @@
+
+# Consider dependencies only in project.
+set(CMAKE_DEPENDS_IN_PROJECT_ONLY OFF)
+
 # The set of languages for which implicit dependencies are needed:
 set(CMAKE_DEPENDS_LANGUAGES
-  "C"
-  "CXX"
   )
-# The set of files for implicit dependencies of each language:
-set(CMAKE_DEPENDS_CHECK_C
-  "/home/gold/YKS_SDK/app/math_ops.c" "/home/gold/YKS_SDK/app/build/CMakeFiles/motor.dir/math_ops.c.o"
-  "/home/gold/YKS_SDK/app/motor_control.c" "/home/gold/YKS_SDK/app/build/CMakeFiles/motor.dir/motor_control.c.o"
-  )
-set(CMAKE_C_COMPILER_ID "GNU")
 
-# The include file search paths:
-set(CMAKE_C_TARGET_INCLUDE_PATH
-  "../thirdparty/soem/soem"
-  "../thirdparty/soem/osal"
-  "../thirdparty/soem/osal/linux"
-  "../thirdparty/soem/oshw/linux"
-  "../thirdparty/cpp-readline/src"
-  )
-set(CMAKE_DEPENDS_CHECK_CXX
-  "/home/gold/YKS_SDK/app/command.cpp" "/home/gold/YKS_SDK/app/build/CMakeFiles/motor.dir/command.cpp.o"
-  "/home/gold/YKS_SDK/app/transmit.cpp" "/home/gold/YKS_SDK/app/build/CMakeFiles/motor.dir/transmit.cpp.o"
-  )
-set(CMAKE_CXX_COMPILER_ID "GNU")
-
-# The include file search paths:
-set(CMAKE_CXX_TARGET_INCLUDE_PATH
-  "../thirdparty/soem/soem"
-  "../thirdparty/soem/osal"
-  "../thirdparty/soem/osal/linux"
-  "../thirdparty/soem/oshw/linux"
-  "../thirdparty/cpp-readline/src"
+# The set of dependency files which are needed:
+set(CMAKE_DEPENDS_DEPENDENCY_FILES
+  "/home/nubot/YKS_SDK_WB/app/math_ops.c" "CMakeFiles/motor.dir/math_ops.c.o" "gcc" "CMakeFiles/motor.dir/math_ops.c.o.d"
+  "/home/nubot/YKS_SDK_WB/app/motor_control.c" "CMakeFiles/motor.dir/motor_control.c.o" "gcc" "CMakeFiles/motor.dir/motor_control.c.o.d"
+  "/home/nubot/YKS_SDK_WB/app/command.cpp" "CMakeFiles/motor.dir/command.cpp.o" "gcc" "CMakeFiles/motor.dir/command.cpp.o.d"
+  "/home/nubot/YKS_SDK_WB/app/transmit.cpp" "CMakeFiles/motor.dir/transmit.cpp.o" "gcc" "CMakeFiles/motor.dir/transmit.cpp.o.d"
   )
 
 # Targets to which this target links.
 set(CMAKE_TARGET_LINKED_INFO_FILES
-  "/home/gold/YKS_SDK/app/build/thirdparty/soem/CMakeFiles/soem.dir/DependInfo.cmake"
+  "/home/nubot/YKS_SDK_WB/app/build/thirdparty/soem/CMakeFiles/soem.dir/DependInfo.cmake"
   )
 
 # Fortran module output directory.

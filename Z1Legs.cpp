@@ -3,6 +3,7 @@
 //
 
 #include "Z1Legs.h"
+extern std::atomic<bool> stop_thread;
 
 Z1Legs::Z1Legs() : stop_(false), time_(0.0), control_dt_(1), duration_(3.0), counter_(0),
                    mode_pr_(Mode::PR), mode_machine_(0) {
@@ -129,18 +130,19 @@ void Z1Legs::Control() {
         init_pair(6, COLOR_CYAN, COLOR_BLACK);
     }
 #endif
-    float pos = 0;
-    auto start_time = std::chrono::high_resolution_clock::now(); // 记录开始时间
-    int iteration_count = 0;
-    MotorDataLogger motor_data_logger;
+    // float pos = 0;
+    // auto start_time = std::chrono::high_resolution_clock::now(); // 记录开始时间
+    // int iteration_count = 0;
+    // MotorDataLogger motor_data_logger;
 
-    while (true) {
+    while (!stop_thread.load()) {
         {
             std::lock_guard<std::mutex> lock(mutex_);
             if (stop_) {
                 break;
             }
-        } {
+        }
+        {
             //创建的 lock 对象的作用域内（即 {} 包围的代码块），
             //可以安全地对 motor_data_ 进行读写操作，因为此时 mutex_ 已经被锁定，
             //其他线程无法同时修改 motor_data_。注意他只在花括号内有效，
@@ -159,7 +161,7 @@ void Z1Legs::Control() {
         //打印电机状态
         PrintMotorState(Z1_NUM_MOTOR); //只有头文件中的宏定义PRINT_MOTOR_STATE打开时才会打印电机状态，否则调用无效 13代表有13个电机，对应会产生13行数据
         refresh(); // Refresh the screen
-        motor_data_logger.print_log(motor_data_); //保存电机数据
+        // motor_data_logger.print_log(motor_data_); //保存电机数据
     }
     endwin(); // End curses mode
 }
@@ -262,6 +264,7 @@ YKSMotorData Z1Legs::Roll_forward_kinematics(const YKSMotorData &Ankle_A_motors,
 
 Z1Legs::~Z1Legs() {
     std::lock_guard<std::mutex> lock(mutex_);
+    std::cout << "Z1Legs Destructor "  << std::endl;\
     stop_ = true;
     if (control_thread_->joinable()) {
         control_thread_->join();

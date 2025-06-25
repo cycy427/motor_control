@@ -1,21 +1,19 @@
+
+# Consider dependencies only in project.
+set(CMAKE_DEPENDS_IN_PROJECT_ONLY OFF)
+
 # The set of languages for which implicit dependencies are needed:
 set(CMAKE_DEPENDS_LANGUAGES
-  "CXX"
   )
-# The set of files for implicit dependencies of each language:
-set(CMAKE_DEPENDS_CHECK_CXX
-  "/home/gold/YKS_SDK/app/thirdparty/cpp-readline/example/main.cpp" "/home/gold/YKS_SDK/app/build/thirdparty/cpp-readline/example/CMakeFiles/cpp-readline-example.dir/main.cpp.o"
-  )
-set(CMAKE_CXX_COMPILER_ID "GNU")
 
-# The include file search paths:
-set(CMAKE_CXX_TARGET_INCLUDE_PATH
-  "../thirdparty/cpp-readline/src"
+# The set of dependency files which are needed:
+set(CMAKE_DEPENDS_DEPENDENCY_FILES
+  "/home/nubot/YKS_SDK_WB/app/thirdparty/cpp-readline/example/main.cpp" "thirdparty/cpp-readline/example/CMakeFiles/cpp-readline-example.dir/main.cpp.o" "gcc" "thirdparty/cpp-readline/example/CMakeFiles/cpp-readline-example.dir/main.cpp.o.d"
   )
 
 # Targets to which this target links.
 set(CMAKE_TARGET_LINKED_INFO_FILES
-  "/home/gold/YKS_SDK/app/build/thirdparty/cpp-readline/src/CMakeFiles/cpp-readline.dir/DependInfo.cmake"
+  "/home/nubot/YKS_SDK_WB/app/build/thirdparty/cpp-readline/src/CMakeFiles/cpp-readline.dir/DependInfo.cmake"
   )
 
 # Fortran module output directory.

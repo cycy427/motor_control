@@ -1,4 +1,4 @@
-# Install script for directory: /home/gold/YKS_SDK/app/thirdparty
+# Install script for directory: /home/nubot/YKS_SDK_WB/app/thirdparty
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -37,10 +37,15 @@ if(NOT DEFINED CMAKE_CROSSCOMPILING)
   set(CMAKE_CROSSCOMPILING "FALSE")
 endif()
 
+# Set default install directory permissions.
+if(NOT DEFINED CMAKE_OBJDUMP)
+  set(CMAKE_OBJDUMP "/usr/bin/objdump")
+endif()
+
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for each subdirectory.
-  include("/home/gold/YKS_SDK/app/build/thirdparty/soem/cmake_install.cmake")
-  include("/home/gold/YKS_SDK/app/build/thirdparty/cpp-readline/cmake_install.cmake")
+  include("/home/nubot/YKS_SDK_WB/app/build/thirdparty/soem/cmake_install.cmake")
+  include("/home/nubot/YKS_SDK_WB/app/build/thirdparty/cpp-readline/cmake_install.cmake")
 
 endif()
 

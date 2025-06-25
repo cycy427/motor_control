@@ -13,14 +13,30 @@
 extern "C" {
 #include "ethercat.h"
 }
+#include <cstdlib>
+#include <iostream>
+#include <chrono>
+#include <thread>
+#include <csignal>
+#include <atomic>
 
 namespace cr = CppReadline;
 using ret = cr::Console::ReturnCode;
+std::atomic<bool> stop_thread(false);
+volatile sig_atomic_t stop_flag = false; // 使用不带 std:: 的 sig_atomic_t
 
+void signal_handler(int signal) {
+    if (signal == SIGINT) {
+        std::cout << "\nReceived Ctrl+C, exiting gracefully..." << std::endl;
+        stop_flag = true; // 设置退出标志
+    }
+}
 int main() {
+    // std::signal(SIGINT, signal_handler);
+
     printf("SOEM 主站测试\n");
 
-    EtherCAT_Init("enp5s0");
+    EtherCAT_Init("enp3s0");
 
     if (ec_slavecount <= 0) {
         printf("未找到从站, 程序退出！");

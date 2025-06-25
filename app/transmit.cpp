@@ -1,3 +1,6 @@
+#include <fstream>
+#include <iostream>
+
 extern "C" {
 #include "ethercat.h"
 #include "motor_control.h"
@@ -31,6 +34,7 @@ boolean inOP;
 uint8 current_group = 0;
 uint64_t num;
 bool isConfig[SLAVE_NUMBER]{false};
+extern std::atomic<bool> stop_thread;
 
 #define EC_TIMEOUT_MON 500
 #define POS_LEG_MECH_MIN -3.14
@@ -52,7 +56,7 @@ float Z1_MOTOR_POS_MIN[TOTAL_CAN_NUMBER] = {
     POS_MIN, POS_MIN, POS_MIN, POS_MIN, POS_MIN, POS_MIN, //两肩和腰部
     POS_MIN, POS_MIN, POS_MIN, POS_MIN, POS_MIN, POS_MIN //两肩和腰部
 };
-float Z1_MOTOR_SPE_MAX[TOTAL_CAN_NUMBER]= {
+float Z1_MOTOR_SPE_MAX[TOTAL_CAN_NUMBER] = {
     SPD_MAX,SPD_MAX,SPD_MAX,SPD_MAX,SPD_MAX,SPD_MAX, //下肢 左腿
     SPD_MAX,SPD_MAX,SPD_MAX,SPD_MAX,SPD_MAX,SPD_MAX, //下肢 右腿
     SPD_MAX,SPD_MAX,SPD_MAX,SPD_MAX,SPD_MAX,SPD_MAX, //下肢 左臂
@@ -213,6 +217,10 @@ static OSAL_THREAD_FUNC ethercat_check(const void *ptr) {
     (void) ptr;
     int slave = 0;
     while (true) {
+        if (stop_thread.load(std::memory_order_acquire)) {
+            printf("[EtherCAT] Stopping ethercat_check.\n");
+            break;
+        }
         // count errors
         if (err_iteration_count > K_ETHERCAT_ERR_PERIOD) {
             err_iteration_count = 0;
@@ -468,7 +476,7 @@ void EtherCAT_Send_Command(const YKSMotorData *mot_data) {
             } else if (motor->type == MOTOR_TI5) {
                 if (mot_data[index].mode == 0) {
                     set_ti5_current(&Tx_Message[slave_idx], motor->motor_id, motor->global_id, 0);
-                }else if (mot_data[index].mode == 1) {
+                } else if (mot_data[index].mode == 1) {
                     set_ti5_position(&Tx_Message[slave_idx], motor->motor_id, motor->global_id,
                                      mot_data[index].pos_des_);
                 } else if (mot_data[index].mode == 2) {
@@ -486,8 +494,25 @@ void EtherCAT_Send_Command(const YKSMotorData *mot_data) {
     }
 }
 
+//
+void SaveTextToFile(const std::string &filename, const std::string &content) {
+    std::ofstream outFile(filename);
+    if (outFile.is_open()) {
+        outFile << content;
+        outFile.close();
+        std::cout << "文件已保存至: " << filename << std::endl;
+    } else {
+        std::cerr << "无法打开文件: " << filename << std::endl;
+    }
+}
+
 void runImpl() {
     while (running) {
+        if (stop_thread.load(std::memory_order_acquire)) {
+            printf("[EtherCAT] Stopping runImpl.\n");
+            running = false;
+            break;
+        }
         EtherCAT_Run();
         usleep(1000);
     }

@@ -1,1 +1,1 @@
-/usr/bin/c++    -rdynamic CMakeFiles/cpp-readline-example.dir/main.cpp.o  -o cpp-readline-example  -Wl,-rpath,/home/gold/YKS_SDK/app/build/thirdparty/cpp-readline/src ../src/libcpp-readline.so.0.1.0 -lreadline 
+/usr/bin/c++ -rdynamic "CMakeFiles/cpp-readline-example.dir/main.cpp.o" -o cpp-readline-example  -Wl,-rpath,/home/nubot/YKS_SDK_WB/app/build/thirdparty/cpp-readline/src ../src/libcpp-readline.so.0.1.0 -lreadline 

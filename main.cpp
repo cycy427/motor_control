@@ -11,7 +11,9 @@
 #include <condition_variable>
 #include <cstdlib>
 #include <iostream>
-
+#include <csignal> // 信号头文件
+#include <unistd.h>   // write(), STDOUT_FILENO
+#include <cstring>   // strlen()
 #define DDS  //如果想要使用Socket通信，那么就注释，如果想使用DDS通信，那么请取消注释
 
 //这里以后考虑参数传递或者文件配置主题名称
@@ -57,6 +59,16 @@ bool is_hcmd_run = false;
 bool is_logic_run = false;
 bool is_bms_run = false;
 
+std::atomic<bool> stop_thread(false);
+volatile sig_atomic_t stop_flag = false; // 使用不带 std:: 的 sig_atomic_t
+void signalHandler(int signal) {
+    if (signal == SIGINT) {
+        stop_flag = true;
+        const char *msg = "\nSIGINT received, preparing to exit...\n";
+        write(STDOUT_FILENO, msg, std::strlen(msg));
+    }
+}
+
 ///非常简单的测试函数，用于测试下肢的运动控制
 void squat_control(const float pos) {
     // my_motor_data[Z1JointIndex::LeftHipYaw].pos_des_ = pos * 0.2; //左右转动
@@ -78,6 +90,17 @@ void squat_control(const float pos) {
     my_motor_data[Z1JointIndex::RightAnkleB].pos_des_ = -pos * 0.1;
 
     // my_motor_data[Z1JointIndex::WaistYaw].pos_des_ = pos;
+}
+//置零函数
+void zero_out() {
+    for (int i = 0; i < Z1_NUM_MOTOR; i++) {
+        my_motor_data[i].pos_des_ = 0;
+        my_motor_data[i].vel_des_ = 0;
+        my_motor_data[i].ff_ = 0;
+        my_motor_data[i].mode = 0;
+        my_motor_data[i].kp_ = 0;
+        my_motor_data[i].kd_ = 0;
+    }
 }
 
 void DDS_Get_Leg_Motor_Cmds(const int motor_num, const motorcmds &cmds, YKSMotorData *motor_cmds) {
@@ -363,9 +386,11 @@ void DDS_BMS_SUB(dds::sub::DataReader<bmsdata_short> &Reader, dds::sub::LoanedSa
 }
 
 int main() {
+    // 注册信号处理函数
+    std::signal(SIGINT, signalHandler);
     //////////////////////////////////////////////////////////////////////////////////////////////////
     setenv("CYCLONEDDS_URI", "file:///home/nubot/YKS_SDK_WB/example/dds_config/NetworkInterface.xml", 1); // 覆盖当前进程的环境变量
-    const char* uri = getenv("CYCLONEDDS_URI"); // 验证
+    const char *uri = getenv("CYCLONEDDS_URI"); // 验证
     std::cout << "Active URI: " << (uri ? uri : "NULL") << std::endl;
     // DDS相关处理 ////////////////////////////////////////////////////////////////////////////////////
     dds::domain::DomainParticipant participant(0);
@@ -557,14 +582,14 @@ int main() {
     /////////////////////////////////////////////////////////////////////////////////////////////////
 
     if (bool Ethernet_Status = CAT_Init("enp3s0"); !Ethernet_Status) { exit(1); } //如果初始化失败，则直接退出程序
-    auto joystick_device = "/dev/input/js0";
+    // auto joystick_device = "/dev/input/js0";
     // auto battery = "/dev/ttyUSB1";
-    const auto joystick_handler = std::make_shared<JoyStickHandler>(joystick_device);
+    // const auto joystick_handler = std::make_shared<JoyStickHandler>(joystick_device);
     // const auto battery_handler = std::make_shared<BmsHandler>(battery);
     // const SBusReceiver sbus_receiver("/dev/ttyACM0");
 
     Z1Legs z1_legs;
-    z1_legs.setJoyStickHandler(joystick_handler);
+    // z1_legs.setJoyStickHandler(joystick_handler);
     // MotorDataLogger motor_data_logger; //创建电机数据记录对象
 
     // z1_legs.setBatteryHandler(battery_handler);
@@ -602,7 +627,7 @@ int main() {
     dds::sub::LoanedSamples<logicdata> samples_logic;
     dds::sub::LoanedSamples<bmsdata_short> samples_bms;
 
-    while (true) {
+    while (!stop_flag) {
         //读取imu订阅的消息 -----------------------------------------------------------------------------
         DDS_IMU_SUB(imu_Reader, samples_imu); //
         z1_legs.getIMUFlag(is_imu_run); // 通知后执行对应操作
@@ -621,8 +646,8 @@ int main() {
 
         std::this_thread::sleep_for(std::chrono::milliseconds(1)); //读取周期为1ms
 
-        if (true ) {
-        // if (is_logic_run == true && is_imu_run == true ) {
+        if (true) {
+            // if (is_logic_run == true && is_imu_run == true ) {
             break;
         }
         printf("Error!!!!!!!!!! Please connect imu and switch!!!!!!!!!!");
@@ -631,10 +656,8 @@ int main() {
 
     // double pos_pitch = 0;
     // double pos_roll = 0;
-    while (true) {
-        if (z1_legs.stop_) {
-            break;
-        }
+    while (!stop_flag) {
+
 #ifdef DDS
         ///////////////////////////////////////////////////////////////////////////////////////////
         //读取leg订阅的消息 ---------------------------------------------------------------------------
@@ -692,7 +715,22 @@ int main() {
         // squat_control(pos);
         std::this_thread::sleep_for(std::chrono::milliseconds(1)); //读取周期为1ms
     }
-    runThread.join(); //runThread.join(); 的主要功能是确保 main 函数在退出之前等待 runThread 线程完成其任务。
+    std::this_thread::sleep_for(std::chrono::milliseconds(1)); //休息5ms
+
+    zero_out();//数据清零
+    z1_legs.setMotorKpKd(my_motor_data); //专门设置电机KP、KD值，调用了这个函数之后就会将原来设置在Z1legs类里面的默认KP、KD值覆盖掉
+    std::this_thread::sleep_for(std::chrono::milliseconds(5)); //休息5ms
+
+    stop_thread = true;
+    if (runThread.joinable()) {
+        runThread.join(); // 确保线程安全退出
+        printf("[EtherCAT] Stopping runImpl accomplished.\n");
+    }
+    pthread_join(*checkThread, nullptr);
+    printf("[EtherCAT] Stopping ethercat_check accomplished.\n");
+
+    std::signal(SIGINT, SIG_DFL); // 恢复默认行为（程序立即退出）
+    // runThread.join(); //runThread.join(); 的主要功能是确保 main 函数在退出之前等待 runThread 线程完成其任务。
     // 这样做的目的是为了确保程序在退出前所有的后台任务都得到了正确地执行和清理，避免数据丢失或资源泄露。
     return 0;
 }

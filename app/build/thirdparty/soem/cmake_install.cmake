@@ -1,8 +1,8 @@
-# Install script for directory: /home/gold/YKS_SDK/app/thirdparty/soem
+# Install script for directory: /home/nubot/YKS_SDK_WB/app/thirdparty/soem
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
-  set(CMAKE_INSTALL_PREFIX "/home/gold/YKS_SDK/app/install")
+  set(CMAKE_INSTALL_PREFIX "/home/nubot/YKS_SDK_WB/app/install")
 endif()
 string(REGEX REPLACE "/$" "" CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
 
@@ -35,5 +35,10 @@ endif()
 # Is this installation the result of a crosscompile?
 if(NOT DEFINED CMAKE_CROSSCOMPILING)
   set(CMAKE_CROSSCOMPILING "FALSE")
+endif()
+
+# Set default install directory permissions.
+if(NOT DEFINED CMAKE_OBJDUMP)
+  set(CMAKE_OBJDUMP "/usr/bin/objdump")
 endif()
 

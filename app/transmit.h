@@ -21,7 +21,6 @@
 #include "ethercat.h"
 #include "sys/time.h"
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -35,7 +34,6 @@ typedef struct {
 } YKSMotorData;
 
 extern YKSMotorData motorDate_recv[TOTAL_MOTOR_NUMBER];
-
 typedef struct {
     double angle_float[3];
     double gyro_float[3];
@@ -45,6 +43,7 @@ typedef struct {
 } YKS_IMUData;
 
 extern YKS_IMUData imuData_recv;
+extern OSAL_THREAD_HANDLE checkThread;
 
 extern float Z1_MOTOR_POS_MAX[TOTAL_CAN_NUMBER];
 extern float Z1_MOTOR_POS_MIN[TOTAL_CAN_NUMBER];

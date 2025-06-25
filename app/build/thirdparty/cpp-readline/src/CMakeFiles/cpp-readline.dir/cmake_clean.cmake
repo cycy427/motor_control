@@ -1,5 +1,6 @@
 file(REMOVE_RECURSE
   "CMakeFiles/cpp-readline.dir/Console.cpp.o"
+  "CMakeFiles/cpp-readline.dir/Console.cpp.o.d"
   "libcpp-readline.pdb"
   "libcpp-readline.so"
   "libcpp-readline.so.0.1.0"
