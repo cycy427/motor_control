@@ -1,0 +1,62 @@
+#include "SBusReceiver.h"
+#include "JoyStickHandler.h"
+#include "Z1Legs.h"
+#include "BmsHandler.h"
+YKSMotorData my_motor_data[Z1_NUM_MOTOR];
+
+void squat_control(const float pos) {
+    // my_motor_data[Z1JointIndex::LeftHipYaw].pos_des_ = pos * 0.2; //左右转动
+    my_motor_data[Z1JointIndex::LeftHipYaw].pos_des_ = 0; //左右转动
+    my_motor_data[Z1JointIndex::LeftHipPitch].pos_des_ = -pos * 0.25; //前后运动
+    // my_motor_data[Z1JointIndex::LeftHipRoll].pos_des_ = pos * 0.2;//外摆
+    my_motor_data[Z1JointIndex::LeftHipRoll].pos_des_ = 0;
+    my_motor_data[Z1JointIndex::LeftKnee].pos_des_ = pos * 0.7;
+    my_motor_data[Z1JointIndex::LeftAnkleA].pos_des_ = -pos * 0.1;
+    my_motor_data[Z1JointIndex::LeftAnkleB].pos_des_ = pos * 0.1;
+
+    // my_motor_data[Z1JointIndex::RightHipYaw].pos_des_ = pos * 0.2; //左右转动
+    my_motor_data[Z1JointIndex::RightHipYaw].pos_des_ = 0; //左右转动
+    my_motor_data[Z1JointIndex::RightHipPitch].pos_des_ = pos * 0.25; //ok
+    // my_motor_data[Z1JointIndex::RightHipRoll].pos_des_ = -pos * 0.2 - 0.1; //8
+    my_motor_data[Z1JointIndex::RightHipRoll].pos_des_ = 0;
+    my_motor_data[Z1JointIndex::RightKnee].pos_des_ = -pos * 0.7; //ok
+    my_motor_data[Z1JointIndex::RightAnkleA].pos_des_ = pos * 0.1;
+    my_motor_data[Z1JointIndex::RightAnkleB].pos_des_ = -pos * 0.1;
+
+    // my_motor_data[Z1JointIndex::WaistYaw].pos_des_ = pos;
+}
+
+int main() {
+    CAT_Init("enp5s0"); //填入网卡名称
+    auto joystick_device = "/dev/input/js0";
+    auto battery = "/dev/ttyUSB1";
+    const auto joystick_handler = std::make_shared<JoyStickHandler>(joystick_device);
+    const auto battery_handler = std::make_shared<BmsHandler>(battery);
+    const SBusReceiver sbus_receiver("/dev/ttyUSB0");
+    Z1Legs z1_legs;
+    z1_legs.setJoyStickHandler(joystick_handler);
+    z1_legs.setBatteryHandler(battery_handler);
+    float pos = 0;
+    while (true) {
+        if (z1_legs.stop_) {
+            break;
+        }
+        // SBusData data = sbus_receiver.getData();
+        // SBusReceiver::print_data(data);
+        // pos = data.ch[2] / 672.0 * 4;
+        JoystickState state = joystick_handler->getState();
+        // JoyStickHandler::print_state(state);
+        pos = state.left_stick_x / 40000.0;
+        if (pos > 4 || pos < -4) {
+            continue;
+        }
+        // printf("pos: %f\n", pos);
+
+        // squat_control(pos);
+        my_motor_data[0].pos_des_ = pos;
+        z1_legs.setMotorCommand(my_motor_data);
+    }
+    runThread.join(); //runThread.join(); 的主要功能是确保 main 函数在退出之前等待 runThread 线程完成其任务。
+    // 这样做的目的是为了确保程序在退出前所有的后台任务都得到了正确的执行和清理，避免数据丢失或资源泄露。
+    return 0;
+}

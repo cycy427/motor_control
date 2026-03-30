@@ -1,0 +1,15 @@
+setup.py
+./nubotddsmsg/__init__.py
+./nubotddsmsg/hr/__init__.py
+./nubotddsmsg/hr/_nubotddsmsg.py
+./nubotddsmsg/sensor/__init__.py
+./nubotddsmsg/sensor/_nubotddsmsg.py
+nubotddsmsg/__init__.py
+nubotddsmsg.egg-info/PKG-INFO
+nubotddsmsg.egg-info/SOURCES.txt
+nubotddsmsg.egg-info/dependency_links.txt
+nubotddsmsg.egg-info/top_level.txt
+nubotddsmsg/hr/__init__.py
+nubotddsmsg/hr/_nubotddsmsg.py
+nubotddsmsg/sensor/__init__.py
+nubotddsmsg/sensor/_nubotddsmsg.py

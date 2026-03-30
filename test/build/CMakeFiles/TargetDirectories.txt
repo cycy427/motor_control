@@ -1,0 +1,3 @@
+/home/nubot/YKS_SDK_WB/test/build/CMakeFiles/signal_example.dir
+/home/nubot/YKS_SDK_WB/test/build/CMakeFiles/edit_cache.dir
+/home/nubot/YKS_SDK_WB/test/build/CMakeFiles/rebuild_cache.dir

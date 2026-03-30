@@ -1,0 +1,68 @@
+// 人形机器人控制消息定义
+// by 电气组
+// 2025/4/12
+
+module nubotddsmsg {
+
+  //// 人形 begin/////////////////////////////////////////////////////////////
+  module hr {
+  
+    @extensibility(FINAL)
+    struct motorcmd {
+      octet mode;   // uint8 模式
+      long index;   // int32 电机编号
+      float pos;    // float32 期望位置 (rad)
+      float vel;    // float32 期望速度 (rad/s)
+      float tau;    // float32 期望力矩 (Nm)
+      float kp;     // float32 位置环KP
+      float kd;     // float32 位置环KD
+    };
+
+    @extensibility(FINAL)
+    struct motorcmds {
+      octet level;  // uint8 0-low level(下肢) 1-high level(上肢)
+      sequence<motorcmd> cmds; //数组，所有的电机
+    };
+
+    @extensibility(FINAL)
+    struct motorstate {
+      octet mode;     // uint8 当前模式
+      long index;     // int32 电机编号
+      float pos;      // float32 实际位置 (rad)
+      float vel;      // float32 实际速度 (rad/s)
+      float cur;      // float32 原始电流 (A)
+      float tau;      // float32 根据我们自己的标定数据换算的扭矩 (Nm)
+      float tau_raw;  // float32 根据厂家参数换算的原始扭矩 (Nm)
+      long error;     // int32 电机错误
+      float tem;      // float32 温度
+      float mos_tem;  // float32 MOS温度
+    };
+
+    @extensibility(FINAL)
+    struct motorstates {
+      octet level;  // uint8 0-low level(下肢) 1-high level(上肢)
+      sequence<motorstate> states; //数组，所有的电机
+    };
+  
+  };
+  //// 人形 end/////////////////////////////////////////////////////////////
+  
+  
+  //// 传感器 begin/////////////////////////////////////////////////////////
+  module sensor {  // 传感器
+  
+    @extensibility(FINAL)
+    struct xxx {
+      octet mode;   // uint8 模式
+      float pos;    // float32 期望位置 (rad)
+      float vel;    // float32 期望速度 (rad/s)
+      float tau;    // float32 期望力矩 (Nm)
+      float kp;     // float32 位置环KP
+      float kd;     // float32 位置环KD
+    };
+
+  };
+  //// 传感器 end/////////////////////////////////////////////////////////
+  
+};
+

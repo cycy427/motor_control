@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CycloneDDS xmlns="https://cdds.io/config"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xsi:schemaLocation="https://cdds.io/config file:///home/nubot/YKS_SDK_WB/example/dds_config/cyclonedds.xsd">
+    <Domain Id="0">
+        <General>
+            <Interfaces>
+                <NetworkInterface name="enx6c1ff7280c94" autodetermine="false" priority="1" multicast="true" presence_required="false"/>
+                <NetworkInterface name="lo" autodetermine="false" priority="2" multicast="true" presence_required="false"/>
+            </Interfaces>
+            <AllowMulticast>true</AllowMulticast>
+        </General>
+
+    </Domain>
+</CycloneDDS>

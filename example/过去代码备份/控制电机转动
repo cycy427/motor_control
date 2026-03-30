@@ -1,0 +1,199 @@
+//
+// Created by gold on 25-2-24.
+//
+/*
+ * @Description:
+ * @Author: kx zhang
+ * @Date: 2022-09-13 19:00:55
+ * @LastEditTime: 2022-11-13 17:09:03
+ */
+
+
+#include <cstdio>
+#include "Console.hpp"
+#include "app/command.h"
+#include "app/command.cpp"
+#include <iostream>
+#include <linux/input.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <string>
+
+#include <cerrno>
+#include <fcntl.h>
+#include <ncurses.h>
+#include <cstdlib>
+#include <cstring>
+#include <unistd.h>
+
+#include <linux/input.h>
+#include <unistd.h>
+#include <sys/ioctl.h>
+#include <linux/joystick.h>
+#include <mutex>
+#include <shared_mutex>
+extern "C" {
+#include "ethercat.h"
+}
+
+typedef unsigned char u8;
+
+static struct ff_pack_t {
+    char cmd;
+    struct {
+        u8 weak: 1;
+        u8 strong: 1;
+        u8 right: 1;
+        u8 left: 1;
+    } enable;
+    struct {
+        u8 left;
+        u8 right;
+        u8 strong;
+        u8 weak;
+    } strength;
+    struct {
+        u8 sustain_10ms;
+        u8 release_10ms;
+        u8 loop_count;
+    } pulse;
+} ff_pack;
+
+
+int hidraw = -1;
+
+const int Z1_NUM_MOTOR = 13;
+struct MotorCommand {
+    std::array<float, Z1_NUM_MOTOR> q_target = {};//位置
+    std::array<float, Z1_NUM_MOTOR> dq_target = {};//速度
+    std::array<float, Z1_NUM_MOTOR> kp = {};
+    std::array<float, Z1_NUM_MOTOR> kd = {};
+    std::array<float, Z1_NUM_MOTOR> tau_ff = {};//力
+};
+struct MotorState {
+    std::array<float, Z1_NUM_MOTOR> q = {};
+    std::array<float, Z1_NUM_MOTOR> dq = {};
+};
+// Stiffness for all G1 Joints
+std::array<float, Z1_NUM_MOTOR> Kp{
+        60, 60, 60, 100, 40, 40,      // legs
+        60, 60, 60, 100, 40, 40,      // legs
+        60                            // waist
+//        60, 40, 40,                   // waist
+//        40, 40, 40, 40, 40, 40, 40,  // arms
+//        40, 40, 40, 40, 40, 40, 40   // arms
+};
+
+// Damping for all G1 Joints
+std::array<float, Z1_NUM_MOTOR> Kd{
+        1, 1, 1, 2, 1, 1,     // legs
+        1, 1, 1, 2, 1, 1,     // legs
+        1                     // waist
+//        1, 1, 1,              // waist
+//        1, 1, 1, 1, 1, 1, 1,  // arms
+//        1, 1, 1, 1, 1, 1, 1   // arms
+};
+
+enum class Mode {
+    PR = 0,  // Series Control for Ptich/Roll Joints
+    AB = 1   // Parallel Control for A/B Joints
+};
+
+enum Z1JointIndex {
+    LeftHipPitch = 1,
+    LeftHipRoll = 2,
+    LeftHipYaw = 3,
+    LeftKnee = 4,
+//下面四个待定
+    LeftAnklePitch = 5,
+    LeftAnkleB = 5,
+    LeftAnkleRoll = 6,
+    LeftAnkleA = 6,
+
+    RightHipPitch = 7,
+    RightHipRoll = 8,
+    RightHipYaw = 9,
+    RightKnee = 10,
+
+    RightAnklePitch = 11,
+    RightAnkleB = 11,
+    RightAnkleRoll = 12,
+    RightAnkleA = 12,
+
+    WaistYaw = 13
+};
+
+class Z1Example {
+private:
+    double time_;
+    double control_dt_;  // [2ms]
+    double duration_;    // [3 s]
+    int counter_;
+    Mode mode_pr_;
+    uint8_t mode_machine_;
+
+//    Gamepad gamepad_;
+//    REMOTE_DATA_RX rx_;
+//
+//    DataBuffer <MotorState> motor_state_buffer_;
+//    DataBuffer <MotorCommand> motor_command_buffer_;
+//    DataBuffer <ImuState> imu_state_buffer_;
+//
+//    ChannelPublisherPtr <LowCmd_> lowcmd_publisher_;
+//    ChannelSubscriberPtr <LowState_> lowstate_subscriber_;
+//    ChannelSubscriberPtr <IMUState_> imutorso_subscriber_;
+//    ThreadPtr command_writer_ptr_, control_thread_ptr_;
+//
+//    std::shared_ptr<unitree::robot::b2::MotionSwitcherClient> msc_;
+
+};
+
+
+void print_event(const js_event &event) {
+    switch (event.type & ~JS_EVENT_INIT) {
+        case JS_EVENT_BUTTON:
+            if (event.value == 1) {
+                std::cout << "Button " << static_cast<int>(event.number) << " pressed" << std::endl;
+            } else {
+                std::cout << "Button " << static_cast<int>(event.number) << " released" << std::endl;
+            }
+            break;
+        case JS_EVENT_AXIS:
+            std::cout << "Axis " << static_cast<int>(event.number) << ": " << event.value << std::endl;
+            break;
+        default:
+            break;
+    }
+}
+
+int main(int argc, char **argv) {
+
+    printf("SOEM 主站测试\n");
+
+    EtherCAT_Init("enp5s0");
+
+    if (ec_slavecount <= 0) {
+        printf("未找到从站, 程序退出！");
+        return 1;
+    } else
+        printf("从站数量： %d\r\n", ec_slavecount);
+
+    startRun();
+    int slaveId = 0;
+    int motor_id = 2;
+    float spd = 5;
+    uint16_t cur = 500;
+    uint8_t ack_status = 2;
+    EtherCAT_Msg_ptr msg(new EtherCAT_Msg);
+    set_motor_speed(msg.get(), motor_id, spd, cur, ack_status);
+//    sendToQueue(slaveId, msg);
+    motor_id = 1;
+    set_motor_speed(msg.get(), motor_id, spd, cur, ack_status);
+    sendToQueue(slaveId, msg);
+
+
+
+    runThread.join();//runThread.join(); 的主要功能是确保 main 函数在退出之前等待 runThread 线程完成其任务。
+    // 这样做的目的是为了确保程序在退出前所有的后台任务都得到了正确的执行和清理，避免数据丢失或资源泄露。
+    return 0;
+}

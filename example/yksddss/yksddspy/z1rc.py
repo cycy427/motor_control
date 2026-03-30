@@ -270,7 +270,7 @@ if __name__ == '__main__':
     
     for i in range(30):
         # print(i)
-        z1_5_wb.z1_5_wb_squat_control(i, 0, 0, 0, 0, 100, 10)
+        z1_5_wb.z1_5_wb_squat_control(i, 0, 2, 0, 0, 100, 10)
     #
         time.sleep(0.01)
     # z1_leg.leg_squat_control(1, 0, 0, 0, 0, 0, 10)

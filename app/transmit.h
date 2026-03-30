@@ -64,6 +64,8 @@ void EtherCAT_Command_Set();
 
 void startRun();
 
+void EtherCAT_Send_EYOUinit(const YKSMotorData *mot_data); 
+
 void EtherCAT_Send_Command(const YKSMotorData *mot_data);
 
 void EtherCAT_Get_State(uint8_t slave, const uint8_t *motor_ack_status);

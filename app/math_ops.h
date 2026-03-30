@@ -11,9 +11,9 @@
 
 #include <stdio.h>
 
-float fmaxf(float x, float y);
+float my_fmaxf(float x, float y);
 
-float fminf(float x, float y);
+float my_fminf(float x, float y);
 
 float fmaxf3(float x, float y, float z);
 

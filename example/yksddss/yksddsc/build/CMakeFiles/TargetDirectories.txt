@@ -1,0 +1,4 @@
+/home/nubot/YKS_SDK_WB/example/yksddss/yksddsc/build/CMakeFiles/nubotddsmsg_generate.dir
+/home/nubot/YKS_SDK_WB/example/yksddss/yksddsc/build/CMakeFiles/z1body.dir
+/home/nubot/YKS_SDK_WB/example/yksddss/yksddsc/build/CMakeFiles/edit_cache.dir
+/home/nubot/YKS_SDK_WB/example/yksddss/yksddsc/build/CMakeFiles/rebuild_cache.dir

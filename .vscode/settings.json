@@ -1,0 +1,12 @@
+{
+    "files.associations": {
+        "array": "cpp",
+        "string": "cpp",
+        "string_view": "cpp",
+        "thread": "cpp",
+        "mutex": "cpp",
+        "condition_variable": "cpp"
+    },
+    "ros.distro": "humble",
+    "ROS2.distro": "humble"
+}

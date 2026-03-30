@@ -1,0 +1,159 @@
+#include <iostream>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/ioctl.h>
+#include <linux/joystick.h>
+#include <memory>
+#include <thread>
+#include <array>
+#include <mutex>
+#include <atomic>
+
+struct JoystickEvent {
+    uint32_t time;
+    int16_t value;
+    uint8_t type;
+    uint8_t number;
+};
+
+struct JoystickState {
+    std::array<int16_t, 8> axes;
+    std::array<uint8_t, 11> buttons;
+};
+
+// Forward declaration of print_state to ensure it's known before controlMotor
+void print_state(const JoystickState &state);
+
+class JoystickHandler {
+public:
+    JoystickHandler(const char *device) : device_(device), stop_(false) {}
+
+    void start() {
+        thread_ = std::make_shared<std::thread>(&JoystickHandler::run, this);
+    }
+
+    void stop() {
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            stop_ = true;
+        }
+        if (thread_->joinable()) {
+            thread_->join();
+        }
+    }
+
+    JoystickState getState() {
+        std::lock_guard<std::mutex> lock(mutex_);
+        return state_;
+    }
+
+private:
+    void run() {
+        int fd = open(device_, O_RDONLY | O_NONBLOCK);
+        if (fd == -1) {
+            perror("Failed to open joystick device");
+            return;
+        }
+
+        js_event event;
+        auto last_time = std::chrono::steady_clock::now();
+        double frequency_sum = 0.0;
+        int count = 0;
+
+        while (true) {
+            {
+                std::lock_guard<std::mutex> lock(mutex_);
+                if (stop_) break;
+            }
+
+            ssize_t bytes = read(fd, &event, sizeof(event));
+            if (bytes == sizeof(event)) {
+                JoystickEvent je = {event.time, event.value, event.type, event.number};
+                updateState(je);
+            } else if (bytes == -1 && errno != EAGAIN) {
+                perror("Error reading from joystick device");
+                break;
+            }
+
+            // Calculate frequency
+            auto now = std::chrono::steady_clock::now();
+            double elapsed_seconds = std::chrono::duration<double>(now - last_time).count();
+            frequency_sum += 1.0 / elapsed_seconds;
+            count++;
+            last_time = now;
+
+            // Print frequency every second
+            if (count >= 50.0) {
+                double average_frequency = frequency_sum / count;
+                std::cout << "Frequency: " << average_frequency << " Hz\n";
+                frequency_sum = 0.0;
+                count = 0;
+            }
+
+            // Limit frequency to 50Hz
+            std::this_thread::sleep_until(last_time + std::chrono::milliseconds(5));
+        }
+
+        close(fd);
+    }
+
+    void updateState(const JoystickEvent &event) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        switch (event.type & ~JS_EVENT_INIT) {
+            case JS_EVENT_AXIS:
+                if (event.number < state_.axes.size()) {
+                    state_.axes[event.number] = event.value;
+                }
+                break;
+            case JS_EVENT_BUTTON:
+                if (event.number < state_.buttons.size()) {
+                    state_.buttons[event.number] = event.value;
+                }
+                break;
+            default:
+                break;
+        }
+    }
+
+    const char *device_;
+    JoystickState state_;
+    std::shared_ptr<std::thread> thread_;
+    mutable std::mutex mutex_;
+    std::atomic<bool> stop_;
+};
+
+void controlMotor(std::shared_ptr<JoystickHandler> handler) {
+    while (true) {
+        JoystickState state = handler->getState();
+        print_state(state);
+        // Add motor control logic here based on the state
+    }
+}
+
+void print_state(const JoystickState &state) {
+    std::cout << "Axes: ";
+    for (int i = 0; i < state.axes.size(); ++i) {
+        std::cout << state.axes[i] << " ";
+    }
+    std::cout << "Buttons: ";
+    for (int i = 0; i < state.buttons.size(); ++i) {
+        std::cout << static_cast<int>(state.buttons[i]) << " ";
+    }
+    std::cout << "\n";
+}
+
+int main() {
+    const char *device = "/dev/input/js0";
+    std::shared_ptr<JoystickHandler> handler = std::make_shared<JoystickHandler>(device);
+
+    handler->start();
+
+    std::thread motorThread(controlMotor, handler);
+
+    // Keep the main thread alive to prevent immediate exit
+    motorThread.join();
+
+    handler->stop();
+
+    return 0;
+}

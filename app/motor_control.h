@@ -12,6 +12,10 @@
 #include "config.h"
 #include "math_ops.h"
 #include "transmit.h"
+#include <stdbool.h>
+#include <stdint.h>
+#define _USE_MATH_DEFINES
+#include <math.h> 
 
 #define param_get_pos 0x01
 #define param_get_spd 0x02
@@ -216,7 +220,19 @@ typedef struct {
 typedef enum {
     MOTOR_YKS, // YKS 电机
     MOTOR_TI5, // Ti5电机
+    MOTOR_EYOU, // EYOU电机
 } MotorType;
+
+//-------------------------------------
+// 单个电机描述结构体
+//-------------------------------------
+typedef enum {
+    Mode_Null,
+    Mode_POS_SPD,
+    Mode_POS_TIME,
+    Mode_SPD,
+    Mode_CUR,
+} EYOUMode;
 
 //-------------------------------------
 // 单个电机描述结构体
@@ -226,6 +242,7 @@ typedef struct {
     int motor_id; // 在从站内的本地编号（1~6）
     int global_id; // 全局唯一ID（可选，用于跨从站管理）
 } Motor;
+
 
 //-------------------------------------
 // 从站（Slave）结构体
@@ -237,6 +254,18 @@ typedef struct {
     int motor_count; // 当前从站连接的电机数量
     Motor motors[MAX_MOTORS_PER_SLAVE]; // 电机列表
 } Slave;
+
+//-------------------------------------
+// EYOU电机初始化结构体
+//-------------------------------------
+
+typedef struct {
+    bool ISENABLE; 
+    bool ISSETMODE; 
+    bool ISSETSPD;
+} ISEYOU_Init;
+
+// extern ISEYOU_Init eyou_init_status[MAX_MOTORS_PER_SLAVE] = {0}; // 每个从站每个电机的初始化状态
 
 extern Slave g_slaves[SLAVE_NUMBER];
 
@@ -296,5 +325,21 @@ void set_ti5_speed(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor
 void set_ti5_position(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id, float pos);
 
 void set_ti5_stop(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id, int times);
+
+void set_eyou_enable(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id, bool on);
+
+void set_eyou_mode(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id, uint8_t mode);  
+
+void set_eyou_current(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id, float cur);   
+
+void set_eyou_speed(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id, float spd);
+
+void set_eyou_position(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id, float pos); 
+
+void set_eyou_acceleration(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id, float acc);
+
+void set_eyou_deceleration(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id, float dec);
+
+void set_eyou_stop(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id);
 
 #endif

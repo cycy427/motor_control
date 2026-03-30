@@ -1,0 +1,1 @@
+/usr/bin/c++ CMakeFiles/z1body.dir/z1body.cpp.o CMakeFiles/z1body.dir/nubotddsmsg.cpp.o -o z1body  -Wl,-rpath,/usr/local/lib/x86_64-linux-gnu /usr/local/lib/x86_64-linux-gnu/libddscxx.so.0.11.0 /usr/local/lib/x86_64-linux-gnu/libddsc.so.0.11.0 

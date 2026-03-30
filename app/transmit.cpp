@@ -16,6 +16,8 @@ extern "C" {
 #include <ctime>
 #include <thread>
 #include <mutex>
+#include <thread>
+#include <chrono>
 
 #define EC_TIMEOUT_M
 std::mutex motor_data_mutex; //全局互斥锁，用于保护motorDate_recv数组
@@ -325,6 +327,7 @@ static int wkc_err_iteration_count = 0;
 EtherCAT_Msg Rx_Message[SLAVE_NUMBER];
 EtherCAT_Msg Tx_Message[SLAVE_NUMBER];
 
+
 /**
  * @description:Ethercat运行的线程函数
  * @return {*}
@@ -440,6 +443,52 @@ void User_Get_Motor_Data(YKSMotorData *mot_data) {
     }
 }
 
+void EtherCAT_Send_EYOUinit(const YKSMotorData *mot_data) {
+    if (wkc_err_iteration_count > K_ETHERCAT_ERR_PERIOD) {
+        wkc_err_count = 0;
+        wkc_err_iteration_count = 0;
+    }
+    if (wkc_err_count > K_ETHERCAT_ERR_MAX) {
+        printf("[EtherCAT Error] Error count too high!\n");
+        degraded_handler();
+    }  
+
+
+    for (int index = 0; index < TOTAL_MOTOR_NUMBER; index++) {
+        const int slave_idx = index / 6;
+
+        const Slave *slave = &g_slaves[slave_idx];
+        const Motor *motor = &slave->motors[index % 6];
+
+        // if (motor->mode == Mode_SPD) {
+        //     {
+        //         std::lock_guard<std::mutex> lock(message_mutex);
+        //         set_eyou_enable(&Tx_Message[slave_idx], motor->motor_id, motor->global_id, true);
+        //     }
+
+        //     if(eyou_init_status[index]->ISENABLE == true)
+        //     {
+        //         std::lock_guard<std::mutex> lock(message_mutex);
+        //         set_eyou_mode(&Tx_Message[slave_idx], motor->motor_id, motor->global_id, Mode_SPD);                
+        //     }
+        //     if(eyou_init_status[index]->ISSETMODE == true)
+        //     {
+        //         continue;
+        //     }
+        // } 
+            {
+                std::lock_guard<std::mutex> lock(message_mutex);
+                set_eyou_enable(&Tx_Message[slave_idx], motor->motor_id, motor->global_id, true);
+            }
+
+            {
+                std::lock_guard<std::mutex> lock(message_mutex);
+                set_eyou_mode(&Tx_Message[slave_idx], motor->motor_id, motor->global_id, Mode_SPD);                
+            }
+    }
+}
+
+
 void EtherCAT_Send_Command(const YKSMotorData *mot_data) {
     if (wkc_err_iteration_count > K_ETHERCAT_ERR_PERIOD) {
         wkc_err_count = 0;
@@ -449,7 +498,6 @@ void EtherCAT_Send_Command(const YKSMotorData *mot_data) {
         printf("[EtherCAT Error] Error count too high!\n");
         degraded_handler();
     } {
-        std::lock_guard<std::mutex> lock(message_mutex);
         for (int index = 0; index < TOTAL_MOTOR_NUMBER; index++) {
             const int slave_idx = index / 6;
 
@@ -457,6 +505,7 @@ void EtherCAT_Send_Command(const YKSMotorData *mot_data) {
             const Motor *motor = &slave->motors[index % 6];
 
             if (motor->type == MOTOR_YKS) {
+                std::lock_guard<std::mutex> lock(message_mutex);
                 // printf("slave command_id  \n");
                 if (mot_data[index].mode == 0) {
                     send_motor_ctrl_cmd(&Tx_Message[slave_idx], motor->motor_id, motor->global_id, mot_data[index].kp_,
@@ -474,6 +523,7 @@ void EtherCAT_Send_Command(const YKSMotorData *mot_data) {
                                     mot_data[index].ff_, 1);
                 }
             } else if (motor->type == MOTOR_TI5) {
+                std::lock_guard<std::mutex> lock(message_mutex);
                 if (mot_data[index].mode == 0) {
                     set_ti5_current(&Tx_Message[slave_idx], motor->motor_id, motor->global_id, 0);
                 } else if (mot_data[index].mode == 1) {
@@ -489,10 +539,29 @@ void EtherCAT_Send_Command(const YKSMotorData *mot_data) {
                     //        mot_data[index].ff_);
                 }
                 // printf("slave_idx %d  \n", index);
+        } else if (motor->type == MOTOR_EYOU) {
+            {
+                std::lock_guard<std::mutex> lock(message_mutex);
+                set_eyou_enable(&Tx_Message[slave_idx], motor->motor_id, motor->global_id, true);
+            }
+
+            {
+                std::lock_guard<std::mutex> lock(message_mutex);
+                set_eyou_mode(&Tx_Message[slave_idx], motor->motor_id, motor->global_id, Mode_SPD);
+                //usleep(100000000);                    
+            }
+
+            {
+                std::lock_guard<std::mutex> lock(message_mutex);
+                set_eyou_speed(&Tx_Message[slave_idx], motor->motor_id, motor->global_id, mot_data[index].vel_des_);
+            }
+
             }
         }
     }
 }
+
+
 
 //
 void SaveTextToFile(const std::string &filename, const std::string &content) {

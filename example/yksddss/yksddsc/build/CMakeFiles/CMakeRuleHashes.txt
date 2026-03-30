@@ -1,0 +1,3 @@
+# Hashes of file build rules.
+a39ad514dd408840f6127a3689718d82 CMakeFiles/nubotddsmsg_generate
+da34dd9ba0b9c5e0b6717f665fd92433 nubotddsmsg.hpp

@@ -1,0 +1,17 @@
+# ninja log v6
+1	6	1744507214770166043	nubotddsmsg.hpp	43795c4340a27697
+1	4	1744454680258341132	/home/mrtang/works/ddstang/0.10.2/ddsdemo/cmake-build-debug/nubotmsg.hpp	d211784467405151
+1	1255	1744543539431998499	CMakeFiles/z1body.dir/z1body.cpp.o	ebc04dfc14cf85c2
+1	6	1744507214770166043	nubotddsmsg.cpp	43795c4340a27697
+1275	1356	1744535738120363217	cxxsub	ccff87d8f16d82cb
+0	25	1744543719064877000	build.ninja	d592c9d896354fbe
+1	4	1744454680258341132	/home/mrtang/works/ddstang/0.10.2/ddsdemo/cmake-build-debug/nubotmsg.cpp	d211784467405151
+1	325	1744535880891782732	CMakeFiles/z1body.dir/nubotddsmsg.cpp.o	351e2ffe17613dd6
+1255	1337	1744543540685997580	z1body	db4ca2ee9b8d820a
+1	11	1744543725065873253	nubotddsmsg.hpp	c62f4df7aa050296
+1	11	1744543725065873253	nubotddsmsg.cpp	c62f4df7aa050296
+1	11	1744543725065873253	/home/mrtang/works/ddstang/yksddss/yksddsc/cmake-build-debug/nubotddsmsg.hpp	c62f4df7aa050296
+1	11	1744543725065873253	/home/mrtang/works/ddstang/yksddss/yksddsc/cmake-build-debug/nubotddsmsg.cpp	c62f4df7aa050296
+11	352	1744543725066873252	CMakeFiles/z1body.dir/nubotddsmsg.cpp.o	eff39ffbf487efd6
+11	1315	1744543725066873252	CMakeFiles/z1body.dir/z1body.cpp.o	735ff12403191ec
+1315	1399	1744543726370872440	z1body	db4ca2ee9b8d820a

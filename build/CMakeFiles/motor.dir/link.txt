@@ -1,0 +1,2 @@
+/usr/bin/ar qc libmotor.a CMakeFiles/motor.dir/app/motor_control.c.o CMakeFiles/motor.dir/app/math_ops.c.o CMakeFiles/motor.dir/app/transmit.cpp.o CMakeFiles/motor.dir/app/command.cpp.o
+/usr/bin/ranlib libmotor.a

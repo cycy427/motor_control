@@ -1,4 +1,7 @@
 #include "motor_control.h"
+#include <stdbool.h>
+#include <stdint.h>
+#include <math.h> 
 
 YKS_MOTOR_RANGE yks_motor_range = {
     .KD_MIN = {KD1_MIN, KD1_MIN, KD1_MIN, KD2_MIN, KD2_MIN, KD2_MIN, KD2_MIN},
@@ -39,8 +42,8 @@ Slave g_slaves[SLAVE_NUMBER] = {
         .slave_id = 1,
         .motor_count = 6,
         .motors = {
-            {MOTOR_YKS, 1, 0}, {MOTOR_YKS, 2, 1},
-            {MOTOR_YKS, 3, 2}, {MOTOR_YKS, 4, 3},
+            {MOTOR_EYOU, 1, 0}, {MOTOR_EYOU, 2, 1},
+            {MOTOR_EYOU, 3, 2}, {MOTOR_YKS, 4, 3},
             {MOTOR_YKS, 5, 4}, {MOTOR_YKS, 6, 5}
         }
     },
@@ -204,8 +207,7 @@ pos:-12.5rad~12.5rad
 spd:-18rad/s~18rad/s
 tor:-30Nm~30Nm
 */
-void
-send_motor_ctrl_cmd(EtherCAT_Msg *TxMessage, const uint8_t data_channel, const uint16_t motor_id, float kp, float kd,
+void send_motor_ctrl_cmd(EtherCAT_Msg *TxMessage, const uint8_t data_channel, const uint16_t motor_id, float kp, float kd,
                     float pos,
                     float spd, float cur) {
     if (data_channel < 1 || data_channel > 6)
@@ -257,8 +259,6 @@ send_motor_ctrl_cmd(EtherCAT_Msg *TxMessage, const uint8_t data_channel, const u
         cur = Z1_MOTOR_TOR_MAX[motor_id];
     else if (cur < Z1_MOTOR_TOR_MIN[motor_id])
         cur = Z1_MOTOR_TOR_MIN[motor_id];
-
-
 
     const int kp_int = float_to_uint(kp, KP_MIN, KP_MAX, 12);
     const int kd_int = float_to_uint(kd, KD_MIN, KD_MAX, 9);
@@ -402,7 +402,7 @@ void set_motor_acceleration(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint1
     TxMessage->motor[data_channel - 1].data[2] = acc >> 8;
     TxMessage->motor[data_channel - 1].data[3] = acc & 0xff;
 }
-
+                                                                                                                                    //   ************************** 没找到这个模式              
 // This function use in ask communication mode.
 /*
 motor_id:1~0x7FE
@@ -432,6 +432,8 @@ void set_motor_linkage_speedKI(EtherCAT_Msg *TxMessage, uint8_t data_channel, ui
     TxMessage->motor[data_channel - 1].data[5] = speedKI & 0xff;
 }
 
+
+                                                                                                                                    //   ************************** 没找到这个模式    
 // This function use in ask communication mode.
 /*
 motor_id:1~0x7FE
@@ -466,6 +468,7 @@ void set_motor_feedbackKP_KD(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint
 motor_id:1~0x7FE
 param_cmd:1~9
 */
+// 获得电机控制参数
 void get_motor_parameter(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint16_t motor_id, uint8_t param_cmd) {
     TxMessage->can_ide = 0;
     TxMessage->motor[data_channel - 1].rtr = 0;
@@ -476,8 +479,9 @@ void get_motor_parameter(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint16_t
     TxMessage->motor[data_channel - 1].data[1] = param_cmd;
 }
 
+// 根据状态码打印电机反馈信息(包括状态确实或详细数据)
 void Rv_Message_Print(uint8_t ack_status) {
-    if (ack_status >= 100) {
+    if (ack_status >= 100) {                                                   // ***********为啥跟100比
         printf("motor%d message:\n", ack_status - 100);
         if (motor_comm_fbd.motor_fbd == 0x01) {
             printf("自动模式.\n");
@@ -528,7 +532,7 @@ void Rv_Message_Print(uint8_t ack_status) {
                         printf("配置失败.\n");
                     }
                     break;
-                case 5:
+                case 5:                                                                                     // *********不太知道INS_code是什么
                     printf("motor id: %d\n", rv_motor_msg[i].motor_id);
                     if (motor_comm_fbd.INS_code == 1) {
                         printf("angle_actual_float: %f\n", rv_motor_msg[i].angle_actual_float);
@@ -566,7 +570,8 @@ void Rv_Message_Print(uint8_t ack_status) {
 
 uint16_t motor_id_check = 0;
 
-void RV_can_data_repack(const EtherCAT_Msg *RxMessage, const uint8_t comm_mode, const Slave *slave,
+// 应答函数，把电机自动的应答协议内容转化为程序中的各个可读变量内容，及接受协议解包                                                             // **************** 要仿照改的地方
+void RV_can_data_repack(const EtherCAT_Msg *RxMessage, const uint8_t comm_mode, const Slave *slave,  
                         uint8_t *motor_ack_status) {
     uint8_t motor_id_t = 0;
     uint8_t ack_status = 0;
@@ -614,7 +619,7 @@ void RV_can_data_repack(const EtherCAT_Msg *RxMessage, const uint8_t comm_mode, 
                 }
                 motor_ack_status[i] = 100 + i;
                 // return 100 + i;
-            } else if (comm_mode == 0x00 && RxMessage->motor[i].dlc != 0) // Response mode
+            } else if (comm_mode == 0x00 && RxMessage->motor[i].dlc != 0) // Response mode                         
             {
                 // printf("id = %d\n"i);
                 ack_status = RxMessage->motor[i].data[0] >> 5;
@@ -728,7 +733,7 @@ void RV_can_data_repack(const EtherCAT_Msg *RxMessage, const uint8_t comm_mode, 
                 motor_ack_status[i] = ack_status;
 
                 // return ack_status;
-            } else if (comm_mode == 0x01 && RxMessage->motor[i].dlc != 0) // automatic feedback mode
+            } else if (comm_mode == 0x01 && RxMessage->motor[i].dlc != 0) // automatic feedback mode                    // *************** 这啥
             {
                 motor_id_t = RxMessage->motor[i].id - 0x205;
                 rv_motor_msg[motor_id_t].motor_id = RxMessage->motor[i].id;
@@ -784,13 +789,51 @@ void RV_can_data_repack(const EtherCAT_Msg *RxMessage, const uint8_t comm_mode, 
                 // printf("SPD = %f ", rv_motor_msg[motor_id_t].speed_actual_float);
                 // printf("POS = %lf \n", rv_motor_msg[motor_id_t].angle_actual_float);
             }
+        } else if (motor->type == MOTOR_EYOU) {
+            if (RxMessage->motor[i].dlc == 0) {
+                continue;
+            }
+
+            if (RxMessage->motor[i].dlc != 0  && (RxMessage->motor[i].data[0] == 0x03 || RxMessage->motor[i].data[0] == 0x02)) 
+            {
+                // if(RxMessage->motor[i].data[0] == 0x02)
+                //     printf("date = %d, %d, %d, %d, %d, %d, %d, %d\n", RxMessage->motor[i].data[0], RxMessage->motor[i].data[1], RxMessage->motor[i].data[2], RxMessage->motor[i].data[3], RxMessage->motor[i].data[4], RxMessage->motor[i].data[5], RxMessage->motor[i].data[6], RxMessage->motor[i].data[7]);
+
+                // if(RxMessage->motor[i].data[0] == 0x02 && RxMessage->motor[i].data[1] == 0x10 && RxMessage->motor[i].data[2] == 0x01)
+                // {
+                //     eyou_init_status[i].ISENABLE = true;                                                                                   // 这里是要将使能状态置1，表示已经完成使能初始化
+                // }
+                // if(RxMessage->motor[i].data[0] == 0x02 && RxMessage->motor[i].data[1] == 0x0F && RxMessage->motor[i].data[2] == 0x01)
+                // {
+                //     eyou_init_status[i].ISSETMODE = true;                                                                                   // 这里是要将MODE状态置1，表示已经完成工作模式配置初始化
+                // }
+                // if(RxMessage->motor[i].data[0] == 0x02 && RxMessage->motor[i].data[1] == 0x09 && RxMessage->motor[i].data[2] == 0x01)
+                // {
+                //     eyou_init_status[i].ISSETSPD = true;                                                                                   // 这里是要将速度配置状态置1，表示已经完成速度配置初始化
+                // }
+
+                motor_id_t = RxMessage->motor[i].id - 1;
+                motor_id_check = RxMessage->motor[i].id;
+
+                rv_motor_msg[motor_id_t].motor_id = motor_id_check;
+
+                if(RxMessage->motor[i].data[1] == 0x05)                                          //  ******************** 这里不知道电流与力矩的比值     
+                {
+                    int32_t eyou_cur_int = (RxMessage->motor[i].data[2] << 24) | (RxMessage->motor[i].data[3] <<16) |
+                                        (RxMessage->motor[i].data[4] << 8) | RxMessage->motor[i].data[5];
+                }
+                else if(RxMessage->motor[i].data[1] == 0x06)
+                    rv_motor_msg[motor_id_t].speed_actual_rad = ((RxMessage->motor[i].data[2] << 24) | (RxMessage->motor[i].data[3] <<16) |
+                                        (RxMessage->motor[i].data[4] << 8) | RxMessage->motor[i].data[5]) / 65536.0f * 2 * M_PI ;
+                else if(RxMessage->motor[i].data[1] == 0x07)
+                    rv_motor_msg[motor_id_t].angle_actual_rad = ((RxMessage->motor[i].data[2] << 24) | (RxMessage->motor[i].data[3] <<16) |
+                                        (RxMessage->motor[i].data[4] << 8) | RxMessage->motor[i].data[5]) / 65536.0f * 2 * M_PI ;
+                else if(RxMessage->motor[i].data[1] == 0x1D)
+                    rv_motor_msg[motor_id_t].temperature = (RxMessage->motor[i].data[2] << 24) | (RxMessage->motor[i].data[3] <<16) |
+                                        (RxMessage->motor[i].data[4] << 8) | RxMessage->motor[i].data[5];
+                motor_ack_status[i] = 1;
+            }
         }
-
-        // printf("i = %d\n", i);
-        // printf("id: %d\n", RxMessage->motor[i].id);
-        // printf("motor dlc%d:\n", RxMessage->motor[i].dlc);
-
-        // printf("Motor %d: %d\n", i, motor_ack_status[i]);
     }
 }
 
@@ -886,7 +929,7 @@ data_channel:1~6
 spd:-18000~18000
 ack_status:0~3
 */
-void set_ti5_current(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id, float cur) {
+void set_ti5_current(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id, float cur) {                                     // **************** 要仿照改的地方
     if (data_channel < 1 || data_channel > 6)
         return;
     const float I_MAX = ti5_motor_range.I_MAX[Z1_MOTOR_ID_Type[motor_id]];
@@ -919,7 +962,7 @@ data_channel:1~6
 spd:-18000~18000
 ack_status:0~3
 */
-void set_ti5_speed(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id, float spd) {
+void set_ti5_speed(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id, float spd) {                                    // **************** 要仿照改的地方
     if (data_channel < 1 || data_channel > 6)
         return;
     const float V_MAX = ti5_motor_range.V_MAX[Z1_MOTOR_ID_Type[motor_id]];
@@ -955,7 +998,7 @@ data_channel:1~6
 pos:-18000~18000
 ack_status:0~3
 */
-void set_ti5_position(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id, float pos) {
+void set_ti5_position(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id, float pos) {                                    // **************** 要仿照改的地方
     if (data_channel < 1 || data_channel > 6)
         return;
 
@@ -1012,4 +1055,181 @@ void set_ti5_stop(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_
 
     TxMessage->motor[data_channel - 1].data[3] = (uint8_t) ((delay_time >> 16) & 0xFF);
     TxMessage->motor[data_channel - 1].data[4] = (uint8_t) ((delay_time >> 24) & 0xFF);
+}
+
+
+/*******************  EYOU点击相关的协议代码 *********************/
+
+void set_eyou_enable(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id, bool on)                             
+{
+    if (data_channel < 1 || data_channel > 6)
+        return;
+
+    TxMessage->can_ide = 0;
+    TxMessage->motor[data_channel - 1].rtr = 0;
+    TxMessage->motor[data_channel - 1].id = motor_id;
+    TxMessage->motor[data_channel - 1].dlc = 8;    
+
+    TxMessage->motor[data_channel - 1].data[0] = 0x01;                                 
+    TxMessage->motor[data_channel - 1].data[1] = 0x10;
+    
+    TxMessage->motor[data_channel - 1].data[2] = 0;
+    TxMessage->motor[data_channel - 1].data[3] = 0;
+    TxMessage->motor[data_channel - 1].data[4] = 0;
+    TxMessage->motor[data_channel - 1].data[5] = on ? 1u : 0u;
+}
+
+void set_eyou_mode(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id, uint8_t mode)                             
+{
+    if (data_channel < 1 || data_channel > 6)
+        return;
+
+    TxMessage->can_ide = 0;
+    TxMessage->motor[data_channel - 1].rtr = 0;
+    TxMessage->motor[data_channel - 1].id = motor_id;
+    TxMessage->motor[data_channel - 1].dlc = 8;    
+
+    TxMessage->motor[data_channel - 1].data[0] = 0x01;                         
+    TxMessage->motor[data_channel - 1].data[1] = 0x0F;
+    
+    TxMessage->motor[data_channel - 1].data[2] = 0;
+    TxMessage->motor[data_channel - 1].data[3] = 0;
+    TxMessage->motor[data_channel - 1].data[4] = 0;
+    TxMessage->motor[data_channel - 1].data[5] = mode;
+}
+
+
+
+void set_eyou_current(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id, float cur)                              // ************* 还不知道力距转电流的比值
+{
+    if (data_channel < 1 || data_channel > 6)
+        return;
+
+    TxMessage->can_ide = 0;
+    TxMessage->motor[data_channel - 1].rtr = 0;
+    TxMessage->motor[data_channel - 1].id = motor_id;
+    TxMessage->motor[data_channel - 1].dlc = 8;    
+
+    TxMessage->motor[data_channel - 1].data[0] = 0x01;                      
+    TxMessage->motor[data_channel - 1].data[1] = 0x08;
+
+    int32_t current = (int32_t)cur;                                                   // **************** 这里还要做一个限幅
+
+    TxMessage->motor[data_channel - 1].data[2] = (uint8_t)(current >> 24);
+    TxMessage->motor[data_channel - 1].data[3] = (uint8_t)(current >> 16);
+    TxMessage->motor[data_channel - 1].data[4] = (uint8_t)(current >> 8);
+    TxMessage->motor[data_channel - 1].data[5] = (uint8_t)(current);
+
+    // TxMessage->motor[data_channel - 1].data[2] = 0;
+    // TxMessage->motor[data_channel - 1].data[3] = 0;
+    // TxMessage->motor[data_channel - 1].data[4] = 0x00;
+    // TxMessage->motor[data_channel - 1].data[5] = 0xA0;
+}
+
+
+void set_eyou_speed(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id, float spd) {      
+    if (data_channel < 1 || data_channel > 6)
+        return;
+
+    TxMessage->can_ide = 0;
+    TxMessage->motor[data_channel - 1].rtr = 0;
+    TxMessage->motor[data_channel - 1].id = motor_id;
+    TxMessage->motor[data_channel - 1].dlc = 8;    
+
+    TxMessage->motor[data_channel - 1].data[0] = 0x01;                         
+    TxMessage->motor[data_channel - 1].data[1] = 0x09;
+
+    int32_t speed = (int32_t)(spd / (2 * M_PI) * 65536);
+                                                                                                    // **************** 这里还要做一个限幅
+
+    TxMessage->motor[data_channel - 1].data[2] = (uint8_t)(speed >> 24);
+    TxMessage->motor[data_channel - 1].data[3] = (uint8_t)(speed >> 16);
+    TxMessage->motor[data_channel - 1].data[4] = (uint8_t)(speed >> 8);
+    TxMessage->motor[data_channel - 1].data[5] = (uint8_t)(speed);
+
+    // TxMessage->motor[data_channel - 1].data[2] = 0;
+    // TxMessage->motor[data_channel - 1].data[3] = 0;
+    // TxMessage->motor[data_channel - 1].data[4] = 0x40;
+    // TxMessage->motor[data_channel - 1].data[5] = 0x00;
+}
+
+
+void set_eyou_position(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id, float pos) {   
+    if (data_channel < 1 || data_channel > 6)
+        return;
+
+    TxMessage->can_ide = 0;
+    TxMessage->motor[data_channel - 1].rtr = 0;
+    TxMessage->motor[data_channel - 1].id = motor_id;
+    TxMessage->motor[data_channel - 1].dlc = 8;    
+
+    TxMessage->motor[data_channel - 1].data[0] = 0x01;                             
+    TxMessage->motor[data_channel - 1].data[1] = 0x0A;
+
+    int32_t position = (int32_t)(pos / (2 * M_PI) * 65536);
+                                                                                                    // **************** 这里还要做一个限幅
+    TxMessage->motor[data_channel - 1].data[2] = (uint8_t)(position >> 24);
+    TxMessage->motor[data_channel - 1].data[3] = (uint8_t)(position >> 16);
+    TxMessage->motor[data_channel - 1].data[4] = (uint8_t)(position >> 8);
+    TxMessage->motor[data_channel - 1].data[5] = (uint8_t)(position);
+}
+
+void set_eyou_acceleration(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id, float acc) {   
+    if (data_channel < 1 || data_channel > 6)
+        return;
+
+    TxMessage->can_ide = 0;
+    TxMessage->motor[data_channel - 1].rtr = 0;
+    TxMessage->motor[data_channel - 1].id = motor_id;
+    TxMessage->motor[data_channel - 1].dlc = 8;    
+
+    TxMessage->motor[data_channel - 1].data[0] = 0x01;                            
+    TxMessage->motor[data_channel - 1].data[1] = 0x0B;
+
+    int32_t acceleration = (int32_t)(acc / (2 * M_PI) * 65536);
+                                                                                                    // **************** 这里还要做一个限幅
+    TxMessage->motor[data_channel - 1].data[2] = (uint8_t)(acceleration >> 24);
+    TxMessage->motor[data_channel - 1].data[3] = (uint8_t)(acceleration >> 16);
+    TxMessage->motor[data_channel - 1].data[4] = (uint8_t)(acceleration >> 8);
+    TxMessage->motor[data_channel - 1].data[5] = (uint8_t)(acceleration);
+}
+
+void set_eyou_deceleration(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id, float dec) {   
+    if (data_channel < 1 || data_channel > 6)
+        return;
+
+    TxMessage->can_ide = 0;
+    TxMessage->motor[data_channel - 1].rtr = 0;
+    TxMessage->motor[data_channel - 1].id = motor_id;
+    TxMessage->motor[data_channel - 1].dlc = 8;    
+
+    TxMessage->motor[data_channel - 1].data[0] = 0x01;                                
+    TxMessage->motor[data_channel - 1].data[1] = 0x0C;
+
+    int32_t deceleration = (int32_t)(dec / (2 * M_PI) * 65536);
+                                                                                                    // **************** 这里还要做一个限幅
+    TxMessage->motor[data_channel - 1].data[2] = (uint8_t)(deceleration >> 24);
+    TxMessage->motor[data_channel - 1].data[3] = (uint8_t)(deceleration >> 16);
+    TxMessage->motor[data_channel - 1].data[4] = (uint8_t)(deceleration >> 8);
+    TxMessage->motor[data_channel - 1].data[5] = (uint8_t)(deceleration);
+}
+
+
+void set_eyou_stop(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id)      // 失能停转                       
+{
+    if (data_channel < 1 || data_channel > 6)
+        return;
+
+    TxMessage->can_ide = 0;
+    TxMessage->motor[data_channel - 1].rtr = 0;
+    TxMessage->motor[data_channel - 1].id = motor_id;
+    TxMessage->motor[data_channel - 1].dlc = 8;    
+
+    TxMessage->motor[data_channel - 1].data[0] = 0x01;                            
+    TxMessage->motor[data_channel - 1].data[1] = 0x10;
+    
+    TxMessage->motor[data_channel - 1].data[2] = 0;
+    TxMessage->motor[data_channel - 1].data[3] = 0;
+    TxMessage->motor[data_channel - 1].data[4] = 0;
+    TxMessage->motor[data_channel - 1].data[5] = 0;
 }
