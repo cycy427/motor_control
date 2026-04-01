@@ -42,9 +42,9 @@ Slave g_slaves[SLAVE_NUMBER] = {
         .slave_id = 1,
         .motor_count = 6,
         .motors = {
-            {MOTOR_EYOU, 1, 0}, {MOTOR_EYOU, 2, 1},
-            {MOTOR_EYOU, 3, 2}, {MOTOR_YKS, 4, 3},
-            {MOTOR_YKS, 5, 4}, {MOTOR_YKS, 6, 5}
+            {MOTOR_YKS, 1, 0}, {MOTOR_YKS, 2, 1},
+            {MOTOR_YKS, 3, 2}, {MOTOR_YKS, 4, 3},
+            {MOTOR_EYOU, 5, 4}, {MOTOR_EYOU, 6, 5}
         }
     },
     // SLAVE ID 2: YKS 1-6
