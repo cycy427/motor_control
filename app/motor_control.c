@@ -801,6 +801,8 @@ void RV_can_data_repack(const EtherCAT_Msg *RxMessage, const uint8_t comm_mode, 
                         notify_eyou_enabled(global_id);
                     } else if (RxMessage->motor[i].data[1] == 0x0F) {
                         notify_eyou_mode_set(global_id);
+                    } else if (RxMessage->motor[i].data[1] == 0x09) {
+                        notify_eyou_profile_speed_set(global_id);
                     }
                 }
 
@@ -1134,15 +1136,15 @@ void set_eyou_speed(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t moto
     int32_t speed = (int32_t)(spd / (2 * M_PI) * 65536);
                                                                                                     // **************** 这里还要做一个限幅
 
-    // TxMessage->motor[data_channel - 1].data[2] = (uint8_t)(speed >> 24);
-    // TxMessage->motor[data_channel - 1].data[3] = (uint8_t)(speed >> 16);
-    // TxMessage->motor[data_channel - 1].data[4] = (uint8_t)(speed >> 8);
-    // TxMessage->motor[data_channel - 1].data[5] = (uint8_t)(speed);
+    TxMessage->motor[data_channel - 1].data[2] = (uint8_t)(speed >> 24);
+    TxMessage->motor[data_channel - 1].data[3] = (uint8_t)(speed >> 16);
+    TxMessage->motor[data_channel - 1].data[4] = (uint8_t)(speed >> 8);
+    TxMessage->motor[data_channel - 1].data[5] = (uint8_t)(speed);
 
-    TxMessage->motor[data_channel - 1].data[2] = 0;
-    TxMessage->motor[data_channel - 1].data[3] = 0;
-    TxMessage->motor[data_channel - 1].data[4] = 0x40;
-    TxMessage->motor[data_channel - 1].data[5] = 0x00;
+    // TxMessage->motor[data_channel - 1].data[2] = 0;
+    // TxMessage->motor[data_channel - 1].data[3] = 0;
+    // TxMessage->motor[data_channel - 1].data[4] = 0x40;
+    // TxMessage->motor[data_channel - 1].data[5] = 0x00;
 }
 
 
