@@ -796,21 +796,13 @@ void RV_can_data_repack(const EtherCAT_Msg *RxMessage, const uint8_t comm_mode, 
 
             if (RxMessage->motor[i].dlc != 0  && (RxMessage->motor[i].data[0] == 0x03 || RxMessage->motor[i].data[0] == 0x02)) 
             {
-                // if(RxMessage->motor[i].data[0] == 0x02)
-                //     printf("date = %d, %d, %d, %d, %d, %d, %d, %d\n", RxMessage->motor[i].data[0], RxMessage->motor[i].data[1], RxMessage->motor[i].data[2], RxMessage->motor[i].data[3], RxMessage->motor[i].data[4], RxMessage->motor[i].data[5], RxMessage->motor[i].data[6], RxMessage->motor[i].data[7]);
-
-                // if(RxMessage->motor[i].data[0] == 0x02 && RxMessage->motor[i].data[1] == 0x10 && RxMessage->motor[i].data[2] == 0x01)
-                // {
-                //     eyou_init_status[i].ISENABLE = true;                                                                                   // 这里是要将使能状态置1，表示已经完成使能初始化
-                // }
-                // if(RxMessage->motor[i].data[0] == 0x02 && RxMessage->motor[i].data[1] == 0x0F && RxMessage->motor[i].data[2] == 0x01)
-                // {
-                //     eyou_init_status[i].ISSETMODE = true;                                                                                   // 这里是要将MODE状态置1，表示已经完成工作模式配置初始化
-                // }
-                // if(RxMessage->motor[i].data[0] == 0x02 && RxMessage->motor[i].data[1] == 0x09 && RxMessage->motor[i].data[2] == 0x01)
-                // {
-                //     eyou_init_status[i].ISSETSPD = true;                                                                                   // 这里是要将速度配置状态置1，表示已经完成速度配置初始化
-                // }
+                if (RxMessage->motor[i].data[0] == 0x02 && RxMessage->motor[i].data[2] == 0x01) {
+                    if (RxMessage->motor[i].data[1] == 0x10) {
+                        notify_eyou_enabled(global_id);
+                    } else if (RxMessage->motor[i].data[1] == 0x0F) {
+                        notify_eyou_mode_set(global_id);
+                    }
+                }
 
                 motor_id_t = RxMessage->motor[i].id - 1;
                 motor_id_check = RxMessage->motor[i].id;
@@ -1142,15 +1134,15 @@ void set_eyou_speed(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t moto
     int32_t speed = (int32_t)(spd / (2 * M_PI) * 65536);
                                                                                                     // **************** 这里还要做一个限幅
 
-    TxMessage->motor[data_channel - 1].data[2] = (uint8_t)(speed >> 24);
-    TxMessage->motor[data_channel - 1].data[3] = (uint8_t)(speed >> 16);
-    TxMessage->motor[data_channel - 1].data[4] = (uint8_t)(speed >> 8);
-    TxMessage->motor[data_channel - 1].data[5] = (uint8_t)(speed);
+    // TxMessage->motor[data_channel - 1].data[2] = (uint8_t)(speed >> 24);
+    // TxMessage->motor[data_channel - 1].data[3] = (uint8_t)(speed >> 16);
+    // TxMessage->motor[data_channel - 1].data[4] = (uint8_t)(speed >> 8);
+    // TxMessage->motor[data_channel - 1].data[5] = (uint8_t)(speed);
 
-    // TxMessage->motor[data_channel - 1].data[2] = 0;
-    // TxMessage->motor[data_channel - 1].data[3] = 0;
-    // TxMessage->motor[data_channel - 1].data[4] = 0x40;
-    // TxMessage->motor[data_channel - 1].data[5] = 0x00;
+    TxMessage->motor[data_channel - 1].data[2] = 0;
+    TxMessage->motor[data_channel - 1].data[3] = 0;
+    TxMessage->motor[data_channel - 1].data[4] = 0x40;
+    TxMessage->motor[data_channel - 1].data[5] = 0x00;
 }
 
 

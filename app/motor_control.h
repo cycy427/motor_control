@@ -330,6 +330,10 @@ void set_eyou_enable(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t mot
 
 void set_eyou_mode(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id, uint8_t mode);  
 
+void notify_eyou_enabled(int idx);
+
+void notify_eyou_mode_set(int idx);
+
 void set_eyou_current(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id, float cur);   
 
 void set_eyou_speed(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id, float spd);

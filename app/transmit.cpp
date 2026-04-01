@@ -9,6 +9,7 @@ extern "C" {
 
 //下面这都是C++的头文件，不能在transmit.h中进行#include，否则会导致编译错误
 #include "queue.h"
+#include <atomic>
 #include <sys/time.h>
 #include <cinttypes>
 #include <cstdio>
@@ -37,6 +38,8 @@ uint8 current_group = 0;
 uint64_t num;
 bool isConfig[SLAVE_NUMBER]{false};
 extern std::atomic<bool> stop_thread;
+static std::atomic<bool> eyou_enabled[TOTAL_MOTOR_NUMBER];
+static std::atomic<bool> eyou_mode_set[TOTAL_MOTOR_NUMBER];
 
 #define EC_TIMEOUT_MON 500
 #define POS_LEG_MECH_MIN -3.14
@@ -323,9 +326,47 @@ void EtherCAT_Transmit(EtherCAT_Msg *MasterCommand) {
 static int wkc_err_count = 0;
 static int wkc_err_iteration_count = 0;
 
-//数组大小根据从站数量确定
+// 数组大小根据从站数量确定
 EtherCAT_Msg Rx_Message[SLAVE_NUMBER];
 EtherCAT_Msg Tx_Message[SLAVE_NUMBER];
+
+extern "C" void notify_eyou_enabled(int idx) {
+    if (idx < 0 || idx >= TOTAL_MOTOR_NUMBER) {
+        return;
+    }
+    eyou_enabled[idx].store(true, std::memory_order_release);
+}
+
+extern "C" void notify_eyou_mode_set(int idx) {
+    if (idx < 0 || idx >= TOTAL_MOTOR_NUMBER) {
+        return;
+    }
+    eyou_mode_set[idx].store(true, std::memory_order_release);
+}
+
+static bool queue_eyou_init_step(const Motor *motor, int slave_idx) {
+    if (motor->type != MOTOR_EYOU) {
+        return false;
+    }
+
+    if (motor->global_id < 0 || motor->global_id >= TOTAL_MOTOR_NUMBER) {
+        return false;
+    }
+
+    if (!eyou_enabled[motor->global_id].load(std::memory_order_acquire)) {
+        std::lock_guard<std::mutex> lock(message_mutex);
+        set_eyou_enable(&Tx_Message[slave_idx], motor->motor_id, motor->global_id, true);
+        return true;
+    }
+
+    if (!eyou_mode_set[motor->global_id].load(std::memory_order_acquire)) {
+        std::lock_guard<std::mutex> lock(message_mutex);
+        set_eyou_mode(&Tx_Message[slave_idx], motor->motor_id, motor->global_id, Mode_SPD);
+        return true;
+    }
+
+    return false;
+}
 
 
 /**
@@ -444,6 +485,7 @@ void User_Get_Motor_Data(YKSMotorData *mot_data) {
 }
 
 void EtherCAT_Send_EYOUinit(const YKSMotorData *mot_data) {
+    (void) mot_data;
     if (wkc_err_iteration_count > K_ETHERCAT_ERR_PERIOD) {
         wkc_err_count = 0;
         wkc_err_iteration_count = 0;
@@ -460,31 +502,18 @@ void EtherCAT_Send_EYOUinit(const YKSMotorData *mot_data) {
         const Slave *slave = &g_slaves[slave_idx];
         const Motor *motor = &slave->motors[index % 6];
 
-        // if (motor->mode == Mode_SPD) {
-        //     {
-        //         std::lock_guard<std::mutex> lock(message_mutex);
-        //         set_eyou_enable(&Tx_Message[slave_idx], motor->motor_id, motor->global_id, true);
-        //     }
+        if (motor->type != MOTOR_EYOU) {
+            continue;
+        }
 
-        //     if(eyou_init_status[index]->ISENABLE == true)
-        //     {
-        //         std::lock_guard<std::mutex> lock(message_mutex);
-        //         set_eyou_mode(&Tx_Message[slave_idx], motor->motor_id, motor->global_id, Mode_SPD);                
-        //     }
-        //     if(eyou_init_status[index]->ISSETMODE == true)
-        //     {
-        //         continue;
-        //     }
-        // } 
-            {
-                std::lock_guard<std::mutex> lock(message_mutex);
-                set_eyou_enable(&Tx_Message[slave_idx], motor->motor_id, motor->global_id, true);
-            }
+        if (motor->global_id < 0 || motor->global_id >= TOTAL_MOTOR_NUMBER) {
+            continue;
+        }
 
-            {
-                std::lock_guard<std::mutex> lock(message_mutex);
-                set_eyou_mode(&Tx_Message[slave_idx], motor->motor_id, motor->global_id, Mode_SPD);                
-            }
+        eyou_enabled[motor->global_id].store(false, std::memory_order_release);
+        eyou_mode_set[motor->global_id].store(false, std::memory_order_release);
+
+        queue_eyou_init_step(motor, slave_idx);
     }
 }
 
@@ -497,66 +526,49 @@ void EtherCAT_Send_Command(const YKSMotorData *mot_data) {
     if (wkc_err_count > K_ETHERCAT_ERR_MAX) {
         printf("[EtherCAT Error] Error count too high!\n");
         degraded_handler();
-    } {
-        for (int index = 0; index < TOTAL_MOTOR_NUMBER; index++) {
-            const int slave_idx = index / 6;
+    }
 
-            const Slave *slave = &g_slaves[slave_idx];
-            const Motor *motor = &slave->motors[index % 6];
+    for (int index = 0; index < TOTAL_MOTOR_NUMBER; index++) {
+        const int slave_idx = index / 6;
 
-            if (motor->type == MOTOR_YKS) {
-                std::lock_guard<std::mutex> lock(message_mutex);
-                // printf("slave command_id  \n");
-                if (mot_data[index].mode == 0) {
-                    send_motor_ctrl_cmd(&Tx_Message[slave_idx], motor->motor_id, motor->global_id, mot_data[index].kp_,
-                                        mot_data[index].kd_, mot_data[index].pos_des_, mot_data[index].vel_des_,
-                                        mot_data[index].ff_);
-                } else if (mot_data[index].mode == 1) {
-                    set_motor_position(&Tx_Message[slave_idx], motor->motor_id, motor->global_id,
-                                       mot_data[index].pos_des_, mot_data[index].vel_des_, mot_data[index].ff_, 1);
-                } else if (mot_data[index].mode == 2) {
-                    // printf("mode %d motor %d mode 3 \n", mot_data[index].mode, index);
-                    set_motor_cur_tor(&Tx_Message[slave_idx], motor->motor_id, motor->global_id, mot_data[index].ff_, 0,
-                                      1);
-                } else if (mot_data[index].mode == 3) {
-                    set_motor_speed(&Tx_Message[slave_idx], motor->motor_id, motor->global_id, mot_data[index].vel_des_,
-                                    mot_data[index].ff_, 1);
-                }
-            } else if (motor->type == MOTOR_TI5) {
-                std::lock_guard<std::mutex> lock(message_mutex);
-                if (mot_data[index].mode == 0) {
-                    set_ti5_current(&Tx_Message[slave_idx], motor->motor_id, motor->global_id, 0);
-                } else if (mot_data[index].mode == 1) {
-                    set_ti5_position(&Tx_Message[slave_idx], motor->motor_id, motor->global_id,
-                                     mot_data[index].pos_des_);
-                } else if (mot_data[index].mode == 2) {
-                    set_ti5_current(&Tx_Message[slave_idx], motor->motor_id, motor->global_id, mot_data[index].ff_);
-                } else if (mot_data[index].mode == 3) {
-                    set_ti5_speed(&Tx_Message[slave_idx], motor->motor_id, motor->global_id, mot_data[index].vel_des_);
+        const Slave *slave = &g_slaves[slave_idx];
+        const Motor *motor = &slave->motors[index % 6];
 
-                    // printf("slave %d index %d ,mode %d,pos_des_ %f ,vel_des_ %f,ff_ %f \n", slave_idx, index,
-                    //        mot_data[index].mode, mot_data[index].pos_des_, mot_data[index].vel_des_,
-                    //        mot_data[index].ff_);
-                }
-                // printf("slave_idx %d  \n", index);
+        if (motor->type == MOTOR_YKS) {
+            std::lock_guard<std::mutex> lock(message_mutex);
+            if (mot_data[index].mode == 0) {
+                send_motor_ctrl_cmd(&Tx_Message[slave_idx], motor->motor_id, motor->global_id, mot_data[index].kp_,
+                                    mot_data[index].kd_, mot_data[index].pos_des_, mot_data[index].vel_des_,
+                                    mot_data[index].ff_);
+            } else if (mot_data[index].mode == 1) {
+                set_motor_position(&Tx_Message[slave_idx], motor->motor_id, motor->global_id,
+                                   mot_data[index].pos_des_, mot_data[index].vel_des_, mot_data[index].ff_, 1);
+            } else if (mot_data[index].mode == 2) {
+                set_motor_cur_tor(&Tx_Message[slave_idx], motor->motor_id, motor->global_id, mot_data[index].ff_, 0,
+                                  1);
+            } else if (mot_data[index].mode == 3) {
+                set_motor_speed(&Tx_Message[slave_idx], motor->motor_id, motor->global_id, mot_data[index].vel_des_,
+                                mot_data[index].ff_, 1);
+            }
+        } else if (motor->type == MOTOR_TI5) {
+            std::lock_guard<std::mutex> lock(message_mutex);
+            if (mot_data[index].mode == 0) {
+                set_ti5_current(&Tx_Message[slave_idx], motor->motor_id, motor->global_id, 0);
+            } else if (mot_data[index].mode == 1) {
+                set_ti5_position(&Tx_Message[slave_idx], motor->motor_id, motor->global_id,
+                                 mot_data[index].pos_des_);
+            } else if (mot_data[index].mode == 2) {
+                set_ti5_current(&Tx_Message[slave_idx], motor->motor_id, motor->global_id, mot_data[index].ff_);
+            } else if (mot_data[index].mode == 3) {
+                set_ti5_speed(&Tx_Message[slave_idx], motor->motor_id, motor->global_id, mot_data[index].vel_des_);
+            }
         } else if (motor->type == MOTOR_EYOU) {
-            {
-                std::lock_guard<std::mutex> lock(message_mutex);
-                set_eyou_enable(&Tx_Message[slave_idx], motor->motor_id, motor->global_id, true);
+            if (queue_eyou_init_step(motor, slave_idx)) {
+                continue;
             }
 
-            {
-                std::lock_guard<std::mutex> lock(message_mutex);
-                set_eyou_mode(&Tx_Message[slave_idx], motor->motor_id, motor->global_id, Mode_SPD);
-                //usleep(100000000);                    
-            }
-
-            {
-                std::lock_guard<std::mutex> lock(message_mutex);
-                set_eyou_speed(&Tx_Message[slave_idx], motor->motor_id, motor->global_id, mot_data[index].vel_des_);
-            }
-
-            }
+            std::lock_guard<std::mutex> lock(message_mutex);
+            set_eyou_speed(&Tx_Message[slave_idx], motor->motor_id, motor->global_id, mot_data[index].vel_des_);
         }
     }
 }
