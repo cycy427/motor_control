@@ -175,14 +175,19 @@ class Z1RemoteClient(threading.Thread):
 TEST_ROLE = "leg"
 TEST_MOTOR_FAMILY = "eyou"
 TEST_GLOBAL_INDEX = 1
-TEST_MODE = "speed"
+TEST_MODE = "position"
 TEST_SPEED = 6.28
 TEST_CURRENT = 200.0
+TEST_POSITION = 0.0
+TEST_POSITION_OFFSET = 3.14
+TEST_POSITION_USE_OFFSET = True
+TEST_POSITION_PROFILE_SPEED = 1.0
 TEST_SEND_INTERVAL = 0.02
 TEST_PRINT_INTERVAL = 0.5
 TEST_STOP_HOLD = 0.3
 
 MODE_TO_CODE = {
+    "position": 1,
     "speed": 3,
     "current": 2,
 }
@@ -219,6 +224,16 @@ def get_local_index(role, global_index):
 
 
 def build_test_command(test_mode, target_value):
+    if test_mode == "position":
+        return {
+            "mode": MODE_TO_CODE[test_mode],
+            "pos": target_value,
+            "vel": TEST_POSITION_PROFILE_SPEED,
+            "tau": 0.0,
+            "kp": 0.0,
+            "kd": 0.0,
+        }
+
     if test_mode == "speed":
         return {
             "mode": MODE_TO_CODE[test_mode],
@@ -239,7 +254,7 @@ def build_test_command(test_mode, target_value):
             "kd": 0.0,
         }
 
-    raise ValueError("Unsupported test mode, use 'speed' or 'current'")
+    raise ValueError("Unsupported test mode, use 'position', 'speed' or 'current'")
 
 
 def apply_test_command(client, role, motor_family, global_index, test_mode, target_value):
@@ -274,14 +289,49 @@ def apply_test_command(client, role, motor_family, global_index, test_mode, targ
 
 
 def get_test_target_value(test_mode):
+    if test_mode == "position":
+        return TEST_POSITION
     if test_mode == "speed":
         return TEST_SPEED
     if test_mode == "current":
         return TEST_CURRENT
-    raise ValueError("Unsupported test mode, use 'speed' or 'current'")
+    raise ValueError("Unsupported test mode, use 'position', 'speed' or 'current'")
+
+
+def wait_for_valid_state(client, timeout=1.0):
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        if client.reader_valid:
+            return client.getStates()
+        time.sleep(0.01)
+    return client.getStates()
+
+
+def resolve_position_target(client, role, global_index):
+    states = wait_for_valid_state(client)
+    local_index = get_local_index(role, global_index)
+    if 0 <= local_index < len(states.states):
+        current_position = states.states[local_index].pos
+    else:
+        current_position = 0.0
+
+    if TEST_POSITION_USE_OFFSET:
+        return current_position + TEST_POSITION_OFFSET, current_position
+
+    return TEST_POSITION, current_position
 
 
 def send_zero_target_for_stop(client, role, motor_family, global_index, test_mode):
+    if test_mode == "position":
+        states = client.getStates()
+        local_index = get_local_index(role, global_index)
+        if 0 <= local_index < len(states.states):
+            stop_target = states.states[local_index].pos
+        else:
+            stop_target = 0.0
+    else:
+        stop_target = 0.0
+
     stop_end_time = time.time() + TEST_STOP_HOLD
     while time.time() < stop_end_time:
         apply_test_command(
@@ -290,7 +340,7 @@ def send_zero_target_for_stop(client, role, motor_family, global_index, test_mod
             motor_family,
             global_index,
             test_mode,
-            0.0,
+            stop_target,
         )
         client.setCommand()
         time.sleep(TEST_SEND_INTERVAL)
@@ -308,9 +358,25 @@ def print_motor_state(states, local_index, role, global_index):
     )
 
 
+def print_test_command(test_mode, command):
+    print(
+        f"[Command] mode={test_mode} code={command['mode']} "
+        f"pos={command['pos']:.4f} vel={command['vel']:.4f} tau={command['tau']:.4f}"
+    )
+
+
 if __name__ == "__main__":
     client = create_client(TEST_ROLE)
-    test_target = get_test_target_value(TEST_MODE)
+    if TEST_MODE == "position":
+        test_target, current_position = resolve_position_target(
+            client,
+            TEST_ROLE,
+            TEST_GLOBAL_INDEX,
+        )
+    else:
+        test_target = get_test_target_value(TEST_MODE)
+        current_position = None
+
     local_index, command = apply_test_command(
         client,
         TEST_ROLE,
@@ -324,6 +390,12 @@ if __name__ == "__main__":
         f"[DDS Test] role={TEST_ROLE}, family={TEST_MOTOR_FAMILY}, "
         f"global_index={TEST_GLOBAL_INDEX}, mode={TEST_MODE}, target={test_target}"
     )
+    if TEST_MODE == "position":
+        print(
+            f"[DDS Test] profile_speed={TEST_POSITION_PROFILE_SPEED}, "
+            f"current_pos={current_position}, use_offset={TEST_POSITION_USE_OFFSET}, "
+            f"offset={TEST_POSITION_OFFSET}"
+        )
 
     last_print = 0.0
     try:
@@ -340,6 +412,7 @@ if __name__ == "__main__":
 
             now = time.time()
             if now - last_print >= TEST_PRINT_INTERVAL:
+                print_test_command(TEST_MODE, command)
                 states = client.getStates()
                 print_motor_state(states, local_index, TEST_ROLE, TEST_GLOBAL_INDEX)
                 last_print = now

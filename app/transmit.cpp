@@ -12,11 +12,13 @@ extern "C" {
 #include <atomic>
 #include <sys/time.h>
 #include <cinttypes>
+#include <cmath>
 #include <cstdio>
 #include <cstring>
 #include <ctime>
 #include <thread>
 #include <mutex>
+#include <limits>
 #include <thread>
 #include <chrono>
 
@@ -45,6 +47,11 @@ static uint8_t eyou_active_mode[TOTAL_MOTOR_NUMBER];
 static bool eyou_invalid_mode_reported[TOTAL_MOTOR_NUMBER];
 static int eyou_last_invalid_mode[TOTAL_MOTOR_NUMBER];
 static constexpr float K_EYOU_PROFILE_POSITION_SPEED = static_cast<float>(M_PI) / 2.0f;
+static constexpr auto K_EYOU_POSITION_COMMAND_INTERVAL = std::chrono::microseconds(66667);
+static constexpr double K_EYOU_POSITION_COMMAND_EPSILON = 1e-4;
+static std::chrono::steady_clock::time_point eyou_last_position_command_time[TOTAL_MOTOR_NUMBER];
+static double eyou_last_position_command_target[TOTAL_MOTOR_NUMBER];
+static bool eyou_has_position_command_target[TOTAL_MOTOR_NUMBER];
 
 #define EC_TIMEOUT_MON 500
 #define POS_LEG_MECH_MIN -3.14
@@ -371,6 +378,68 @@ static bool is_valid_eyou_target_mode(uint8_t target_mode) {
     return target_mode == Mode_POS_SPD || target_mode == Mode_CUR || target_mode == Mode_SPD;
 }
 
+static void clear_tx_motor_slot(EtherCAT_Msg *tx_message, uint8_t data_channel) {
+    if (tx_message == nullptr || data_channel < 1 || data_channel > 6) {
+        return;
+    }
+
+    Motor_Msg &motor_slot = tx_message->motor[data_channel - 1];
+    motor_slot.id = 0;
+    motor_slot.rtr = 0;
+    motor_slot.dlc = 0;
+    std::memset(motor_slot.data, 0, sizeof(motor_slot.data));
+}
+
+static float get_eyou_profile_position_speed(const YKSMotorData *mot_data, int index) {
+    float profile_speed = std::fabs(static_cast<float>(mot_data[index].vel_des_));
+    if (profile_speed < K_EYOU_PROFILE_POSITION_SPEED) {
+        profile_speed = K_EYOU_PROFILE_POSITION_SPEED;
+    }
+    if (profile_speed > SPD_MAX) {
+        profile_speed = SPD_MAX;
+    }
+    return profile_speed;
+}
+
+static void reset_eyou_position_command_state(int global_id) {
+    if (global_id < 0 || global_id >= TOTAL_MOTOR_NUMBER) {
+        return;
+    }
+
+    eyou_last_position_command_time[global_id] = std::chrono::steady_clock::time_point::min();
+    eyou_last_position_command_target[global_id] = 0.0;
+    eyou_has_position_command_target[global_id] = false;
+}
+
+static bool should_send_eyou_position_command(int global_id, double target_position) {
+    if (global_id < 0 || global_id >= TOTAL_MOTOR_NUMBER) {
+        return false;
+    }
+
+    const auto now = std::chrono::steady_clock::now();
+    if (!eyou_has_position_command_target[global_id]) {
+        return true;
+    }
+
+    const auto elapsed = now - eyou_last_position_command_time[global_id];
+    if (elapsed < K_EYOU_POSITION_COMMAND_INTERVAL) {
+        return false;
+    }
+
+    return std::fabs(target_position - eyou_last_position_command_target[global_id]) >
+           K_EYOU_POSITION_COMMAND_EPSILON;
+}
+
+static void mark_eyou_position_command_sent(int global_id, double target_position) {
+    if (global_id < 0 || global_id >= TOTAL_MOTOR_NUMBER) {
+        return;
+    }
+
+    eyou_last_position_command_time[global_id] = std::chrono::steady_clock::now();
+    eyou_last_position_command_target[global_id] = target_position;
+    eyou_has_position_command_target[global_id] = true;
+}
+
 static void clear_eyou_invalid_mode_report(int global_id) {
     if (global_id < 0 || global_id >= TOTAL_MOTOR_NUMBER) {
         return;
@@ -397,9 +466,11 @@ static void reset_eyou_init_state(int global_id, uint8_t target_mode) {
     eyou_mode_set[global_id].store(false, std::memory_order_release);
     eyou_profile_speed_set[global_id].store(target_mode != Mode_POS_SPD, std::memory_order_release);
     eyou_active_mode[global_id] = target_mode;
+    reset_eyou_position_command_state(global_id);
 }
 
-static bool queue_eyou_init_step(const Motor *motor, int slave_idx, uint8_t target_mode) {
+static bool queue_eyou_init_step(const Motor *motor, int slave_idx, uint8_t target_mode,
+                                 const YKSMotorData *mot_data) {
     if (motor->type != MOTOR_EYOU) {
         return false;
     }
@@ -426,7 +497,8 @@ static bool queue_eyou_init_step(const Motor *motor, int slave_idx, uint8_t targ
 
     if (target_mode == Mode_POS_SPD && !eyou_profile_speed_set[motor->global_id].load(std::memory_order_acquire)) {
         std::lock_guard<std::mutex> lock(message_mutex);
-        set_eyou_speed(&Tx_Message[slave_idx], motor->motor_id, motor->motor_id, K_EYOU_PROFILE_POSITION_SPEED);
+        set_eyou_speed(&Tx_Message[slave_idx], motor->motor_id, motor->motor_id,
+                       get_eyou_profile_position_speed(mot_data, motor->global_id));
         return true;
     }
 
@@ -586,7 +658,10 @@ void EtherCAT_Send_EYOUinit(const YKSMotorData *mot_data) {
         }
 
         clear_eyou_invalid_mode_report(motor->global_id);
-        queue_eyou_init_step(motor, slave_idx, target_mode);
+        if (!queue_eyou_init_step(motor, slave_idx, target_mode, mot_data)) {
+            std::lock_guard<std::mutex> lock(message_mutex);
+            clear_tx_motor_slot(&Tx_Message[slave_idx], motor->motor_id);
+        }
     }
 }
 
@@ -638,6 +713,8 @@ void EtherCAT_Send_Command(const YKSMotorData *mot_data) {
         } else if (motor->type == MOTOR_EYOU) {
             if (mot_data[index].mode == 0) {
                 clear_eyou_invalid_mode_report(motor->global_id);
+                std::lock_guard<std::mutex> lock(message_mutex);
+                clear_tx_motor_slot(&Tx_Message[slave_idx], motor->motor_id);
                 continue;
             }
 
@@ -648,13 +725,18 @@ void EtherCAT_Send_Command(const YKSMotorData *mot_data) {
             }
 
             clear_eyou_invalid_mode_report(motor->global_id);
-            if (queue_eyou_init_step(motor, slave_idx, target_mode)) {
+            if (queue_eyou_init_step(motor, slave_idx, target_mode, mot_data)) {
                 continue;
             }
 
             std::lock_guard<std::mutex> lock(message_mutex);
             if (target_mode == Mode_POS_SPD) {
+                if (!should_send_eyou_position_command(motor->global_id, mot_data[index].pos_des_)) {
+                    clear_tx_motor_slot(&Tx_Message[slave_idx], motor->motor_id);
+                    continue;
+                }
                 set_eyou_position(&Tx_Message[slave_idx], motor->motor_id, motor->motor_id, mot_data[index].pos_des_);
+                mark_eyou_position_command_sent(motor->global_id, mot_data[index].pos_des_);
             } else if (target_mode == Mode_CUR) {
                 set_eyou_current(&Tx_Message[slave_idx], motor->motor_id, motor->motor_id, mot_data[index].ff_);
             } else if (target_mode == Mode_SPD) {
