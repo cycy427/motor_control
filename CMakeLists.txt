@@ -1,5 +1,11 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.10)
 project(YKS_SDK)
+
+# Keep compatibility with module-mode Boost lookup on newer CMake.
+if(POLICY CMP0167)
+        cmake_policy(SET CMP0167 OLD)
+endif()
+
 if (NOT TARGET CycloneDDS-CXX::ddscxx)
     find_package(CycloneDDS-CXX REQUIRED)
 endif ()
@@ -15,6 +21,8 @@ pkg_check_modules(NCURSES REQUIRED ncurses)
 
 # 设置源文件
 set(SOURCES
+        app/EYOUControl.cpp
+        app/EYOUControl.h
         app/motor_control.c
         app/motor_control.h
         app/math_ops.c

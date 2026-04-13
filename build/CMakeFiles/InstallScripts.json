@@ -1,0 +1,12 @@
+{
+	"InstallScripts" : 
+	[
+		"/home/wcy/humanoid_proj/z1_rl/YKS_SDK_WB/build/cmake_install.cmake",
+		"/home/wcy/humanoid_proj/z1_rl/YKS_SDK_WB/build/app/thirdparty/cmake_install.cmake",
+		"/home/wcy/humanoid_proj/z1_rl/YKS_SDK_WB/build/app/thirdparty/soem/cmake_install.cmake",
+		"/home/wcy/humanoid_proj/z1_rl/YKS_SDK_WB/build/app/thirdparty/cpp-readline/cmake_install.cmake",
+		"/home/wcy/humanoid_proj/z1_rl/YKS_SDK_WB/build/app/thirdparty/cpp-readline/src/cmake_install.cmake",
+		"/home/wcy/humanoid_proj/z1_rl/YKS_SDK_WB/build/app/thirdparty/cpp-readline/example/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

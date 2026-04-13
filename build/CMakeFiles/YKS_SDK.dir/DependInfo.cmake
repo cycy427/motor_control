@@ -26,11 +26,12 @@ set(CMAKE_MULTIPLE_OUTPUT_PAIRS
   )
 
 
-# Targets to which this target links.
-set(CMAKE_TARGET_LINKED_INFO_FILES
-  "/home/wcy/humanoid_proj/z1_rl/YKS_SDK_WB/build/CMakeFiles/motor.dir/DependInfo.cmake"
-  "/home/wcy/humanoid_proj/z1_rl/YKS_SDK_WB/build/app/thirdparty/soem/CMakeFiles/soem.dir/DependInfo.cmake"
-  "/home/wcy/humanoid_proj/z1_rl/YKS_SDK_WB/build/app/thirdparty/cpp-readline/src/CMakeFiles/cpp-readline.dir/DependInfo.cmake"
+# Targets to which this target links which contain Fortran sources.
+set(CMAKE_Fortran_TARGET_LINKED_INFO_FILES
+  )
+
+# Targets to which this target links which contain Fortran sources.
+set(CMAKE_Fortran_TARGET_FORWARD_LINKED_INFO_FILES
   )
 
 # Fortran module output directory.

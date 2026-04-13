@@ -221,6 +221,7 @@ typedef enum {
     MOTOR_YKS, // YKS 电机
     MOTOR_TI5, // Ti5电机
     MOTOR_EYOU, // EYOU电机
+    MOTOR_PHYARC, // PhyArc电机
 } MotorType;
 
 //-------------------------------------
@@ -347,5 +348,39 @@ void set_eyou_acceleration(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32
 void set_eyou_deceleration(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id, float dec);
 
 void set_eyou_stop(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id);
+
+void set_phyarc_enable(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id, bool on);
+
+void set_phyarc_mode(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id, uint8_t mode);
+
+void set_phyarc_id(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id, uint8_t new_id, bool broadcast);
+
+void set_phyarc_zeropoint(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id);
+
+void set_phyarc_posP_spdPI(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id, float posKP, float spdKP,
+                          float spdKI);
+
+void set_phyarc_TorAPosContorl(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id, float pos, float spd,
+                               float tor);
+
+void set_phyarc_SpeedControl(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id, float spd, float tor);
+
+void set_phyarc_TorqueControl(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id, float tor);
+
+void set_phyarc_CurrentControl(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id, float cur);
+
+void call_phyarc_getmode(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id);
+
+void call_phyarc_getstate(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id);
+
+void call_phyarc_getInverterstae(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id);
+
+void set_phyarc_current(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id, float cur);
+
+void set_phyarc_speed(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id, float spd);
+
+void set_phyarc_position(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id, float pos);
+
+void set_phyarc_stop(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id);
 
 #endif

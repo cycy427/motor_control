@@ -1,6 +1,8 @@
 #include <fstream>
 #include <iostream>
 
+#include "EYOUControl.h"
+
 extern "C" {
 #include "ethercat.h"
 #include "motor_control.h"
@@ -20,7 +22,6 @@ extern "C" {
 #include <mutex>
 #include <limits>
 #include <thread>
-#include <chrono>
 
 #define EC_TIMEOUT_M
 std::mutex motor_data_mutex; //全局互斥锁，用于保护motorDate_recv数组
@@ -330,269 +331,6 @@ static int wkc_err_iteration_count = 0;
 EtherCAT_Msg Rx_Message[SLAVE_NUMBER];
 EtherCAT_Msg Tx_Message[SLAVE_NUMBER];
 
-static void clear_tx_motor_slot(EtherCAT_Msg *tx_message, uint8_t data_channel) {
-    if (tx_message == nullptr || data_channel < 1 || data_channel > 6) {
-        return;
-    }
-
-    Motor_Msg &motor_slot = tx_message->motor[data_channel - 1];
-    motor_slot.id = 0;
-    motor_slot.rtr = 0;
-    motor_slot.dlc = 0;
-    std::memset(motor_slot.data, 0, sizeof(motor_slot.data));
-}
-
-namespace {
-
-class EyouRuntimeState {
-public:
-    void notifyEnabled(int idx) {
-        if (!isValidGlobalId(idx)) {
-            return;
-        }
-        enabled_[idx].store(true, std::memory_order_release);
-    }
-
-    void notifyModeSet(int idx) {
-        if (!isValidGlobalId(idx)) {
-            return;
-        }
-        mode_set_[idx].store(true, std::memory_order_release);
-    }
-
-    void notifyProfileSpeedSet(int idx) {
-        if (!isValidGlobalId(idx)) {
-            return;
-        }
-        profile_speed_set_[idx].store(true, std::memory_order_release);
-    }
-
-    void handleInitOnly(const Motor *motor, int slave_idx, int requested_mode, const YKSMotorData *mot_data) {
-        if (!shouldHandleMotor(motor)) {
-            return;
-        }
-
-        if (requested_mode == 0) {
-            clearInvalidModeReport(motor->global_id);
-            return;
-        }
-
-        const uint8_t target_mode = getTargetMode(requested_mode);
-        if (!isValidTargetMode(target_mode)) {
-            reportInvalidMode(motor, requested_mode);
-            return;
-        }
-
-        clearInvalidModeReport(motor->global_id);
-        if (!queueInitStep(motor, slave_idx, target_mode, mot_data)) {
-            std::lock_guard<std::mutex> lock(message_mutex);
-            clear_tx_motor_slot(&Tx_Message[slave_idx], motor->motor_id);
-        }
-    }
-
-    void handleRuntimeCommand(const Motor *motor, int slave_idx, int index, const YKSMotorData *mot_data) {
-        if (!shouldHandleMotor(motor)) {
-            return;
-        }
-
-        if (mot_data[index].mode == 0) {
-            clearInvalidModeReport(motor->global_id);
-            std::lock_guard<std::mutex> lock(message_mutex);
-            clear_tx_motor_slot(&Tx_Message[slave_idx], motor->motor_id);
-            return;
-        }
-
-        const uint8_t target_mode = getTargetMode(mot_data[index].mode);
-        if (!isValidTargetMode(target_mode)) {
-            reportInvalidMode(motor, mot_data[index].mode);
-            return;
-        }
-
-        clearInvalidModeReport(motor->global_id);
-        if (queueInitStep(motor, slave_idx, target_mode, mot_data)) {
-            return;
-        }
-
-        std::lock_guard<std::mutex> lock(message_mutex);
-        if (target_mode == Mode_POS_SPD) {
-            if (!shouldSendPositionCommand(motor->global_id, mot_data[index].pos_des_)) {
-                clear_tx_motor_slot(&Tx_Message[slave_idx], motor->motor_id);
-                return;
-            }
-            set_eyou_position(&Tx_Message[slave_idx], motor->motor_id, motor->motor_id, mot_data[index].pos_des_);
-            markPositionCommandSent(motor->global_id, mot_data[index].pos_des_);
-        } else if (target_mode == Mode_CUR) {
-            set_eyou_current(&Tx_Message[slave_idx], motor->motor_id, motor->motor_id, mot_data[index].ff_);
-        } else if (target_mode == Mode_SPD) {
-            set_eyou_speed(&Tx_Message[slave_idx], motor->motor_id, motor->motor_id, mot_data[index].vel_des_);
-        }
-    }
-
-private:
-    static constexpr float kDefaultProfilePositionSpeed = static_cast<float>(M_PI) / 2.0f;
-    static constexpr auto kPositionCommandInterval = std::chrono::microseconds(66667);
-    static constexpr double kPositionCommandEpsilon = 1e-4;
-
-    static bool isValidGlobalId(int global_id) {
-        return global_id >= 0 && global_id < TOTAL_MOTOR_NUMBER;
-    }
-
-    static bool shouldHandleMotor(const Motor *motor) {
-        return motor->type == MOTOR_EYOU && isValidGlobalId(motor->global_id);
-    }
-
-    static uint8_t getTargetMode(int requested_mode) {
-        if (requested_mode == 1) {
-            return Mode_POS_SPD;
-        }
-        if (requested_mode == 2) {
-            return Mode_CUR;
-        }
-        if (requested_mode == 3) {
-            return Mode_SPD;
-        }
-        return Mode_Null;
-    }
-
-    static bool isValidTargetMode(uint8_t target_mode) {
-        return target_mode == Mode_POS_SPD || target_mode == Mode_CUR || target_mode == Mode_SPD;
-    }
-
-    static float getProfilePositionSpeed(const YKSMotorData *mot_data, int index) {
-        float profile_speed = std::fabs(static_cast<float>(mot_data[index].vel_des_));
-        if (profile_speed < kDefaultProfilePositionSpeed) {
-            profile_speed = kDefaultProfilePositionSpeed;
-        }
-        if (profile_speed > SPD_MAX) {
-            profile_speed = SPD_MAX;
-        }
-        return profile_speed;
-    }
-
-    void resetPositionCommandState(int global_id) {
-        if (!isValidGlobalId(global_id)) {
-            return;
-        }
-
-        last_position_command_time_[global_id] = std::chrono::steady_clock::time_point::min();
-        last_position_command_target_[global_id] = 0.0;
-        has_position_command_target_[global_id] = false;
-    }
-
-    bool shouldSendPositionCommand(int global_id, double target_position) const {
-        if (!isValidGlobalId(global_id)) {
-            return false;
-        }
-
-        const auto now = std::chrono::steady_clock::now();
-        if (!has_position_command_target_[global_id]) {
-            return true;
-        }
-
-        const auto elapsed = now - last_position_command_time_[global_id];
-        if (elapsed < kPositionCommandInterval) {
-            return false;
-        }
-
-        return std::fabs(target_position - last_position_command_target_[global_id]) > kPositionCommandEpsilon;
-    }
-
-    void markPositionCommandSent(int global_id, double target_position) {
-        if (!isValidGlobalId(global_id)) {
-            return;
-        }
-
-        last_position_command_time_[global_id] = std::chrono::steady_clock::now();
-        last_position_command_target_[global_id] = target_position;
-        has_position_command_target_[global_id] = true;
-    }
-
-    void clearInvalidModeReport(int global_id) {
-        if (!isValidGlobalId(global_id)) {
-            return;
-        }
-        invalid_mode_reported_[global_id] = false;
-    }
-
-    void reportInvalidMode(const Motor *motor, int requested_mode) {
-        if (!isValidGlobalId(motor->global_id)) {
-            return;
-        }
-
-        if (!invalid_mode_reported_[motor->global_id] || last_invalid_mode_[motor->global_id] != requested_mode) {
-            printf("[EYOU Error] Invalid control mode=%d for global_id=%d slave_motor=%d. Supported modes: 1(position), 2(current), 3(speed).\n",
-                   requested_mode, motor->global_id, motor->motor_id);
-            invalid_mode_reported_[motor->global_id] = true;
-            last_invalid_mode_[motor->global_id] = requested_mode;
-        }
-    }
-
-    void resetInitState(int global_id, uint8_t target_mode) {
-        enabled_[global_id].store(false, std::memory_order_release);
-        mode_set_[global_id].store(false, std::memory_order_release);
-        profile_speed_set_[global_id].store(target_mode != Mode_POS_SPD, std::memory_order_release);
-        active_mode_[global_id] = target_mode;
-        resetPositionCommandState(global_id);
-    }
-
-    bool queueInitStep(const Motor *motor, int slave_idx, uint8_t target_mode, const YKSMotorData *mot_data) {
-        if (!shouldHandleMotor(motor)) {
-            return false;
-        }
-
-        if (active_mode_[motor->global_id] != target_mode) {
-            resetInitState(motor->global_id, target_mode);
-        }
-
-        if (!enabled_[motor->global_id].load(std::memory_order_acquire)) {
-            std::lock_guard<std::mutex> lock(message_mutex);
-            set_eyou_enable(&Tx_Message[slave_idx], motor->motor_id, motor->motor_id, true);
-            return true;
-        }
-
-        if (!mode_set_[motor->global_id].load(std::memory_order_acquire)) {
-            std::lock_guard<std::mutex> lock(message_mutex);
-            set_eyou_mode(&Tx_Message[slave_idx], motor->motor_id, motor->motor_id, target_mode);
-            return true;
-        }
-
-        if (target_mode == Mode_POS_SPD && !profile_speed_set_[motor->global_id].load(std::memory_order_acquire)) {
-            std::lock_guard<std::mutex> lock(message_mutex);
-            set_eyou_speed(&Tx_Message[slave_idx], motor->motor_id, motor->motor_id,
-                           getProfilePositionSpeed(mot_data, motor->global_id));
-            return true;
-        }
-
-        return false;
-    }
-
-    std::atomic<bool> enabled_[TOTAL_MOTOR_NUMBER]{};
-    std::atomic<bool> mode_set_[TOTAL_MOTOR_NUMBER]{};
-    std::atomic<bool> profile_speed_set_[TOTAL_MOTOR_NUMBER]{};
-    uint8_t active_mode_[TOTAL_MOTOR_NUMBER]{};
-    bool invalid_mode_reported_[TOTAL_MOTOR_NUMBER]{};
-    int last_invalid_mode_[TOTAL_MOTOR_NUMBER]{};
-    std::chrono::steady_clock::time_point last_position_command_time_[TOTAL_MOTOR_NUMBER]{};
-    double last_position_command_target_[TOTAL_MOTOR_NUMBER]{};
-    bool has_position_command_target_[TOTAL_MOTOR_NUMBER]{};
-};
-
-EyouRuntimeState g_eyou_runtime;
-
-} // namespace
-
-extern "C" void notify_eyou_enabled(int idx) {
-    g_eyou_runtime.notifyEnabled(idx);
-}
-
-extern "C" void notify_eyou_mode_set(int idx) {
-    g_eyou_runtime.notifyModeSet(idx);
-}
-
-extern "C" void notify_eyou_profile_speed_set(int idx) {
-    g_eyou_runtime.notifyProfileSpeedSet(idx);
-}
-
 
 /**
  * @description:Ethercat运行的线程函数
@@ -726,7 +464,7 @@ void EtherCAT_Send_EYOUinit(const YKSMotorData *mot_data) {
         const Slave *slave = &g_slaves[slave_idx];
         const Motor *motor = &slave->motors[index % 6];
 
-        g_eyou_runtime.handleInitOnly(motor, slave_idx, mot_data[index].mode, mot_data);
+        EyouHandleInitOnly(motor, slave_idx, mot_data[index].mode, mot_data);
     }
 }
 
@@ -776,7 +514,7 @@ void EtherCAT_Send_Command(const YKSMotorData *mot_data) {
                 set_ti5_speed(&Tx_Message[slave_idx], motor->motor_id, motor->global_id, mot_data[index].vel_des_);
             }
         } else if (motor->type == MOTOR_EYOU) {
-            g_eyou_runtime.handleRuntimeCommand(motor, slave_idx, index, mot_data);
+            EyouHandleRuntimeCommand(motor, slave_idx, index, mot_data);
         }
     }
 }

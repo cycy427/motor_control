@@ -3,7 +3,7 @@
 #    @author zmij
 #    @date May 17, 2016
 
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 3.10)
 
 set(cpp_readline_SRCS
     Console.cpp

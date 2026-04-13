@@ -1,4 +1,6 @@
 file(REMOVE_RECURSE
+  "CMakeFiles/motor.dir/app/EYOUControl.cpp.o"
+  "CMakeFiles/motor.dir/app/EYOUControl.cpp.o.d"
   "CMakeFiles/motor.dir/app/command.cpp.o"
   "CMakeFiles/motor.dir/app/command.cpp.o.d"
   "CMakeFiles/motor.dir/app/math_ops.c.o"

@@ -18,7 +18,7 @@
 struct Motor_Msg
 {
     uint32_t id;
-    uint8_t rtr;
+    uint8_t rtr;        // 0, 表示数据帧；1，表示远程帧
     uint8_t dlc;
     uint8_t data[8];
 };
@@ -26,7 +26,7 @@ struct Motor_Msg
 typedef struct
 {
     uint8_t motor_num;
-    uint8_t can_ide;
+    uint8_t can_ide;            // 0，表示标准帧；1，表示扩展帧
     struct Motor_Msg motor[6];
 
 } EtherCAT_Msg;

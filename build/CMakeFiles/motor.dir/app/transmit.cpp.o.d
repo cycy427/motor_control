@@ -150,6 +150,12 @@ CMakeFiles/motor.dir/app/transmit.cpp.o: \
  /usr/include/x86_64-linux-gnu/c++/11/bits/basic_file.h \
  /usr/include/x86_64-linux-gnu/c++/11/bits/c++io.h \
  /usr/include/c++/11/bits/fstream.tcc /usr/include/c++/11/iostream \
+ /home/wcy/humanoid_proj/z1_rl/YKS_SDK_WB/app/EYOUControl.h \
+ /home/wcy/humanoid_proj/z1_rl/YKS_SDK_WB/app/motor_control.h \
+ /usr/include/inttypes.h /usr/include/string.h /usr/include/strings.h \
+ /home/wcy/humanoid_proj/z1_rl/YKS_SDK_WB/app/config.h \
+ /home/wcy/humanoid_proj/z1_rl/YKS_SDK_WB/app/math_ops.h \
+ /home/wcy/humanoid_proj/z1_rl/YKS_SDK_WB/app/transmit.h \
  /home/wcy/humanoid_proj/z1_rl/YKS_SDK_WB/app/thirdparty/soem/soem/ethercat.h \
  /home/wcy/humanoid_proj/z1_rl/YKS_SDK_WB/app/thirdparty/soem/soem/ethercattype.h \
  /home/wcy/humanoid_proj/z1_rl/YKS_SDK_WB/app/thirdparty/soem/osal/osal.h \
@@ -165,11 +171,6 @@ CMakeFiles/motor.dir/app/transmit.cpp.o: \
  /home/wcy/humanoid_proj/z1_rl/YKS_SDK_WB/app/thirdparty/soem/soem/ethercattype.h \
  /home/wcy/humanoid_proj/z1_rl/YKS_SDK_WB/app/thirdparty/soem/soem/ethercatconfig.h \
  /home/wcy/humanoid_proj/z1_rl/YKS_SDK_WB/app/thirdparty/soem/soem/ethercatprint.h \
- /home/wcy/humanoid_proj/z1_rl/YKS_SDK_WB/app/motor_control.h \
- /usr/include/inttypes.h /usr/include/string.h /usr/include/strings.h \
- /home/wcy/humanoid_proj/z1_rl/YKS_SDK_WB/app/config.h \
- /home/wcy/humanoid_proj/z1_rl/YKS_SDK_WB/app/math_ops.h \
- /home/wcy/humanoid_proj/z1_rl/YKS_SDK_WB/app/transmit.h \
  /usr/include/x86_64-linux-gnu/sys/time.h \
  /usr/lib/gcc/x86_64-linux-gnu/11/include/stdbool.h \
  /usr/include/c++/11/math.h /usr/include/c++/11/cmath /usr/include/math.h \
