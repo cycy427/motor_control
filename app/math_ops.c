@@ -7,12 +7,12 @@
 #include "math_ops.h"
 #include "math.h"
 
-float fmaxf(float x, float y) {
+float my_fmaxf(float x, float y) {
     /// Returns maximum of x, y ///
     return (((x) > (y)) ? (x) : (y));
 }
 
-float fminf(float x, float y) {
+float my_minf(float x, float y) {
     /// Returns minimum of x, y ///
     return (((x) < (y)) ? (x) : (y));
 }

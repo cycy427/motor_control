@@ -1,0 +1,88 @@
+#include <iostream>
+#include <sys/ioctl.h>
+#include <memory>
+#include <thread>
+#include <array>
+#include <mutex>
+#include <atomic>
+#include <cstdio>
+
+#include "app/command.h"
+#include "app/command.cpp"
+#include <string>
+
+#include <cstdlib>
+#include "JoyStickHandler.h"
+#include <shared_mutex>
+
+extern "C" {
+#include "ethercat.h"
+}
+
+// Forward declaration of print_state to ensure it's known before controlMotor
+void print_state(const JoystickState &state);
+
+
+void controlMotor(std::shared_ptr<JoyStickHandler> handler) {
+    EtherCAT_Init("enp5s0");
+
+    if (ec_slavecount <= 0) {
+        printf("未找到从站, 程序退出！");
+        return;
+    } else
+        printf("从站数量： %d\r\n", ec_slavecount);
+    int slaveId = 0;
+    int motor_id = 2;
+    float spd = 5;
+    uint16_t cur = 500;
+    uint8_t ack_status = 2;
+    EtherCAT_Msg_ptr msg(new EtherCAT_Msg);
+    auto last_time = std::chrono::steady_clock::now();
+
+    startRun();
+    while (true) {
+        JoystickState state = handler->getState();
+        spd = state.axes[0] / 30000.0*50;
+        print_state(state);
+        motor_id = 1;
+        set_motor_speed(msg.get(), motor_id, spd, cur, ack_status);
+        motor_id = 2;
+        set_motor_speed(msg.get(), motor_id, spd, cur, ack_status);
+        sendToQueue(slaveId, msg);
+
+        // Limit frequency to 50Hz
+        auto now = std::chrono::steady_clock::now();
+        std::this_thread::sleep_until(last_time + std::chrono::milliseconds(2));
+        last_time = now;
+        // Add motor control logic here based on the state
+    }
+}
+
+void print_state(const JoystickState &state) {
+    std::cout << "Axes: ";
+    for (int i = 0; i < state.axes.size(); ++i) {
+        std::cout << state.axes[i] << " ";
+    }
+    std::cout << "Buttons: ";
+    for (int i = 0; i < state.buttons.size(); ++i) {
+        std::cout << static_cast<int>(state.buttons[i]) << " ";
+    }
+    std::cout << "\n";
+}
+
+int main() {
+    printf("SOEM 主站测试\n");
+    const char *device = "/dev/input/js0";
+    std::shared_ptr<JoyStickHandler> handler = std::make_shared<JoyStickHandler>(device);
+    handler->start();
+    std::thread motorThread(controlMotor, handler);
+
+    // Keep the main thread alive to prevent immediate exit
+    motorThread.join();
+    runThread.join();//runThread.join(); 的主要功能是确保 main 函数在退出之前等待 runThread 线程完成其任务。
+    // 这样做的目的是为了确保程序在退出前所有的后台任务都得到了正确的执行和清理，避免数据丢失或资源泄露。
+
+    handler->stop();
+
+    return 0;
+}

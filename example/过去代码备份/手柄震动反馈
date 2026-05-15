@@ -1,0 +1,430 @@
+//
+// Created by gold on 25-2-24.
+//
+/*
+ * @Description:
+ * @Author: kx zhang
+ * @Date: 2022-09-13 19:00:55
+ * @LastEditTime: 2022-11-13 17:09:03
+ */
+
+
+#include <cstdio>
+#include "Console.hpp"
+#include "app/command.h"
+#include "app/command.cpp"
+#include <iostream>
+#include <linux/input.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <string>
+
+#include <cerrno>
+#include <fcntl.h>
+#include <ncurses.h>
+#include <cstdlib>
+#include <cstring>
+#include <unistd.h>
+
+#include <linux/input.h>
+#include <unistd.h>
+#include <libevdev/libevdev.h>
+#include <libudev.h>
+
+extern "C" {
+#include "ethercat.h"
+}
+
+typedef unsigned char u8;
+
+static struct ff_pack_t {
+    char cmd;
+    struct {
+        u8 weak: 1;
+        u8 strong: 1;
+        u8 right: 1;
+        u8 left: 1;
+    } enable;
+    struct {
+        u8 left;
+        u8 right;
+        u8 strong;
+        u8 weak;
+    } strength;
+    struct {
+        u8 sustain_10ms;
+        u8 release_10ms;
+        u8 loop_count;
+    } pulse;
+} ff_pack;
+
+WINDOW *input, *output;
+
+static void print_pack(WINDOW *window) {
+    if (window == output) {
+        scroll(output);
+        wmove(output, LINES - 6, 0);
+    }
+    wprintw(window,
+            "%02X  %d   %u   %u   %u   0   0   0   0  %03d %03d %03d %03d  %03d %03d  %03d",
+            ff_pack.cmd,
+            ff_pack.enable.strong,
+            ff_pack.enable.weak,
+            ff_pack.enable.left,
+            ff_pack.enable.right,
+            ff_pack.strength.strong,
+            ff_pack.strength.weak,
+            ff_pack.strength.left,
+            ff_pack.strength.right,
+            ff_pack.pulse.sustain_10ms, ff_pack.pulse.release_10ms, ff_pack.pulse.loop_count);
+}
+
+static void print_input() {
+    wmove(input, 0, 0);
+    wprintw(input, "--[  MotorEnable  ]---------------[ Strength in %% ][  10ms ][cnt]--\n");
+    print_pack(input);
+    wprintw(input,
+            "\n"
+            "    |   |   |   |                   |   |   |   |    |   |    |\n"
+            "   STR WEA LTR RTR  -   -   -   -  STR WEA LTR RTR  SUS REL  LOP\n"
+            "   [1] [2] [3] [4]                 q/a w/s e/d r/f  h/j k/l  u/i "
+            "   <-- keys, or Enter = SEND, Ctrl+C = ABORT");
+    wrefresh(input);
+}
+
+int hidraw = -1;
+
+const int Z1_NUM_MOTOR = 13;
+struct MotorCommand {
+    std::array<float, Z1_NUM_MOTOR> q_target = {};//位置
+    std::array<float, Z1_NUM_MOTOR> dq_target = {};//速度
+    std::array<float, Z1_NUM_MOTOR> kp = {};
+    std::array<float, Z1_NUM_MOTOR> kd = {};
+    std::array<float, Z1_NUM_MOTOR> tau_ff = {};//力
+};
+struct MotorState {
+    std::array<float, Z1_NUM_MOTOR> q = {};
+    std::array<float, Z1_NUM_MOTOR> dq = {};
+};
+// Stiffness for all G1 Joints
+std::array<float, Z1_NUM_MOTOR> Kp{
+        60, 60, 60, 100, 40, 40,      // legs
+        60, 60, 60, 100, 40, 40,      // legs
+        60                            // waist
+//        60, 40, 40,                   // waist
+//        40, 40, 40, 40, 40, 40, 40,  // arms
+//        40, 40, 40, 40, 40, 40, 40   // arms
+};
+
+// Damping for all G1 Joints
+std::array<float, Z1_NUM_MOTOR> Kd{
+        1, 1, 1, 2, 1, 1,     // legs
+        1, 1, 1, 2, 1, 1,     // legs
+        1                     // waist
+//        1, 1, 1,              // waist
+//        1, 1, 1, 1, 1, 1, 1,  // arms
+//        1, 1, 1, 1, 1, 1, 1   // arms
+};
+
+enum class Mode {
+    PR = 0,  // Series Control for Ptich/Roll Joints
+    AB = 1   // Parallel Control for A/B Joints
+};
+
+enum Z1JointIndex {
+    LeftHipPitch = 1,
+    LeftHipRoll = 2,
+    LeftHipYaw = 3,
+    LeftKnee = 4,
+//下面四个待定
+    LeftAnklePitch = 5,
+    LeftAnkleB = 5,
+    LeftAnkleRoll = 6,
+    LeftAnkleA = 6,
+
+    RightHipPitch = 7,
+    RightHipRoll = 8,
+    RightHipYaw = 9,
+    RightKnee = 10,
+
+    RightAnklePitch = 11,
+    RightAnkleB = 11,
+    RightAnkleRoll = 12,
+    RightAnkleA = 12,
+
+    WaistYaw = 13
+};
+
+class Z1Example {
+private:
+    double time_;
+    double control_dt_;  // [2ms]
+    double duration_;    // [3 s]
+    int counter_;
+    Mode mode_pr_;
+    uint8_t mode_machine_;
+
+//    Gamepad gamepad_;
+//    REMOTE_DATA_RX rx_;
+//
+//    DataBuffer <MotorState> motor_state_buffer_;
+//    DataBuffer <MotorCommand> motor_command_buffer_;
+//    DataBuffer <ImuState> imu_state_buffer_;
+//
+//    ChannelPublisherPtr <LowCmd_> lowcmd_publisher_;
+//    ChannelSubscriberPtr <LowState_> lowstate_subscriber_;
+//    ChannelSubscriberPtr <IMUState_> imutorso_subscriber_;
+//    ThreadPtr command_writer_ptr_, control_thread_ptr_;
+//
+//    std::shared_ptr<unitree::robot::b2::MotionSwitcherClient> msc_;
+};
+
+void handle_input_event(struct input_event *ev) {
+    switch (ev->type) {
+        case EV_KEY:
+            wprintw(output, "Button event: code=%d, value=%d\n", ev->code, ev->value);
+            break;
+        case EV_ABS:
+            switch (ev->code) {
+                case ABS_X: // Left stick X-axis
+                    wprintw(output, "Left Stick X-axis: %d\n", ev->value);
+                    break;
+                case ABS_Y: // Left stick Y-axis
+                    wprintw(output, "Left Stick Y-axis: %d\n", ev->value);
+                    break;
+                case ABS_RX: // Right stick X-axis
+                    wprintw(output, "Right Stick X-axis: %d\n", ev->value);
+                    break;
+                case ABS_RY: // Right stick Y-axis
+                    wprintw(output, "Right Stick Y-axis: %d\n", ev->value);
+                    break;
+                case ABS_Z: // Left trigger
+                    wprintw(output, "Left Trigger: %d\n", ev->value);
+                    break;
+                case ABS_RZ: // Right trigger
+                    wprintw(output, "Right Trigger: %d\n", ev->value);
+                    break;
+                default:
+                    wprintw(output, "Absolute event: code=%d, value=%d\n", ev->code, ev->value);
+                    break;
+            }
+            break;
+        default:
+            wprintw(output, "Event type %d, code %d, value %d\n", ev->type, ev->code, ev->value);
+            break;
+    }
+    wrefresh(output);
+}
+
+int main(int argc, char **argv) {
+
+    char ch;
+    ff_pack.cmd = 0x03;
+
+    ff_pack.enable.strong = 1;
+    ff_pack.enable.weak = 1;
+    ff_pack.enable.left = 1;
+    ff_pack.enable.right = 1;
+
+    ff_pack.strength.strong = 40;
+    ff_pack.strength.weak = 30;
+    ff_pack.strength.left = 20;
+    ff_pack.strength.right = 20;
+
+    ff_pack.pulse.sustain_10ms = 5;
+    ff_pack.pulse.release_10ms = 5;
+    ff_pack.pulse.loop_count = 3;
+
+    if (argc == 2) {
+        hidraw = open(argv[1], O_WRONLY);
+    } else {
+        fprintf(stderr, "usage: %s /dev/hidraw##\n", argv[0]);
+        exit(1);
+    }
+
+    if (hidraw < 0) {
+        fprintf(stderr, "%s: error %d opening '%s': %s\n", argv[0], errno, argv[1],
+                strerror(errno));
+        exit(1);
+    }
+
+
+    const char *device_path = "/dev/input/event256";  // 替换为实际的手柄设备路径
+    int fd = open(device_path, O_RDONLY | O_NONBLOCK);
+    if (fd < 0) {
+        fprintf(stderr, "Failed to open device: %s\n", device_path);
+        close(hidraw);
+        exit(1);
+    }
+
+    struct libevdev *dev = NULL;
+    int rc = libevdev_new_from_fd(fd, &dev);
+    if (rc != 0) {
+        fprintf(stderr, "Failed to init libevdev (%s)\n", strerror(-rc));
+        close(fd);
+        close(hidraw);
+        exit(1);
+    }
+
+    printf("Input device name: \"%s\"\n", libevdev_get_name(dev));
+    printf("Input device ID: bus %#x vendor %#x product %#x version %#x\n",
+           libevdev_get_id_bustype(dev),
+           libevdev_get_id_vendor(dev),
+           libevdev_get_id_product(dev),
+           libevdev_get_id_version(dev));
+
+
+    initscr();
+    raw();
+    keypad(stdscr, TRUE);
+    noecho();
+
+    output = newwin(LINES - 5, COLS, 0, 0);
+    input = newwin(5, COLS, LINES - 5, 0);
+
+    print_input();
+    scrollok(output, TRUE);
+
+    while ((ch = wgetch(input)) != 3) {
+        struct input_event ev;
+        ssize_t size = read(fd, &ev, sizeof(struct input_event));
+        if (size == sizeof(struct input_event)) {
+            handle_input_event(&ev);
+        }
+//        printf("dddd");
+
+        switch (ch) {
+            case 10:
+                print_pack(output);
+                write(hidraw, &ff_pack, sizeof(ff_pack));
+//                wrefresh(output);
+                break;
+            case '1':
+                ff_pack.enable.strong ^= 1;
+                break;
+            case '2':
+                ff_pack.enable.weak ^= 1;
+                break;
+            case '3':
+                ff_pack.enable.left ^= 1;
+                break;
+            case '4':
+                ff_pack.enable.right ^= 1;
+                break;
+            case 'q':
+                if (ff_pack.strength.strong < 100)
+                    ff_pack.strength.strong++;
+                break;
+            case 'a':
+                if (ff_pack.strength.strong > 0)
+                    ff_pack.strength.strong--;
+                break;
+            case 'w':
+                if (ff_pack.strength.weak < 100)
+                    ff_pack.strength.weak++;
+                break;
+            case 's':
+                if (ff_pack.strength.weak > 0)
+                    ff_pack.strength.weak--;
+                break;
+            case 'e':
+                if (ff_pack.strength.left < 100)
+                    ff_pack.strength.left++;
+                break;
+            case 'd':
+                if (ff_pack.strength.left > 0)
+                    ff_pack.strength.left--;
+                break;
+            case 'r':
+                if (ff_pack.strength.right < 100)
+                    ff_pack.strength.right++;
+                break;
+            case 'f':
+                if (ff_pack.strength.right > 0)
+                    ff_pack.strength.right--;
+                break;
+            case 'h':
+                if (ff_pack.pulse.sustain_10ms > 0)
+                    ff_pack.pulse.sustain_10ms--;
+                break;
+            case 'j':
+                if (ff_pack.pulse.sustain_10ms < 255)
+                    ff_pack.pulse.sustain_10ms++;
+                break;
+            case 'k':
+                if (ff_pack.pulse.release_10ms > 0)
+                    ff_pack.pulse.release_10ms--;
+                break;
+            case 'l':
+                if (ff_pack.pulse.release_10ms < 255)
+                    ff_pack.pulse.release_10ms++;
+                break;
+            case 'u':
+                if (ff_pack.pulse.loop_count > 0)
+                    ff_pack.pulse.loop_count--;
+                break;
+            case 'i':
+                if (ff_pack.pulse.loop_count < 255)
+                    ff_pack.pulse.loop_count++;
+                break;
+        }
+//        print_input();
+    }
+
+    delwin(input);
+    delwin(output);
+
+    endwin();
+
+    close(hidraw);
+    exit(0);
+
+
+
+//    printf("SOEM 主站测试\n");
+//
+//    EtherCAT_Init("enp5s0");
+//
+//    if (ec_slavecount <= 0) {
+//        printf("未找到从站, 程序退出！");
+//        return 1;
+//    } else
+//        printf("从站数量： %d\r\n", ec_slavecount);
+//
+//    startRun();
+//    int slaveId = 0;
+//    int motor_id = 2;
+//    float spd = 1;
+//    uint16_t cur = 500;
+//    uint8_t ack_status = 2;
+//    EtherCAT_Msg_ptr msg(new EtherCAT_Msg);
+//    set_motor_speed(msg.get(), motor_id, spd, cur, ack_status);
+//    sendToQueue(slaveId, msg);
+
+//    std::string device_path = "/dev/input/js0"; // 替换为实际的手柄设备路径
+//    int fd = open(device_path.c_str(), O_RDONLY | O_NONBLOCK);
+//    if (fd < 0) {
+//        std::cerr << "Failed to open device: " << device_path << std::endl;
+//        return -1;
+//    } else {
+//        std::cout << "Success to open device: " << device_path << std::endl;
+//    }
+//
+//    struct input_event ev;
+//    while (read(fd, &ev, sizeof(ev)) > 0) {
+//        std::cout << "Key event: code=" << ev.code << ", value=" << ev.value << std::endl;
+//        if (ev.type == EV_KEY) {
+//            std::cout << "Key event: code=" << ev.code << ", value=" << ev.value << std::endl;
+//        } else if (ev.type == EV_ABS) {
+//            std::cout << "Absolute axis event: code=" << ev.code << ", value=" << ev.value << std::endl;
+//        }
+//    }
+//    std::cout << "OUT!!!!!!!!!!!!!!!" << std::endl;
+//
+//    close(fd);
+
+
+//    runThread.join();//runThread.join(); 的主要功能是确保 main 函数在退出之前等待 runThread 线程完成其任务。
+//    // 这样做的目的是为了确保程序在退出前所有的后台任务都得到了正确的执行和清理，避免数据丢失或资源泄露。
+//    return 0;
+}

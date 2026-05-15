@@ -1,0 +1,109 @@
+//#include "app/command.h"
+//#include "app/command.cpp"
+#include "JoyStickHandler.h"
+#include "Z1Legs.h"
+
+extern "C" {
+#include "ethercat.h"
+}
+
+void controlMotor(std::shared_ptr<JoyStickHandler> handler) {
+    EtherCAT_Init("enp5s0");
+
+    if (ec_slavecount <= 0) {
+        printf("未找到从站, 程序退出！");
+        return;
+    } else
+        printf("从站数量： %d\r\n", ec_slavecount);
+    int slaveId = 0;
+    int motor_id = 2;
+    uint16_t spd = 5;
+    float pos = 5;
+    uint16_t cur = 500;
+    uint8_t ack_status = 1;
+    EtherCAT_Msg_ptr msg(new EtherCAT_Msg);
+    auto last_time = std::chrono::steady_clock::now();
+
+    startRun();
+    while (true) {
+        JoystickState state = handler->getState();
+        pos = state.axes[0] / 40000.0 * 3;
+        if (pos > 4 || pos < -4) {
+            continue;
+        }
+//        printf("pos = %f\r\n", pos);
+//        JoyStickHandler::print_state(state);
+
+        for (int i = 0; i < 13; i++) {
+            printf("motorDate_recv[%d].pos_ = %f", i, motorDate_recv[i].pos_);
+            printf("motorDate_recv[%d].vel_ = %f", i, motorDate_recv[i].vel_);
+            printf("motorDate_recv[%d].tau_ = %f\n", i, motorDate_recv[i].tau_);
+        }
+//        printf("imuData_recv.angle_float[0] = %f\r\n", imuData_recv.angle_float[0]);
+//        printf("imuData_recv.angle_float[1] = %f\r\n", imuData_recv.angle_float[1]);
+//        printf("imuData_recv.angle_float[2] = %f\r\n", imuData_recv.angle_float[2]);
+//        printf("imuData_recv.gyro_float[0] = %f\r\n", imuData_recv.gyro_float[0]);
+//        printf("imuData_recv.gyro_float[1] = %f\r\n", imuData_recv.gyro_float[1]);
+//        printf("imuData_recv.gyro_float[2] = %f\r\n", imuData_recv.gyro_float[2]);
+//        printf("imuData_recv.accel_float[0] = %f\r\n", imuData_recv.accel_float[0]);
+//        printf("imuData_recv.accel_float[1] = %f\r\n", imuData_recv.accel_float[1]);
+//        printf("imuData_recv.accel_float[2] = %f\r\n", imuData_recv.accel_float[2]);
+//        printf("imuData_recv.mag_float[0] = %f\r\n", imuData_recv.mag_float[0]);
+//        printf("imuData_recv.mag_float[1] = %f\r\n", imuData_recv.mag_float[1]);
+//        printf("imuData_recv.mag_float[2] = %f\r\n", imuData_recv.mag_float[2]);
+//        printf("imuData_recv.quat_float[0] = %f\r\n", imuData_recv.quat_float[0]);
+//        printf("imuData_recv.quat_float[1] = %f\r\n", imuData_recv.quat_float[1]);
+//        printf("imuData_recv.quat_float[2] = %f\r\n", imuData_recv.quat_float[2]);
+//        printf("imuData_recv.quat_float[3] = %f\r\n", imuData_recv.quat_float[3]);
+
+        motorDate_recv[0].vel_des_ = 0;
+        motorDate_recv[0].pos_des_ = pos;
+        motorDate_recv[0].kp_ = 20;
+        motorDate_recv[0].kd_ = 8;
+        motorDate_recv[0].ff_ = 0;
+        motorDate_recv[1].vel_des_ = 0;
+        motorDate_recv[1].pos_des_ = pos;
+        motorDate_recv[1].kp_ = 2;
+        motorDate_recv[1].kd_ = 1;
+        motorDate_recv[1].ff_ = 0;
+        motorDate_recv[6].vel_des_ = 0;
+        motorDate_recv[6].pos_des_ = pos;
+        motorDate_recv[6].kp_ = 2;
+        motorDate_recv[6].kd_ = 1;
+        motorDate_recv[6].ff_ = 0;
+
+        EtherCAT_Send_Command(motorDate_recv);
+
+//        motor_id = 1;
+//        set_motor_speed(msg.get(), motor_id, motor_id, pos, cur, ack_status);
+//        motor_id = 2;
+//        set_motor_speed(msg.get(), motor_id, spd, cur, ack_status);
+//        motor_id = 1;
+//        set_motor_position(msg.get(), 0, motor_id, pos, spd, cur, ack_status);
+//        motor_id = 2;
+//        set_motor_position(msg.get(), motor_id, pos, spd, cur, ack_status);
+//        sendToQueue(1, msg);
+
+//        // Limit frequency to 50Hz
+        auto now = std::chrono::steady_clock::now();
+        std::this_thread::sleep_until(last_time + std::chrono::milliseconds(1));
+        last_time = now;
+        // Add motor control logic here based on the state
+    }
+}
+
+
+int main() {
+    printf("SOEM 主站测试\n");
+    const char *device = "/dev/input/js0";
+    std::shared_ptr<JoyStickHandler> handler = std::make_shared<JoyStickHandler>(device);
+
+    std::thread motorThread(controlMotor, handler);
+
+    // Keep the main thread alive to prevent immediate exit
+    motorThread.join();
+    runThread.join();//runThread.join(); 的主要功能是确保 main 函数在退出之前等待 runThread 线程完成其任务。
+    // 这样做的目的是为了确保程序在退出前所有的后台任务都得到了正确的执行和清理，避免数据丢失或资源泄露。
+
+    return 0;
+}

@@ -20,6 +20,7 @@
 #include <string>
 #include <ncurses.h>
 #include <cstring>
+#include <cmath>
 #include <fstream>
 
 extern "C" {
@@ -92,19 +93,28 @@ private:
 
     void PrintMotorState(int size) const;
 
-    YKSMotorData Pitch_forward_kinematics(const YKSMotorData &Ankle_A_motors, const YKSMotorData &Ankle_B_motors);
+    struct InverseKinematicsResult {
+        double theta1;
+        double theta2;
+    };
+	InverseKinematicsResult inverse_kinematics(double roll, double pitch) const;
+    void compute_jacobian(double roll, double pitch, double J[2][2], double delta = 1e-6) const;
+    void inverse_velocity(double roll, double pitch, const double end_vel[2], double joint_vel[2]) const;
+    void forward_kinematics(double theta1, double theta2, double& roll, double& pitch) const;
+	void pseudo_inverse(const double J[2][2], double invJ[2][2]) const;
+
+    YKSMotorData Pitch_forward_kinematics(const YKSMotorData &Ankle_A_motors, const YKSMotorData &Ankle_B_motors,  int direction) ;
 
     //通过脚踝AB电机的角度计算耦合的踝关节的俯仰角
-    YKSMotorData Roll_forward_kinematics(const YKSMotorData &Ankle_A_motors, const YKSMotorData &Ankle_B_motors);
+    YKSMotorData Roll_forward_kinematics(const YKSMotorData &Ankle_A_motors, const YKSMotorData &Ankle_B_motors,  int direction) ;
 
     //通过脚踝电机的位置计算耦合的踝关节的横滚角
     //输入目标踝关节的俯仰角横滚角计算脚踝A电机的旋转角度
-    YKSMotorData AnkleA_inverse_kinematics(const YKSMotorData &pitch_joint_cmd,
-                                           const YKSMotorData &roll_joint_cmd);
+    YKSMotorData AnkleA_inverse_kinematics(const YKSMotorData &pitch_joint_cmd, const YKSMotorData &roll_joint_cmd,  int direction) ;
 
     //输入目标踝关节的俯仰角横滚角计算脚踝B电机的旋转角度
     YKSMotorData AnkleB_inverse_kinematics(const YKSMotorData &pitch_joint_cmd,
-                                           const YKSMotorData &roll_joint_cmd);
+                                           const YKSMotorData &roll_joint_cmd,  int direction) ;
 
     std::shared_ptr<std::thread> control_thread_;
     // Stiffness for all Z1 Joints
@@ -132,12 +142,16 @@ private:
     // const std::vector<int> LegDirectionMotor_ = {-1, 1,-1,-1,1,1,
     //     -1,1,-1,1,1,1 ,        1,1,1,1,1,1,       1,1,1,1,1,1  ,1,1,1,1,1};//用于根据实际电机的正方向来进行针对性设置，以适配URDF模型的坐标系
     const int LegDirectionMotor_[TOTAL_MOTOR_NUMBER] = {
-        -1, 1, -1, -1, 1, 1,
-        -1, 1, -1, 1, 1, 1,
+        -1, 1, -1, -1, -1, 1,
+        -1, 1, -1, 1, -1, 1,
         1, -1, -1, 1, 1, 1,
         1, -1, 1, 1, 1, 1,
         1, -1, 1, 1, 1, 1
     }; // 明确指定大小
+    enum Direction {
+        LeftLeg = 0,
+        RightLeg = 1
+    };
 
     bool is_imu_run_ = false;
     bool is_hcmd_run_ = false;
@@ -146,6 +160,7 @@ private:
 
     uint8_t mode_machine_;
     YKSMotorData motor_data_[Z1_NUM_MOTOR]{}; //私有的电机结构体数组
+    YKSMotorData motor_print_[Z1_NUM_MOTOR]{}; //私有的电机结构体数组
     mutable std::mutex mutex_; //用于电机数据读取与写入的互斥锁
     mutable std::mutex flag_mutex_; //用于电机数据读取与写入的互斥锁
 

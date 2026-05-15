@@ -389,9 +389,9 @@ int main() {
     // 注册信号处理函数
     std::signal(SIGINT, signalHandler);
     //////////////////////////////////////////////////////////////////////////////////////////////////
-    setenv("CYCLONEDDS_URI", "file:///home/nubot/YKS_SDK_WB/example/dds_config/NetworkInterface.xml", 1); // 覆盖当前进程的环境变量
-    const char *uri = getenv("CYCLONEDDS_URI"); // 验证
-    std::cout << "Active URI: " << (uri ? uri : "NULL") << std::endl;
+    // setenv("CYCLONEDDS_URI", "file:///home/amov/humanoid_proj/z1_rl/dds_helper/dds_config/NetworkInterface.xml", 1); // 覆盖当前进程的环境变量
+    // const char *uri = getenv("CYCLONEDDS_URI"); // 验证
+    // std::cout << "Active URI: " << (uri ? uri : "NULL") << std::endl;
     // DDS相关处理 ////////////////////////////////////////////////////////////////////////////////////
     dds::domain::DomainParticipant participant(0);
     if (participant == dds::core::null) {
@@ -581,7 +581,7 @@ int main() {
     //////////////////////////////////////////////////////////////////////////////////////////////////
     /////////////////////////////////////////////////////////////////////////////////////////////////
 
-    if (bool Ethernet_Status = CAT_Init("enp3s0"); !Ethernet_Status) { exit(1); } //如果初始化失败，则直接退出程序
+    if (bool Ethernet_Status = CAT_Init("eno1"); !Ethernet_Status) { exit(1); } //如果初始化失败，则直接退出程序
     // auto joystick_device = "/dev/input/js0";
     // auto battery = "/dev/ttyUSB1";
     // const auto joystick_handler = std::make_shared<JoyStickHandler>(joystick_device);
@@ -647,7 +647,7 @@ int main() {
         std::this_thread::sleep_for(std::chrono::milliseconds(1)); //读取周期为1ms
 
         if (true) {
-            // if (is_logic_run == true && is_imu_run == true ) {
+        // if (is_logic_run == true && is_imu_run == true ) {
             break;
         }
         printf("Error!!!!!!!!!! Please connect imu and switch!!!!!!!!!!");
@@ -719,6 +719,8 @@ int main() {
 
     zero_out();//数据清零
     z1_legs.setMotorKpKd(my_motor_data); //专门设置电机KP、KD值，调用了这个函数之后就会将原来设置在Z1legs类里面的默认KP、KD值覆盖掉
+    z1_legs.setMotorCommand(my_motor_data); //设置电机指令
+
     std::this_thread::sleep_for(std::chrono::milliseconds(5)); //休息5ms
 
     stop_thread = true;

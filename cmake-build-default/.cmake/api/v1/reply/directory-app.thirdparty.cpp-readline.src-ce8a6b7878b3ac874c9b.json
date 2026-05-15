@@ -1,0 +1,14 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : [],
+		"files" : [],
+		"nodes" : []
+	},
+	"installers" : [],
+	"paths" : 
+	{
+		"build" : "app/thirdparty/cpp-readline/src",
+		"source" : "app/thirdparty/cpp-readline/src"
+	}
+}

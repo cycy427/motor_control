@@ -1,0 +1,172 @@
+// 人形机器人控制消息定义
+// by 电气组
+// 2025/4/12
+
+module nubotddsmsg {
+
+  //// 人形 begin/////////////////////////////////////////////////////////////
+  module hr {
+  
+    @extensibility(FINAL)
+    struct motorcmd {
+      octet mode;   // uint8 模式
+      long index;   // int32 电机编号
+      float pos;    // float32 期望位置 (rad)
+      float vel;    // float32 期望速度 (rad/s)
+      float tau;    // float32 期望力矩 (Nm)
+      float kp;     // float32 位置环KP
+      float kd;     // float32 位置环KD
+    };
+
+    @extensibility(FINAL)
+    struct motorcmds {
+      octet level;  // uint8 0-low level(下肢) 1-high level(上肢)
+      sequence<motorcmd> cmds; //数组，所有的电机
+    };
+
+    @extensibility(FINAL)
+    struct motorstate {
+      octet mode;     // uint8 当前模式
+      long index;     // int32 电机编号
+      float pos;      // float32 实际位置 (rad)
+      float vel;      // float32 实际速度 (rad/s)
+      float cur;      // float32 原始电流 (A)
+      float tau;      // float32 根据我们自己的标定数据换算的扭矩 (Nm)
+      float tau_raw;  // float32 根据厂家参数换算的原始扭矩 (Nm)
+      long error;     // int32 电机错误
+      float tem;      // float32 温度
+      float mos_tem;  // float32 MOS温度
+    };
+
+    @extensibility(FINAL)
+    struct motorstates {
+      octet level;  // uint8 0-low level(下肢) 1-high level(上肢)
+      sequence<motorstate> states; //数组，所有的电机
+    };
+  
+  };
+  //// 人形 end/////////////////////////////////////////////////////////////
+  
+  
+  //// 传感器 begin/////////////////////////////////////////////////////////
+  module sensor {  // 传感器
+
+      @extensibility(FINAL)
+      struct orientation {
+        float x;
+        float y;
+        float z;
+        float w;
+      };
+
+      @extensibility(FINAL)
+      struct angular_velocity {
+        float x;
+        float y;
+        float z;
+      };
+
+      @extensibility(FINAL)
+      struct linear_acceleration {
+        float x;
+        float y;
+        float z;
+      };
+
+      @extensibility(FINAL)
+      struct Magnetic {
+        float x;
+        float y;
+        float z;
+      };
+
+      @extensibility(FINAL)
+      struct euler_angles {
+        float roll;
+        float pitch;
+        float yaw;
+      };
+
+      @extensibility(FINAL)
+      struct imudata {
+        orientation orientation;
+        angular_velocity angular_velocity;
+        linear_acceleration linear_acceleration;
+        Magnetic Magnetic;
+        euler_angles euler_angles;
+      };
+
+  };
+  //// 传感器 end/////////////////////////////////////////////////////////
+
+  //// SBUS begin/////////////////////////////////////////////////////////
+  module sbus {
+
+      @extensibility(FINAL)
+      struct sbusdata {
+          boolean lost_frame;    // 表示是否丢失帧
+          boolean failsafe;      // 表示是否进入失效保护模式
+          long ch[16];           // 16个通道的数组，每个通道存储整型值
+      };
+  };
+  //// SBUS end/////////////////////////////////////////////////////////
+
+  //// LOGIC begin/////////////////////////////////////////////////////////
+  module logic {
+
+      @extensibility(FINAL)
+      struct logicdata {
+          sequence<float> button_map; // 存储按钮映射数据
+          sequence<float> axes_map;   // 存储轴映射数据
+      };
+
+  };
+  //// LOGIC end/////////////////////////////////////////////////////////
+
+
+  //// hcmd begin/////////////////////////////////////////////////////////
+  module hcmd {
+
+      @extensibility(FINAL)
+      struct hcmddata {
+          float vx;  //x方向速度
+          float vy;  //y方向速度
+          float omega;  //角速度
+      };
+
+  };
+  //// hcmd end/////////////////////////////////////////////////////////
+
+  //// bms begin/////////////////////////////////////////////////////////
+  module bms {
+
+      @extensibility(FINAL)
+      struct bmsdata
+      {
+          sequence<float> Battery_Voltage; // 存储电压数据
+          sequence<float> Temperature; // 存储温度数据
+
+          float Total_Voltage;
+          float Current;
+          float SOC;
+
+          float Remaining_Capacity;
+          string<32> Limit_Status;
+          float Limit_Current;
+          string<32> RTC_Time;
+          string<32> timestamp;
+      };
+
+      @extensibility(FINAL)
+      struct bmsdata_short
+      {
+          float all_voltage;
+          float all_current;
+
+      };
+
+  };
+  //// bms end/////////////////////////////////////////////////////////
+
+};
+

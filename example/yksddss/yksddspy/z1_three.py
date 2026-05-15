@@ -240,26 +240,102 @@ class Z1RemoteClient(threading.Thread):
 
 
 if __name__ == '__main__':
-    z1_arm = Z1RemoteClient(ARMCMDTOPIC, ARMSTATETOPIC, 'arm')
+    # z1_arm = Z1RemoteClient(ARMCMDTOPIC, ARMSTATETOPIC, 'arm')
 
 
     z1_leg = Z1RemoteClient(LEGCMDTOPIC, LEGSTATETOPIC, 'leg')
 
-    z1_body = Z1RemoteClient(BODYCMDTOPIC, BODYSTATETOPIC, 'body')
+    # z1_body = Z1RemoteClient(BODYCMDTOPIC, BODYSTATETOPIC, 'body')
 
     # print("系统已启动，请按回车键退出...")
     # input()  # 阻塞在这里，等待用户按回车
-    z1_arm.arm_yks_squat_control(23, 0, 1, 0, 0, 500, 10)#12-23
-    z1_leg.leg_squat_control(0, 0, 0.4, 0, 0, 100, 10)#0-11
-    z1_body.body_yks_squat_control(24, 0, 1, 0, 0, 100, 10)#24-26
+    # z1_arm.arm_yks_squat_control(23, 0, 1, 0, 0, 500, 10)#12-23
+    for i in range(12):
+        z1_leg.leg_squat_control(i, 0, 0, 0, 0, 100, 10)#0-11
+        time.sleep(0.01)
+    
+    # # 左脚pitch（上翘+）
+    # z1_leg.leg_squat_control(4, 0, 0.15, 0, 0, 100, 10)#0-11
+    # z1_leg.setCommand()
+    # time.sleep(2)
+    # z1_leg.leg_squat_control(4, 0, -0.15, 0, 0, 100, 10)#0-11
+    # z1_leg.setCommand()
+    # time.sleep(2)
+    # z1_leg.leg_squat_control(4, 0, 0.00, 0, 0, 100, 10)#0-11
+    # time.sleep(2)
+
+    #左脚roll（内翻-）
+    # z1_leg.leg_squat_control(5, 0, 0.15, 0, 0, 100, 10)#0-11
+    # z1_leg.setCommand()
+    # time.sleep(2)
+    # z1_leg.leg_squat_control(5, 0, 0.00, 0, 0, 100, 10)#0-11
+    # z1_leg.setCommand()
+    # time.sleep(2)
+    # z1_leg.leg_squat_control(5, 0, -0.15, 0, 0, 100, 10)#0-11
+    # z1_leg.setCommand()
+    # time.sleep(2)
+    # z1_leg.leg_squat_control(5, 0, 0.00, 0, 0, 100, 10)#0-11
+    # time.sleep(2)
+
+    # # 右脚pitch（上翘-）
+    # z1_leg.leg_squat_control(10, 0, 0.15, 0, 0, 100, 10)#0-11
+    # z1_leg.setCommand()
+    # time.sleep(2)
+    # z1_leg.leg_squat_control(10, 0, 0.00, 0, 0, 100, 10)#0-11
+    # z1_leg.setCommand()
+    # time.sleep(2)
+    # z1_leg.leg_squat_control(10, 0, -0.15, 0, 0, 100, 10)#0-11
+    # z1_leg.setCommand()
+    # time.sleep(2)
+    # z1_leg.leg_squat_control(10, 0, 0.00, 0, 0, 100, 10)#0-11
+    # time.sleep(2)
+
+    # # 右脚roll（内翻+外翻-）
+    # z1_leg.leg_squat_control(11, 0, 0.15, 0, 0, 100, 10)#0-11
+    # z1_leg.setCommand()
+    # time.sleep(2)
+    # z1_leg.leg_squat_control(11, 0, 0.00, 0, 0, 100, 10)#0-11
+    # z1_leg.setCommand()
+    # time.sleep(2)
+    # z1_leg.leg_squat_control(11, 0, -0.15, 0, 0, 100, 10)#0-11
+    # z1_leg.setCommand()
+    # time.sleep(2)
+    # z1_leg.leg_squat_control(11, 0, 0.00, 0, 0, 100, 10)#0-11
+    # time.sleep(2)
+
+    # z1_leg.leg_squat_control(4, 0, -0.15, 0, 0, 100, 10)#0-11
+    # z1_leg.leg_squat_control(5, 0, 0.1, 0, 0, 100, 10)#0-11
+    # z1_leg.setCommand()
+    # time.sleep(2)
+    # z1_leg.leg_squat_control(4, 0, -0.15, 0, 0, 100, 10)#0-11
+    # z1_leg.leg_squat_control(5, 0, 0.0, 0, 0, 100, 10)#0-11
+    # z1_leg.setCommand()
+    # time.sleep(2)
+    # z1_leg.leg_squat_control(4, 0, 0.00, 0, 0, 100, 10)#0-11
+    # z1_leg.leg_squat_control(5, 0, 0.00, 0, 0, 100, 10)#0-11
+
+    joint_angles = [0.35, 0, 0, 0.5, 0.25, 0,
+                    -0.35, 0, 0, 0.5, -0.25, 0]
+    ksp_stance = [500, 500, 500, 500, 500, 500,
+                  500, 500, 500, 500, 500, 500]
+    ksd_stance = [50, 50, 5, 50, 20, 20,
+                  50, 50, 5, 50, 20, 20]
+    j = 0
+    time.sleep(0.01)
+
+    j = 0
+    time.sleep(0.01)
+    # z1_body.body_yks_squat_control(24, 0, 1, 0, 0, 100, 10)#24-26
 
     while True:
+        for i in range(12):
+            z1_leg.leg_squat_control(i, 0, joint_angles[i]*j*0.01, 0, 0, 500, ksd_stance[i])
         # z1.squat_control(11, 0.5, 1)
 
-        z1_arm.setCommand()
+        # z1_arm.setCommand()
         # print("pub %f  %f" % (13, z1_arm.motorCmds.cmds[6].pos))
 
-        st = z1_arm.getStates()
+        # st = z1_arm.getStates()
         # print(st.states)
 
         z1_leg.setCommand()
@@ -267,10 +343,13 @@ if __name__ == '__main__':
 
         st = z1_leg.getStates()
         # print(st.states)
-        z1_body.setCommand()
+        # z1_body.setCommand()
         # print("pub %f  %f" % (0, z1_leg.motorCmds.cmds[0].pos))
 
-        st = z1_body.getStates()
+        # st = z1_body.getStates()
         # print(st.states)
+        j += 1
+        if j >=  100:
+            j = 100
 
-        time.sleep(0.01)
+        time.sleep(0.1)

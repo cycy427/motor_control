@@ -1,0 +1,204 @@
+//
+// Created by gold on 25-3-1.
+//
+
+#include "Z1Legs.h"
+
+Z1Legs::Z1Legs() : time_(0.0), control_dt_(2), duration_(3.0), counter_(0), mode_pr_(Mode::AB),
+                   mode_machine_(0), stop_(false) {
+    control_thread_ = std::make_shared<std::thread>(&Z1Legs::Control, this);
+    // Assign Kp and Kd values to motorDate_recv
+    for (int i = 0; i < Z1_NUM_MOTOR; ++i) {
+        motorDate_recv[i].kp_ = Kp[i];
+        motorDate_recv[i].kd_ = Kd[i];
+    }
+}
+
+void Z1Legs::PrintFrequency(int &iteration_count, std::chrono::high_resolution_clock::time_point &start_time) {
+    auto current_time = std::chrono::high_resolution_clock::now();
+    auto elapsed_time = std::chrono::duration_cast<std::chrono::seconds>(current_time - start_time).count();
+    if (elapsed_time >= 1) {
+        // 每秒打印一次频率
+        double frequency = static_cast<double>(iteration_count) / elapsed_time;
+        std::cout << "\tExecution frequency: " << frequency << " Hz" << std::endl;
+        iteration_count = 0;
+        start_time = current_time;
+    }
+}
+
+void Z1Legs::PrintMotorState(int size) {
+    attron(COLOR_PAIR(1)); // Blue for position
+    mvprintw(2, 0, "Motor ID | ");
+    attroff(COLOR_PAIR(1));
+
+    attron(COLOR_PAIR(2)); // Green for velocity
+    mvprintw(2, 13, "Pos (pos_) | ");
+    attroff(COLOR_PAIR(2));
+
+    attron(COLOR_PAIR(3)); // Red for torque
+    mvprintw(2, 24, "Vel (vel_) | ");
+    attroff(COLOR_PAIR(3));
+
+    attron(COLOR_PAIR(4)); // Yellow for desired position
+    mvprintw(2, 35, "Tau (tau_) | ");
+    attroff(COLOR_PAIR(4));
+
+    attron(COLOR_PAIR(5)); // Magenta for desired velocity
+    mvprintw(2, 46, "Des Pos (pos_des_) | ");
+    attroff(COLOR_PAIR(5));
+
+    attron(COLOR_PAIR(6)); // Cyan for KP, KD, FF
+    mvprintw(2, 63, "Des Vel (vel_des_) | ");
+    attroff(COLOR_PAIR(6));
+
+    mvprintw(2, 79, "KP (kp_) | ");
+    mvprintw(2, 87, "KD (kd_) | ");
+    mvprintw(2, 95, "FF (ff_)");
+
+    mvprintw(3, 0,
+             "------------------------------------------------------------------------------------------------------------------");
+
+    for (int i = 0; i < size; ++i) {
+        attron(COLOR_PAIR(1));
+        mvprintw(i + 4, 0, "%d", i + 1);
+        attroff(COLOR_PAIR(1));
+
+        attron(COLOR_PAIR(2));
+        mvprintw(i + 4, 13, "%.2f", motorDate_recv[i].pos_);
+        attroff(COLOR_PAIR(2));
+
+        attron(COLOR_PAIR(3));
+        mvprintw(i + 4, 24, "%.2f", motorDate_recv[i].vel_);
+        attroff(COLOR_PAIR(3));
+
+        attron(COLOR_PAIR(4));
+        mvprintw(i + 4, 35, "%.2f", motorDate_recv[i].tau_);
+        attroff(COLOR_PAIR(4));
+
+        attron(COLOR_PAIR(5));
+        mvprintw(i + 4, 46, "%.2f", motorDate_recv[i].pos_des_);
+        attroff(COLOR_PAIR(5));
+
+        attron(COLOR_PAIR(6));
+        mvprintw(i + 4, 63, "%.2f", motorDate_recv[i].vel_des_);
+        attroff(COLOR_PAIR(6));
+
+        mvprintw(i + 4, 79, "%.2f", motorDate_recv[i].kp_);
+        mvprintw(i + 4, 87, "%.2f", motorDate_recv[i].kd_);
+        mvprintw(i + 4, 95, "%.2f", motorDate_recv[i].ff_);
+    }
+}
+
+void print_OD_Motor_Msg(const OD_Motor_Msg *msg) {
+    printf("angle_actual_int: %u\n", msg->angle_actual_int);
+    printf("angle_desired_int: %u\n", msg->angle_desired_int);
+    printf("speed_actual_int: %d\n", msg->speed_actual_int);
+    printf("speed_desired_int: %d\n", msg->speed_desired_int);
+    printf("current_actual_int: %d\n", msg->current_actual_int);
+    printf("current_desired_int: %d\n", msg->current_desired_int);
+    printf("speed_actual_rad: %.2f\n", msg->speed_actual_rad);
+    printf("speed_desired_rad: %.2f\n", msg->speed_desired_rad);
+    printf("angle_actual_rad: %.2f\n", msg->angle_actual_rad);
+    printf("angle_desired_rad: %.2f\n", msg->angle_desired_rad);
+    printf("motor_id: %u\n", msg->motor_id);
+    printf("temperature: %u\n", msg->temperature);
+    printf("error: %u\n", msg->error);
+    printf("angle_actual_float: %.2f\n", msg->angle_actual_float);
+    printf("speed_actual_float: %.2f\n", msg->speed_actual_float);
+    printf("current_actual_float: %.2f\n", msg->current_actual_float);
+    printf("angle_desired_float: %.2f\n", msg->angle_desired_float);
+    printf("speed_desired_float: %.2f\n", msg->speed_desired_float);
+    printf("current_desired_float: %.2f\n", msg->current_desired_float);
+    printf("power: %.2f\n", msg->power);
+    printf("acceleration: %u\n", msg->acceleration);
+    printf("linkage_KP: %u\n", msg->linkage_KP);
+    printf("speed_KI: %u\n", msg->speed_KI);
+    printf("feedback_KP: %u\n", msg->feedback_KP);
+    printf("feedback_KD: %u\n", msg->feedback_KD);
+}
+
+void Z1Legs::Control() {
+#ifdef PRINT_MOTOR_STATE
+    initscr(); // Initialize the screen
+    cbreak(); // Line buffering disabled
+    noecho(); // Don't echo keys
+    keypad(stdscr, TRUE); // Enable function keys
+
+    // Start color
+    if (has_colors()) {
+        start_color();
+        init_pair(1, COLOR_BLUE, COLOR_BLACK);
+        init_pair(2, COLOR_GREEN, COLOR_BLACK);
+        init_pair(3, COLOR_RED, COLOR_BLACK);
+        init_pair(4, COLOR_YELLOW, COLOR_BLACK);
+        init_pair(5, COLOR_MAGENTA, COLOR_BLACK);
+        init_pair(6, COLOR_CYAN, COLOR_BLACK);
+    }
+#endif
+    float pos = 0;
+    auto start_time = std::chrono::high_resolution_clock::now(); // 记录开始时间
+    int iteration_count = 0;
+
+    while (true) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        if (stop_) {
+            break;
+        }
+        // TODO: implement control logic here
+        JoystickState state = joy_stick_handler_->getState();
+        pos = state.axes[0] / 40000.0 * 3;
+        if (pos > 4 || pos < -4) {
+            continue;
+        }
+
+        // motorDate_recv[Z1JointIndex::LeftHipYaw].pos_des_ = pos * 0.2; //左右转动
+        motorDate_recv[Z1JointIndex::LeftHipYaw].pos_des_ = 0; //左右转动
+        motorDate_recv[Z1JointIndex::LeftHipPitch].pos_des_ = -pos * 0.25; //前后运动
+        // motorDate_recv[Z1JointIndex::LeftHipRoll].pos_des_ = pos * 0.2;//外摆
+        motorDate_recv[Z1JointIndex::LeftHipRoll].pos_des_ = 0;
+        motorDate_recv[Z1JointIndex::LeftKnee].pos_des_ = pos * 0.7;
+        motorDate_recv[Z1JointIndex::LeftAnkleA].pos_des_ = -pos * 0.1;
+        motorDate_recv[Z1JointIndex::LeftAnkleB].pos_des_ = pos * 0.1;
+
+        // motorDate_recv[Z1JointIndex::RightHipYaw].pos_des_ = pos * 0.2; //左右转动
+        motorDate_recv[Z1JointIndex::RightHipYaw].pos_des_ = 0; //左右转动
+        motorDate_recv[Z1JointIndex::RightHipPitch].pos_des_ = pos * 0.25; //ok
+        // motorDate_recv[Z1JointIndex::RightHipRoll].pos_des_ = -pos * 0.2 - 0.1; //8
+        motorDate_recv[Z1JointIndex::RightHipRoll].pos_des_ = 0;
+        motorDate_recv[Z1JointIndex::RightKnee].pos_des_ = -pos * 0.7; //ok
+        motorDate_recv[Z1JointIndex::RightAnkleA].pos_des_ = pos * 0.1;
+        motorDate_recv[Z1JointIndex::RightAnkleB].pos_des_ = -pos * 0.1;
+
+        // motorDate_recv[Z1JointIndex::WaistYaw].pos_des_ = pos;
+
+
+        EtherCAT_Send_Command(motorDate_recv);
+
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(control_dt_)); //控制周期为2ms
+        //打印控制循环线程执行频率
+        // iteration_count++;
+        // PrintFrequency(iteration_count, start_time);
+        //打印电机状态
+        PrintMotorState(Z1_NUM_MOTOR); //只有头文件中的宏定义PRINT_MOTOR_STATE打开时才会打印电机状态，否则调用无效 13代表有13个电机，对应会产生13行数据
+        refresh(); // Refresh the screen
+    }
+    endwin(); // End curses mode
+}
+
+
+Z1Legs::~Z1Legs() {
+    std::lock_guard<std::mutex> lock(mutex_);
+    stop_ = true;
+    if (control_thread_->joinable()) {
+        control_thread_->join();
+    }
+}
+
+void Z1Legs::setJoyStickHandler(const std::shared_ptr<JoyStickHandler> &handler) {
+    joy_stick_handler_ = handler;
+}
+
+void Z1Legs::setBatteryHandler(const std::shared_ptr<BatteryHandler> &handler) {
+    battery_handler_ = handler;
+}
