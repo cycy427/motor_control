@@ -45,7 +45,6 @@ float Z1_MOTOR_POS_MAX[TOTAL_CAN_NUMBER] = {
     POS_LEG_MECH_MAX, POS_LEG_MECH_MAX, POS_LEG_MECH_MAX, POS_LEG_MECH_MAX, POS_LEG_MECH_MAX, POS_LEG_MECH_MAX, //下肢 右腿
     POS_MAX, POS_MAX, POS_MAX, POS_MAX, POS_MAX, POS_MAX, //上肢 左臂
     POS_MAX, POS_MAX, POS_MAX, POS_MAX, POS_MAX, POS_MAX, //上肢 右臂
-    POS_MAX, POS_MAX, POS_MAX, POS_MAX, POS_MAX, POS_MAX, //两肩和腰部
     POS_MAX, POS_MAX, POS_MAX, POS_MAX, POS_MAX, POS_MAX //两肩和腰部
 };
 float Z1_MOTOR_POS_MIN[TOTAL_CAN_NUMBER] = {
@@ -53,7 +52,6 @@ float Z1_MOTOR_POS_MIN[TOTAL_CAN_NUMBER] = {
     POS_LEG_MECH_MIN, POS_LEG_MECH_MIN, POS_LEG_MECH_MIN, POS_LEG_MECH_MIN, POS_LEG_MECH_MIN, POS_LEG_MECH_MIN, //下肢 右腿
     POS_MIN, POS_MIN, POS_MIN, POS_MIN, POS_MIN, POS_MIN, //上肢 左臂
     POS_MIN, POS_MIN, POS_MIN, POS_MIN, POS_MIN, POS_MIN, //上肢 右臂
-    POS_MIN, POS_MIN, POS_MIN, POS_MIN, POS_MIN, POS_MIN, //两肩和腰部
     POS_MIN, POS_MIN, POS_MIN, POS_MIN, POS_MIN, POS_MIN //两肩和腰部
 };
 float Z1_MOTOR_SPE_MAX[TOTAL_CAN_NUMBER] = {
@@ -61,7 +59,6 @@ float Z1_MOTOR_SPE_MAX[TOTAL_CAN_NUMBER] = {
     SPD_MAX,SPD_MAX,SPD_MAX,SPD_MAX,SPD_MAX,SPD_MAX, //下肢 右腿
     SPD_MAX,SPD_MAX,SPD_MAX,SPD_MAX,SPD_MAX,SPD_MAX, //下肢 左臂
     SPD_MAX,SPD_MAX,SPD_MAX,SPD_MAX,SPD_MAX,SPD_MAX, //下肢 右臂
-    SPD_MAX,SPD_MAX,SPD_MAX,SPD_MAX,SPD_MAX,SPD_MAX, //两肩和腰部
     SPD_MAX,SPD_MAX,SPD_MAX,SPD_MAX,SPD_MAX,SPD_MAX //两肩和腰部
 };
 float Z1_MOTOR_SPE_MIN[TOTAL_CAN_NUMBER] = {
@@ -69,7 +66,6 @@ float Z1_MOTOR_SPE_MIN[TOTAL_CAN_NUMBER] = {
     SPD_MIN, SPD_MIN, SPD_MIN, SPD_MIN, SPD_MIN, SPD_MIN, //下肢 右腿
     SPD_MIN, SPD_MIN, SPD_MIN, SPD_MIN, SPD_MIN, SPD_MIN, //上肢 左臂
     SPD_MIN, SPD_MIN, SPD_MIN, SPD_MIN, SPD_MIN, SPD_MIN, //上肢 右臂
-    SPD_MIN, SPD_MIN, SPD_MIN, SPD_MIN, SPD_MIN, SPD_MIN, //两肩和腰部
     SPD_MIN, SPD_MIN, SPD_MIN, SPD_MIN, SPD_MIN, SPD_MIN //两肩和腰部
 };
 float Z1_MOTOR_TOR_MAX[TOTAL_CAN_NUMBER] = {
@@ -77,8 +73,7 @@ float Z1_MOTOR_TOR_MAX[TOTAL_CAN_NUMBER] = {
     T13715_MAX, T10020_2_MAX, T10020_1_MAX, T13720_MAX, T8112_MAX, T8112_MAX, //下肢 右腿
     T8112_MAX, T6408_MAX, T6408_MAX, T4310_MAX, T4310_MAX, T4310_MAX, //上肢 左臂
     T8112_MAX, T6408_MAX, T6408_MAX, T4310_MAX, T4310_MAX, T4310_MAX, //上肢 右臂
-    T8112_MAX, T8112_MAX, T8112_MAX, T10020_1_MAX, T10020_1_MAX, T10020_1_MAX, //两肩和腰部
-    T8112_MIN, T8112_MIN, T8112_MIN, T10020_1_MIN, T10020_1_MIN, T10020_1_MIN //两肩和腰部
+    T8112_MAX, T8112_MAX, T8112_MAX, T10020_1_MAX, T10020_1_MAX, T10020_1_MAX //两肩和腰部
 
 };
 float Z1_MOTOR_TOR_MIN[TOTAL_CAN_NUMBER] = {
@@ -86,12 +81,15 @@ float Z1_MOTOR_TOR_MIN[TOTAL_CAN_NUMBER] = {
     T13715_MIN, T10020_2_MIN, T10020_1_MIN, T13720_MIN, T8112_MIN, T8112_MIN, //下肢 右腿
     T8112_MIN, T6408_MIN, T6408_MIN, T4310_MIN, T4310_MIN, T4310_MIN, //上肢 左臂
     T8112_MIN, T6408_MIN, T6408_MIN, T4310_MIN, T4310_MIN, T4310_MIN, //上肢 右臂
-    T8112_MIN, T8112_MIN, T8112_MIN, T10020_1_MIN, T10020_1_MIN, T10020_1_MIN, //两肩和腰部
     T8112_MIN, T8112_MIN, T8112_MIN, T10020_1_MIN, T10020_1_MIN, T10020_1_MIN //两肩和腰部
 
 };
 
 void EtherCAT_Data_Get();
+
+static int active_slave_count() {
+    return ec_slavecount < SLAVE_NUMBER ? ec_slavecount : SLAVE_NUMBER;
+}
 
 //用于对EtherCAT总线进行初始化，并自动配置从站，从站会按照串联连接的顺序进行编号
 int CAT_Init(const char *device_name) {
@@ -311,7 +309,7 @@ void EtherCAT_Init(const char *if_name) {
 }
 
 void EtherCAT_Transmit(EtherCAT_Msg *MasterCommand) {
-    for (int i = 0; i < ec_slavecount; i++) {
+    for (int i = 0; i < active_slave_count(); i++) {
         memcpy((void *) (ec_slave[0].outputs + i * sizeof(EtherCAT_Msg)), (void *) &(MasterCommand[i]),
                sizeof(EtherCAT_Msg));
     }
@@ -363,7 +361,7 @@ void EtherCAT_Run() {
 
 void EtherCAT_Command_Set() {
     std::lock_guard<std::mutex> lock(message_mutex);
-    for (int slave = 0; slave < ec_slavecount; ++slave) {
+    for (int slave = 0; slave < active_slave_count(); ++slave) {
         EtherCAT_Msg_ptr msg;
         if (messages[slave].pop(msg)) {
             memcpy(&Tx_Message[slave], msg.get(), sizeof(EtherCAT_Msg));
@@ -381,8 +379,8 @@ void EtherCAT_Command_Set() {
  * @author: Kx Zhang
  */
 void EtherCAT_Data_Get() {
-    for (int slave_idx = 0; slave_idx < ec_slavecount; ++slave_idx) {
-        uint8_t motor_ack_status[6] = {0};
+    uint8_t motor_ack_status[TOTAL_MOTOR_NUMBER] = {0};
+    for (int slave_idx = 0; slave_idx < active_slave_count(); ++slave_idx) {
         if (auto *slave_src = reinterpret_cast<EtherCAT_Msg *>(ec_slave[slave_idx + 1].inputs)) {
             Rx_Message[slave_idx] = *reinterpret_cast<EtherCAT_Msg *>(ec_slave[slave_idx + 1].inputs);
         }
@@ -392,7 +390,7 @@ void EtherCAT_Data_Get() {
             isConfig[slave_idx] = false;
             // printf("slave %d msg:\n", slave);
             // Rv_Message_Print(ack_status);
-            EtherCAT_Get_State(slave_idx, motor_ack_status);
+            EtherCAT_Get_State(motor_ack_status);
         }
     }
 }
@@ -401,21 +399,18 @@ void EtherCAT_Data_Get() {
 // *****************************
 // 需要在默认的力位混合控制模式下进行工作，默认是按照ack_status=1来返回值的
 /*函数功能：获取EtherCAT总线上从设备的状态信息*/
-void EtherCAT_Get_State(const uint8_t slave, const uint8_t *motor_ack_status) {
-    const int base_index = slave * 6;
-    // printf("slave %d motor state:\n", base_index);
+void EtherCAT_Get_State(const uint8_t *motor_ack_status) {
     std::lock_guard<std::mutex> lock(motor_data_mutex);
-    for (int motor_index = 0; motor_index < 6; motor_index++) {
-        // printf("motor %d state: %d\n", base_index + motor_index, motor_ack_status[motor_index]);
+    for (int motor_index = 0; motor_index < TOTAL_MOTOR_NUMBER; motor_index++) {
         if (motor_ack_status[motor_index] == 1) {
-            motorDate_recv[base_index + motor_index].pos_ = rv_motor_msg[motor_index].angle_actual_rad;
-            motorDate_recv[base_index + motor_index].vel_ = rv_motor_msg[motor_index].speed_actual_rad;
-            motorDate_recv[base_index + motor_index].tau_ = rv_motor_msg[motor_index].current_actual_float;
+            motorDate_recv[motor_index].pos_ = rv_motor_msg[motor_index].angle_actual_rad;
+            motorDate_recv[motor_index].vel_ = rv_motor_msg[motor_index].speed_actual_rad;
+            motorDate_recv[motor_index].tau_ = rv_motor_msg[motor_index].current_actual_float;
             //在读取那边我已经将电流current_actual_float乘了一个KT系数，将其转化为了力矩
 
-            motorDate_recv[base_index + motor_index].error_ = rv_motor_msg[motor_index].error;
-            motorDate_recv[base_index + motor_index].temperature_ = rv_motor_msg[motor_index].temperature;
-            motorDate_recv[base_index + motor_index].mos_temperature_ = rv_motor_msg[motor_index].mos_temperature;
+            motorDate_recv[motor_index].error_ = rv_motor_msg[motor_index].error;
+            motorDate_recv[motor_index].temperature_ = rv_motor_msg[motor_index].temperature;
+            motorDate_recv[motor_index].mos_temperature_ = rv_motor_msg[motor_index].mos_temperature;
         }
     }
 }
@@ -450,39 +445,41 @@ void EtherCAT_Send_Command(const YKSMotorData *mot_data) {
         degraded_handler();
     } {
         std::lock_guard<std::mutex> lock(message_mutex);
+        memset(Tx_Message, 0, sizeof(Tx_Message));
         for (int index = 0; index < TOTAL_MOTOR_NUMBER; index++) {
-            const int slave_idx = index / 6;
-
-            const Slave *slave = &g_slaves[slave_idx];
-            const Motor *motor = &slave->motors[index % 6];
+            const Motor *motor = &g_motor_map[index];
+            const int slave_idx = motor->slave_idx;
+            if (slave_idx < 0 || slave_idx >= SLAVE_NUMBER) {
+                continue;
+            }
 
             if (motor->type == MOTOR_YKS) {
                 // printf("slave command_id  \n");
                 if (mot_data[index].mode == 0) {
-                    send_motor_ctrl_cmd(&Tx_Message[slave_idx], motor->motor_id, motor->global_id, mot_data[index].kp_,
+                    send_motor_ctrl_cmd(&Tx_Message[slave_idx], motor->pdo_slot, motor->can_id, motor->global_id, mot_data[index].kp_,
                                         mot_data[index].kd_, mot_data[index].pos_des_, mot_data[index].vel_des_,
                                         mot_data[index].ff_);
                 } else if (mot_data[index].mode == 1) {
-                    set_motor_position(&Tx_Message[slave_idx], motor->motor_id, motor->global_id,
+                    set_motor_position(&Tx_Message[slave_idx], motor->pdo_slot, motor->can_id,
                                        mot_data[index].pos_des_, mot_data[index].vel_des_, mot_data[index].ff_, 1);
                 } else if (mot_data[index].mode == 2) {
                     // printf("mode %d motor %d mode 3 \n", mot_data[index].mode, index);
-                    set_motor_cur_tor(&Tx_Message[slave_idx], motor->motor_id, motor->global_id, mot_data[index].ff_, 0,
+                    set_motor_cur_tor(&Tx_Message[slave_idx], motor->pdo_slot, motor->can_id, mot_data[index].ff_, 0,
                                       1);
                 } else if (mot_data[index].mode == 3) {
-                    set_motor_speed(&Tx_Message[slave_idx], motor->motor_id, motor->global_id, mot_data[index].vel_des_,
+                    set_motor_speed(&Tx_Message[slave_idx], motor->pdo_slot, motor->can_id, mot_data[index].vel_des_,
                                     mot_data[index].ff_, 1);
                 }
             } else if (motor->type == MOTOR_TI5) {
                 if (mot_data[index].mode == 0) {
-                    set_ti5_current(&Tx_Message[slave_idx], motor->motor_id, motor->global_id, 0);
+                    set_ti5_current(&Tx_Message[slave_idx], motor->pdo_slot, motor->can_id, motor->global_id, 0);
                 } else if (mot_data[index].mode == 1) {
-                    set_ti5_position(&Tx_Message[slave_idx], motor->motor_id, motor->global_id,
+                    set_ti5_position(&Tx_Message[slave_idx], motor->pdo_slot, motor->can_id, motor->global_id,
                                      mot_data[index].pos_des_);
                 } else if (mot_data[index].mode == 2) {
-                    set_ti5_current(&Tx_Message[slave_idx], motor->motor_id, motor->global_id, mot_data[index].ff_);
+                    set_ti5_current(&Tx_Message[slave_idx], motor->pdo_slot, motor->can_id, motor->global_id, mot_data[index].ff_);
                 } else if (mot_data[index].mode == 3) {
-                    set_ti5_speed(&Tx_Message[slave_idx], motor->motor_id, motor->global_id, mot_data[index].vel_des_);
+                    set_ti5_speed(&Tx_Message[slave_idx], motor->pdo_slot, motor->can_id, motor->global_id, mot_data[index].vel_des_);
 
                     // printf("slave %d index %d ,mode %d,pos_des_ %f ,vel_des_ %f,ff_ %f \n", slave_idx, index,
                     //        mot_data[index].mode, mot_data[index].pos_des_, mot_data[index].vel_des_,

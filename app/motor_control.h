@@ -223,25 +223,28 @@ typedef enum {
 //-------------------------------------
 typedef struct {
     MotorType type; // 电机类型（枚举）
-    int motor_id; // 在从站内的本地编号（1~6）
-    int global_id; // 全局唯一ID（可选，用于跨从站管理）
+    uint8_t slave_idx; // EtherCAT从站数组下标，0开始
+    uint8_t pdo_slot; // 从站PDO槽位，1~24；1~8/CANFD1，9~16/CANFD2，17~24/CANFD3
+    uint16_t can_id; // 实际下发到CANFD总线的电机ID
+    int global_id; // 全局唯一ID，用于跨从站管理
 } Motor;
 
 //-------------------------------------
 // 从站（Slave）结构体
 //-------------------------------------
-#define MAX_MOTORS_PER_SLAVE 6
+#define MAX_MOTORS_PER_SLAVE ACTIVE_MOTOR_NUMBER
 
 typedef struct {
-    int slave_id; // SLAVE ID (1-5)
+    int slave_id; // EtherCAT slave ID，1开始
     int motor_count; // 当前从站连接的电机数量
     Motor motors[MAX_MOTORS_PER_SLAVE]; // 电机列表
 } Slave;
 
 extern Slave g_slaves[SLAVE_NUMBER];
+extern Motor g_motor_map[TOTAL_MOTOR_NUMBER];
 
 
-extern OD_Motor_Msg rv_motor_msg[6]; //每块板子上面只能连接6个电机
+extern OD_Motor_Msg rv_motor_msg[TOTAL_MOTOR_NUMBER];
 extern IMU_Msg imu_msg;
 extern uint16_t motor_id_check;
 
@@ -255,32 +258,32 @@ void MotorCommModeReading(EtherCAT_Msg *TxMessage, uint16_t motor_id);
 
 void MotorIDReading(EtherCAT_Msg *TxMessage);
 
-void send_motor_ctrl_cmd(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint16_t motor_id, float kp, float kd,
+void send_motor_ctrl_cmd(EtherCAT_Msg *TxMessage, uint8_t pdo_slot, uint16_t can_id, uint16_t global_id, float kp, float kd,
                          float pos,
                          float spd, float cur);
 
 void
-set_motor_position(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint16_t motor_id, float pos, uint16_t spd,
+set_motor_position(EtherCAT_Msg *TxMessage, uint8_t pdo_slot, uint16_t can_id, float pos, uint16_t spd,
                    uint16_t cur,
                    uint8_t ack_status);
 
-void set_motor_speed(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint16_t motor_id, float spd, uint16_t cur,
+void set_motor_speed(EtherCAT_Msg *TxMessage, uint8_t pdo_slot, uint16_t can_id, float spd, uint16_t cur,
                      uint8_t ack_status);
 
-void set_motor_cur_tor(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint16_t motor_id, int16_t cur_tor,
+void set_motor_cur_tor(EtherCAT_Msg *TxMessage, uint8_t pdo_slot, uint16_t can_id, int16_t cur_tor,
                        uint8_t ctrl_status, uint8_t ack_status);
 
-void set_motor_acceleration(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint16_t motor_id, uint16_t acc,
+void set_motor_acceleration(EtherCAT_Msg *TxMessage, uint8_t pdo_slot, uint16_t can_id, uint16_t acc,
                             uint8_t ack_status);
 
-void set_motor_linkage_speedKI(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint16_t motor_id, uint16_t linkage,
+void set_motor_linkage_speedKI(EtherCAT_Msg *TxMessage, uint8_t pdo_slot, uint16_t can_id, uint16_t linkage,
                                uint16_t speedKI, uint8_t ack_status);
 
 void
-set_motor_feedbackKP(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint16_t motor_id, uint16_t fdbKP,
-                     uint8_t ack_status);
+set_motor_feedbackKP_KD(EtherCAT_Msg *TxMessage, uint8_t pdo_slot, uint16_t can_id, uint16_t fdbKP,
+                        uint16_t fdbKD, uint8_t ack_status);
 
-void get_motor_parameter(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint16_t motor_id, uint8_t param_cmd);
+void get_motor_parameter(EtherCAT_Msg *TxMessage, uint8_t pdo_slot, uint16_t can_id, uint8_t param_cmd);
 
 void RV_can_data_repack(const EtherCAT_Msg *RxMessage, uint8_t comm_mode, const Slave *slave,
                         uint8_t *motor_ack_status);
@@ -289,12 +292,12 @@ void RV_can_imu_data_repack(EtherCAT_Msg *RxMessage);
 
 void Rv_Message_Print(uint8_t ack_status);
 
-void set_ti5_current(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id, float cur);
+void set_ti5_current(EtherCAT_Msg *TxMessage, uint8_t pdo_slot, uint32_t can_id, uint16_t global_id, float cur);
 
-void set_ti5_speed(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id, float spd);
+void set_ti5_speed(EtherCAT_Msg *TxMessage, uint8_t pdo_slot, uint32_t can_id, uint16_t global_id, float spd);
 
-void set_ti5_position(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id, float pos);
+void set_ti5_position(EtherCAT_Msg *TxMessage, uint8_t pdo_slot, uint32_t can_id, uint16_t global_id, float pos);
 
-void set_ti5_stop(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id, int times);
+void set_ti5_stop(EtherCAT_Msg *TxMessage, uint8_t pdo_slot, uint32_t can_id, int times);
 
 #endif

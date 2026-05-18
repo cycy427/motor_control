@@ -7,12 +7,12 @@
 #ifndef TRANSMIT_H
 #define TRANSMIT_H
 
-#define SLAVE_NUMBER 6 //可接最大从机数
+#define SLAVE_NUMBER 2 //新EtherCAT-CANFD从站数
 #define LEG_MOTOR_NUMBER 12 //双腿的电机数
 #define ARM_MOTOR_NUMBER 12 //双臂的电机数
 #define BODY_MOTOR_NUMBER 6 //身体的电机数
 #define TOTAL_MOTOR_NUMBER 30 //接入的总电机数
-#define TOTAL_CAN_NUMBER 36 //接入的can数量
+#define TOTAL_CAN_NUMBER TOTAL_MOTOR_NUMBER //机器人电机限制数组长度
 
 #include <inttypes.h>
 #include <stdio.h>
@@ -66,7 +66,7 @@ void startRun();
 
 void EtherCAT_Send_Command(const YKSMotorData *mot_data);
 
-void EtherCAT_Get_State(uint8_t slave, const uint8_t *motor_ack_status);
+void EtherCAT_Get_State(const uint8_t *motor_ack_status);
 
 void User_Get_Motor_Data(YKSMotorData *mot_data);
 #ifdef __cplusplus

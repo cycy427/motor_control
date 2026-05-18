@@ -21,7 +21,7 @@ TI5_MOTOR_RANGE ti5_motor_range = {
 };
 //int Z1_YKS_MOTOR_ID_Type[6] = {A13720, A10020_1, A8112, A13715, A6408, A6408};//这个是Z1的第一版机器人的腿部电机的顺序
 //int Z1_YKS_MOTOR_ID_Type[6] = {A13715, A10020_2, A10020_1, A13720, A8112, A8112};//这个是Z1.5机器人的腿部电机的顺序
-//这个要根据实际的Z1机器人电机型号来设置，canid 1-6往上,结构体globalid从0开始 依次对应于Slave中的glboalid
+//这个要根据实际的Z1机器人电机型号来设置，global_id从0开始，对应上层30电机顺序。
 int Z1_MOTOR_ID_Type[TOTAL_MOTOR_NUMBER] = {
     A13715, A10020_2, A10020_1, A13720, A8112, A8112, //下肢 左腿
     A13715, A10020_2, A10020_1, A13720, A8112, A8112, //下肢 右腿
@@ -30,69 +30,83 @@ int Z1_MOTOR_ID_Type[TOTAL_MOTOR_NUMBER] = {
     A8112, A8112, A8112, A10020_1, A10020_1, A10020_1 //两肩和腰部
 };
 
-//-------------------------------------
-// 初始化从站和电机配置
-//-------------------------------------
+// 新EtherCAT-CANFD从站映射：
+// 从站1使用槽位1~24，对应CAN ID 1~24；从站2使用槽位1~6，对应CAN ID 25~30。
+// 每个从站槽位1~8为CANFD1，9~16为CANFD2，17~24为CANFD3。
+Motor g_motor_map[TOTAL_MOTOR_NUMBER] = {
+    {MOTOR_YKS, 0, 1, 1, 0},
+    {MOTOR_YKS, 0, 2, 2, 1},
+    {MOTOR_YKS, 0, 3, 3, 2},
+    {MOTOR_YKS, 0, 4, 4, 3},
+    {MOTOR_YKS, 0, 5, 5, 4},
+    {MOTOR_YKS, 0, 6, 6, 5},
+    {MOTOR_YKS, 0, 7, 7, 6},
+    {MOTOR_YKS, 0, 8, 8, 7},
+    {MOTOR_YKS, 0, 9, 9, 8},
+    {MOTOR_YKS, 0, 10, 10, 9},
+    {MOTOR_YKS, 0, 11, 11, 10},
+    {MOTOR_YKS, 0, 12, 12, 11},
+    {MOTOR_YKS, 0, 13, 13, 12},
+    {MOTOR_YKS, 0, 14, 14, 13},
+    {MOTOR_YKS, 0, 15, 15, 14},
+    {MOTOR_YKS, 0, 16, 16, 15},
+    {MOTOR_YKS, 0, 17, 17, 16},
+    {MOTOR_YKS, 0, 18, 18, 17},
+    {MOTOR_YKS, 0, 19, 19, 18},
+    {MOTOR_YKS, 0, 20, 20, 19},
+    {MOTOR_YKS, 0, 21, 21, 20},
+    {MOTOR_YKS, 0, 22, 22, 21},
+    {MOTOR_YKS, 0, 23, 23, 22},
+    {MOTOR_YKS, 0, 24, 24, 23},
+    {MOTOR_YKS, 1, 1, 25, 24},
+    {MOTOR_YKS, 1, 2, 26, 25},
+    {MOTOR_YKS, 1, 3, 27, 26},
+    {MOTOR_YKS, 1, 4, 28, 27},
+    {MOTOR_YKS, 1, 5, 29, 28},
+    {MOTOR_YKS, 1, 6, 30, 29},
+};
+
 Slave g_slaves[SLAVE_NUMBER] = {
-    // SLAVE ID 1,代表第几个从站: YKS 1-6
     {
         .slave_id = 1,
-        .motor_count = 6,
+        .motor_count = 24,
         .motors = {
-            {MOTOR_YKS, 1, 0}, {MOTOR_YKS, 2, 1},
-            {MOTOR_YKS, 3, 2}, {MOTOR_YKS, 4, 3},
-            {MOTOR_YKS, 5, 4}, {MOTOR_YKS, 6, 5}
+            {MOTOR_YKS, 0, 1, 1, 0},
+            {MOTOR_YKS, 0, 2, 2, 1},
+            {MOTOR_YKS, 0, 3, 3, 2},
+            {MOTOR_YKS, 0, 4, 4, 3},
+            {MOTOR_YKS, 0, 5, 5, 4},
+            {MOTOR_YKS, 0, 6, 6, 5},
+            {MOTOR_YKS, 0, 7, 7, 6},
+            {MOTOR_YKS, 0, 8, 8, 7},
+            {MOTOR_YKS, 0, 9, 9, 8},
+            {MOTOR_YKS, 0, 10, 10, 9},
+            {MOTOR_YKS, 0, 11, 11, 10},
+            {MOTOR_YKS, 0, 12, 12, 11},
+            {MOTOR_YKS, 0, 13, 13, 12},
+            {MOTOR_YKS, 0, 14, 14, 13},
+            {MOTOR_YKS, 0, 15, 15, 14},
+            {MOTOR_YKS, 0, 16, 16, 15},
+            {MOTOR_YKS, 0, 17, 17, 16},
+            {MOTOR_YKS, 0, 18, 18, 17},
+            {MOTOR_YKS, 0, 19, 19, 18},
+            {MOTOR_YKS, 0, 20, 20, 19},
+            {MOTOR_YKS, 0, 21, 21, 20},
+            {MOTOR_YKS, 0, 22, 22, 21},
+            {MOTOR_YKS, 0, 23, 23, 22},
+            {MOTOR_YKS, 0, 24, 24, 23},
         }
     },
-    // SLAVE ID 2: YKS 1-6
     {
         .slave_id = 2,
         .motor_count = 6,
         .motors = {
-            {MOTOR_YKS, 1, 6}, {MOTOR_YKS, 2, 7},
-            {MOTOR_YKS, 3, 8}, {MOTOR_YKS, 4, 9},
-            {MOTOR_YKS, 5, 10}, {MOTOR_YKS, 6, 11}
-        }
-    },
-    // SLAVE ID 3: YKS 1-6
-    {
-        .slave_id = 3,
-        .motor_count = 6,
-        .motors = {
-            {MOTOR_YKS, 1, 12},
-            {MOTOR_YKS, 2, 13}, {MOTOR_YKS, 3, 14},
-            {MOTOR_YKS, 4, 15}, {MOTOR_YKS, 5, 16},
-            {MOTOR_YKS, 6, 17}
-        }
-    },
-    // SLAVE ID 4: YKS 1-6
-    {
-        .slave_id = 4,
-        .motor_count = 6,
-        .motors = {
-            {MOTOR_YKS, 1, 18}, {MOTOR_YKS, 2, 19},
-            {MOTOR_YKS, 3, 20}, {MOTOR_YKS, 4, 21},
-            {MOTOR_YKS, 5, 22}, {MOTOR_YKS, 6, 23}
-        }
-    },
-    // SLAVE ID 5: YKS 1-6
-    {
-        .slave_id = 5,
-        .motor_count = 6,
-        .motors = {
-            {MOTOR_YKS, 1, 24}, {MOTOR_YKS, 2, 25},
-            {MOTOR_YKS, 3, 26}, {MOTOR_YKS, 4, 27},
-            {MOTOR_YKS, 5, 28}, {MOTOR_YKS, 6, 29}
-        }
-    },
-    // SLAVE ID 6: YKS 1-5
-    {
-        .slave_id = 6,
-        .motor_count = 6,
-        .motors = {
-            {MOTOR_YKS, 1, 30}, {MOTOR_YKS, 2, 31},
-            {MOTOR_YKS, 3, 32}, {MOTOR_YKS, 4, 33},
-            {MOTOR_YKS, 5, 34}, {MOTOR_YKS, 6, 35}
+            {MOTOR_YKS, 1, 1, 25, 24},
+            {MOTOR_YKS, 1, 2, 26, 25},
+            {MOTOR_YKS, 1, 3, 27, 26},
+            {MOTOR_YKS, 1, 4, 28, 27},
+            {MOTOR_YKS, 1, 5, 29, 28},
+            {MOTOR_YKS, 1, 6, 30, 29},
         }
     }
 };
@@ -111,8 +125,16 @@ union RV_TypeConvert2 {
 } rv_type_convert2;
 
 MotorCommFbd motor_comm_fbd;
-OD_Motor_Msg rv_motor_msg[6];
+OD_Motor_Msg rv_motor_msg[TOTAL_MOTOR_NUMBER];
 IMU_Msg imu_msg;
+
+static int valid_pdo_slot(uint8_t pdo_slot);
+static Motor_Msg *pdo_frame(EtherCAT_Msg *msg, uint8_t pdo_slot);
+static int find_global_id_by_can_id(const Slave *slave, uint16_t can_id);
+static int find_slave_motor_by_slot(const Slave *slave, uint8_t pdo_slot);
+static int resolve_global_id(const Slave *slave, uint16_t can_id, uint8_t pdo_slot);
+static void set_frame_header(EtherCAT_Msg *TxMessage, uint8_t pdo_slot, uint16_t can_id, uint8_t dlc);
+
 // MOTOR SETTING
 /*
 cmd:
@@ -195,32 +217,22 @@ void MotorIDReading(EtherCAT_Msg *TxMessage) {
 }
 
 // This function use in ask communication mode.
-/*
-motor_id:1~0x7FE
-data_channel:1~6
-kp:0~500
-kd:0~50
-pos:-12.5rad~12.5rad
-spd:-18rad/s~18rad/s
-tor:-30Nm~30Nm
-*/
 void
-send_motor_ctrl_cmd(EtherCAT_Msg *TxMessage, const uint8_t data_channel, const uint16_t motor_id, float kp, float kd,
+send_motor_ctrl_cmd(EtherCAT_Msg *TxMessage, const uint8_t pdo_slot, const uint16_t can_id,
+                    const uint16_t global_id, float kp, float kd,
                     float pos,
                     float spd, float cur) {
-    if (data_channel < 1 || data_channel > 6)
+    if (global_id >= TOTAL_MOTOR_NUMBER || !valid_pdo_slot(pdo_slot))
         return;
 
-    TxMessage->can_ide = 0;
-    TxMessage->motor[data_channel - 1].id = data_channel;
-    TxMessage->motor[data_channel - 1].rtr = 0;
-    TxMessage->motor[data_channel - 1].dlc = 8;
+    Motor_Msg *frame = pdo_frame(TxMessage, pdo_slot);
+    set_frame_header(TxMessage, pdo_slot, can_id, 8);
 
 
-    const float KD_MIN = yks_motor_range.KD_MIN[Z1_MOTOR_ID_Type[motor_id]];
-    const float KD_MAX = yks_motor_range.KD_MAX[Z1_MOTOR_ID_Type[motor_id]];
-    const float T_MIN = yks_motor_range.T_MIN[Z1_MOTOR_ID_Type[motor_id]];
-    const float T_MAX = yks_motor_range.T_MAX[Z1_MOTOR_ID_Type[motor_id]];
+    const float KD_MIN = yks_motor_range.KD_MIN[Z1_MOTOR_ID_Type[global_id]];
+    const float KD_MAX = yks_motor_range.KD_MAX[Z1_MOTOR_ID_Type[global_id]];
+    const float T_MIN = yks_motor_range.T_MIN[Z1_MOTOR_ID_Type[global_id]];
+    const float T_MAX = yks_motor_range.T_MAX[Z1_MOTOR_ID_Type[global_id]];
 
     //电机型号限位
     if (kp > KP_MAX)
@@ -245,18 +257,18 @@ send_motor_ctrl_cmd(EtherCAT_Msg *TxMessage, const uint8_t data_channel, const u
         cur = T_MIN;
 
     //关节限位
-    if (pos > Z1_MOTOR_POS_MAX[motor_id])
-        pos = Z1_MOTOR_POS_MAX[motor_id];
-    else if (pos < Z1_MOTOR_POS_MIN[motor_id])
-        pos = Z1_MOTOR_POS_MIN[motor_id];
-    if (spd > Z1_MOTOR_SPE_MAX[motor_id])
-        spd = Z1_MOTOR_SPE_MAX[motor_id];
-    else if (spd < Z1_MOTOR_SPE_MIN[motor_id])
-        spd = Z1_MOTOR_SPE_MIN[motor_id];
-    if (cur > Z1_MOTOR_TOR_MAX[motor_id])
-        cur = Z1_MOTOR_TOR_MAX[motor_id];
-    else if (cur < Z1_MOTOR_TOR_MIN[motor_id])
-        cur = Z1_MOTOR_TOR_MIN[motor_id];
+    if (pos > Z1_MOTOR_POS_MAX[global_id])
+        pos = Z1_MOTOR_POS_MAX[global_id];
+    else if (pos < Z1_MOTOR_POS_MIN[global_id])
+        pos = Z1_MOTOR_POS_MIN[global_id];
+    if (spd > Z1_MOTOR_SPE_MAX[global_id])
+        spd = Z1_MOTOR_SPE_MAX[global_id];
+    else if (spd < Z1_MOTOR_SPE_MIN[global_id])
+        spd = Z1_MOTOR_SPE_MIN[global_id];
+    if (cur > Z1_MOTOR_TOR_MAX[global_id])
+        cur = Z1_MOTOR_TOR_MAX[global_id];
+    else if (cur < Z1_MOTOR_TOR_MIN[global_id])
+        cur = Z1_MOTOR_TOR_MIN[global_id];
 
 
 
@@ -266,14 +278,14 @@ send_motor_ctrl_cmd(EtherCAT_Msg *TxMessage, const uint8_t data_channel, const u
     const int spd_int = float_to_uint(spd, SPD_MIN, SPD_MAX, 12);
     const int tor_int = float_to_uint(cur, T_MIN, T_MAX, 12);
 
-    TxMessage->motor[data_channel - 1].data[0] = 0x00 | (kp_int >> 7); // kp5
-    TxMessage->motor[data_channel - 1].data[1] = ((kp_int & 0x7F) << 1) | ((kd_int & 0x100) >> 8); // kp7+kd1
-    TxMessage->motor[data_channel - 1].data[2] = kd_int & 0xFF;
-    TxMessage->motor[data_channel - 1].data[3] = pos_int >> 8;
-    TxMessage->motor[data_channel - 1].data[4] = pos_int & 0xFF;
-    TxMessage->motor[data_channel - 1].data[5] = spd_int >> 4;
-    TxMessage->motor[data_channel - 1].data[6] = (spd_int & 0x0F) << 4 | (tor_int >> 8);
-    TxMessage->motor[data_channel - 1].data[7] = tor_int & 0xff;
+    frame->data[0] = 0x00 | (kp_int >> 7); // kp5
+    frame->data[1] = ((kp_int & 0x7F) << 1) | ((kd_int & 0x100) >> 8); // kp7+kd1
+    frame->data[2] = kd_int & 0xFF;
+    frame->data[3] = pos_int >> 8;
+    frame->data[4] = pos_int & 0xFF;
+    frame->data[5] = spd_int >> 4;
+    frame->data[6] = (spd_int & 0x0F) << 4 | (tor_int >> 8);
+    frame->data[7] = tor_int & 0xff;
 }
 
 // This function use in ask communication mode.
@@ -284,28 +296,26 @@ spd:0~18000
 cur:0~3000
 ack_status:0~3
 */
-void set_motor_position(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint16_t motor_id, float pos, uint16_t spd,
+void set_motor_position(EtherCAT_Msg *TxMessage, uint8_t pdo_slot, uint16_t can_id, float pos, uint16_t spd,
                         uint16_t cur, uint8_t ack_status) {
-    if (data_channel < 1 || data_channel > 6)
+    if (!valid_pdo_slot(pdo_slot))
         return;
 
-    TxMessage->can_ide = 0;
-    TxMessage->motor[data_channel - 1].rtr = 0;
-    TxMessage->motor[data_channel - 1].id = data_channel;
-    TxMessage->motor[data_channel - 1].dlc = 8;
+    Motor_Msg *frame = pdo_frame(TxMessage, pdo_slot);
+    set_frame_header(TxMessage, pdo_slot, can_id, 8);
 
     if (ack_status > 3)
         return;
 
     rv_type_convert.to_float = pos;
-    TxMessage->motor[data_channel - 1].data[0] = 0x20 | (rv_type_convert.buf[3] >> 3);
-    TxMessage->motor[data_channel - 1].data[1] = (rv_type_convert.buf[3] << 5) | (rv_type_convert.buf[2] >> 3);
-    TxMessage->motor[data_channel - 1].data[2] = (rv_type_convert.buf[2] << 5) | (rv_type_convert.buf[1] >> 3);
-    TxMessage->motor[data_channel - 1].data[3] = (rv_type_convert.buf[1] << 5) | (rv_type_convert.buf[0] >> 3);
-    TxMessage->motor[data_channel - 1].data[4] = (rv_type_convert.buf[0] << 5) | (spd >> 10);
-    TxMessage->motor[data_channel - 1].data[5] = (spd & 0x3FC) >> 2;
-    TxMessage->motor[data_channel - 1].data[6] = (spd & 0x03) << 6 | (cur >> 6);
-    TxMessage->motor[data_channel - 1].data[7] = (cur & 0x3F) << 2 | ack_status;
+    frame->data[0] = 0x20 | (rv_type_convert.buf[3] >> 3);
+    frame->data[1] = (rv_type_convert.buf[3] << 5) | (rv_type_convert.buf[2] >> 3);
+    frame->data[2] = (rv_type_convert.buf[2] << 5) | (rv_type_convert.buf[1] >> 3);
+    frame->data[3] = (rv_type_convert.buf[1] << 5) | (rv_type_convert.buf[0] >> 3);
+    frame->data[4] = (rv_type_convert.buf[0] << 5) | (spd >> 10);
+    frame->data[5] = (spd & 0x3FC) >> 2;
+    frame->data[6] = (spd & 0x03) << 6 | (cur >> 6);
+    frame->data[7] = (cur & 0x3F) << 2 | ack_status;
 }
 
 // This function use in ask communication mode.
@@ -315,24 +325,22 @@ spd:-18000~18000
 cur:0~3000
 ack_status:0~3
 */
-void set_motor_speed(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint16_t motor_id, float spd, uint16_t cur,
+void set_motor_speed(EtherCAT_Msg *TxMessage, uint8_t pdo_slot, uint16_t can_id, float spd, uint16_t cur,
                      uint8_t ack_status) {
-    if (data_channel < 1 || data_channel > 6)
+    if (!valid_pdo_slot(pdo_slot))
         return;
 
-    TxMessage->can_ide = 0;
-    TxMessage->motor[data_channel - 1].rtr = 0;
-    TxMessage->motor[data_channel - 1].id = data_channel;
-    TxMessage->motor[data_channel - 1].dlc = 7;
+    Motor_Msg *frame = pdo_frame(TxMessage, pdo_slot);
+    set_frame_header(TxMessage, pdo_slot, can_id, 7);
 
     rv_type_convert.to_float = spd;
-    TxMessage->motor[data_channel - 1].data[0] = 0x40 | ack_status;
-    TxMessage->motor[data_channel - 1].data[1] = rv_type_convert.buf[3];
-    TxMessage->motor[data_channel - 1].data[2] = rv_type_convert.buf[2];
-    TxMessage->motor[data_channel - 1].data[3] = rv_type_convert.buf[1];
-    TxMessage->motor[data_channel - 1].data[4] = rv_type_convert.buf[0];
-    TxMessage->motor[data_channel - 1].data[5] = cur >> 8;
-    TxMessage->motor[data_channel - 1].data[6] = cur & 0xff;
+    frame->data[0] = 0x40 | ack_status;
+    frame->data[1] = rv_type_convert.buf[3];
+    frame->data[2] = rv_type_convert.buf[2];
+    frame->data[3] = rv_type_convert.buf[1];
+    frame->data[4] = rv_type_convert.buf[0];
+    frame->data[5] = cur >> 8;
+    frame->data[6] = cur & 0xff;
 }
 
 // This function use in ask communication mode.
@@ -350,12 +358,12 @@ ctrl_status:
     7:NON
 ack_status:0~3
 */
-void set_motor_cur_tor(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint16_t motor_id, int16_t cur_tor,
+void set_motor_cur_tor(EtherCAT_Msg *TxMessage, uint8_t pdo_slot, uint16_t can_id, int16_t cur_tor,
                        uint8_t ctrl_status, uint8_t ack_status) {
-    TxMessage->can_ide = 0;
-    TxMessage->motor[data_channel - 1].rtr = 0;
-    TxMessage->motor[data_channel - 1].id = data_channel;
-    TxMessage->motor[data_channel - 1].dlc = 3;
+    if (!valid_pdo_slot(pdo_slot))
+        return;
+    Motor_Msg *frame = pdo_frame(TxMessage, pdo_slot);
+    set_frame_header(TxMessage, pdo_slot, can_id, 3);
 
     if (ack_status > 3)
         return;
@@ -374,9 +382,9 @@ void set_motor_cur_tor(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint16_t m
             cur_tor = -2000;
     }
 
-    TxMessage->motor[data_channel - 1].data[0] = 0x60 | ctrl_status << 2 | ack_status;
-    TxMessage->motor[data_channel - 1].data[1] = cur_tor >> 8;
-    TxMessage->motor[data_channel - 1].data[2] = cur_tor & 0xff;
+    frame->data[0] = 0x60 | ctrl_status << 2 | ack_status;
+    frame->data[1] = cur_tor >> 8;
+    frame->data[2] = cur_tor & 0xff;
 }
 
 // This function use in ask communication mode.
@@ -385,22 +393,22 @@ motor_id:1~0x7FE
 acc:0~2000
 ack_status:0~3
 */
-void set_motor_acceleration(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint16_t motor_id, uint16_t acc,
+void set_motor_acceleration(EtherCAT_Msg *TxMessage, uint8_t pdo_slot, uint16_t can_id, uint16_t acc,
                             uint8_t ack_status) {
-    TxMessage->can_ide = 0;
-    TxMessage->motor[data_channel - 1].rtr = 0;
-    TxMessage->motor[data_channel - 1].id = motor_id;
-    TxMessage->motor[data_channel - 1].dlc = 4;
+    if (!valid_pdo_slot(pdo_slot))
+        return;
+    Motor_Msg *frame = pdo_frame(TxMessage, pdo_slot);
+    set_frame_header(TxMessage, pdo_slot, can_id, 4);
 
     if (ack_status > 2)
         return;
     if (acc > 2000)
         acc = 2000;
 
-    TxMessage->motor[data_channel - 1].data[0] = 0xC0 | ack_status;
-    TxMessage->motor[data_channel - 1].data[1] = 0x01;
-    TxMessage->motor[data_channel - 1].data[2] = acc >> 8;
-    TxMessage->motor[data_channel - 1].data[3] = acc & 0xff;
+    frame->data[0] = 0xC0 | ack_status;
+    frame->data[1] = 0x01;
+    frame->data[2] = acc >> 8;
+    frame->data[3] = acc & 0xff;
 }
 
 // This function use in ask communication mode.
@@ -410,12 +418,12 @@ linkage:0~10000
 speedKI:0~10000
 ack_status:0/1
 */
-void set_motor_linkage_speedKI(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint16_t motor_id, uint16_t linkage,
+void set_motor_linkage_speedKI(EtherCAT_Msg *TxMessage, uint8_t pdo_slot, uint16_t can_id, uint16_t linkage,
                                uint16_t speedKI, uint8_t ack_status) {
-    TxMessage->can_ide = 0;
-    TxMessage->motor[data_channel - 1].rtr = 0;
-    TxMessage->motor[data_channel - 1].id = motor_id;
-    TxMessage->motor[data_channel - 1].dlc = 6;
+    if (!valid_pdo_slot(pdo_slot))
+        return;
+    Motor_Msg *frame = pdo_frame(TxMessage, pdo_slot);
+    set_frame_header(TxMessage, pdo_slot, can_id, 6);
 
     if (ack_status > 2)
         return;
@@ -424,12 +432,12 @@ void set_motor_linkage_speedKI(EtherCAT_Msg *TxMessage, uint8_t data_channel, ui
     if (speedKI > 10000)
         speedKI = 10000;
 
-    TxMessage->motor[data_channel - 1].data[0] = 0xC0 | ack_status;
-    TxMessage->motor[data_channel - 1].data[1] = 0x02;
-    TxMessage->motor[data_channel - 1].data[2] = linkage >> 8;
-    TxMessage->motor[data_channel - 1].data[3] = linkage & 0xff;
-    TxMessage->motor[data_channel - 1].data[4] = speedKI >> 8;
-    TxMessage->motor[data_channel - 1].data[5] = speedKI & 0xff;
+    frame->data[0] = 0xC0 | ack_status;
+    frame->data[1] = 0x02;
+    frame->data[2] = linkage >> 8;
+    frame->data[3] = linkage & 0xff;
+    frame->data[4] = speedKI >> 8;
+    frame->data[5] = speedKI & 0xff;
 }
 
 // This function use in ask communication mode.
@@ -439,12 +447,12 @@ fdbKP:0~10000
 fbdKD:0~10000
 ack_status:0/1
 */
-void set_motor_feedbackKP_KD(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint16_t motor_id, uint16_t fdbKP,
+void set_motor_feedbackKP_KD(EtherCAT_Msg *TxMessage, uint8_t pdo_slot, uint16_t can_id, uint16_t fdbKP,
                              uint16_t fdbKD, uint8_t ack_status) {
-    TxMessage->can_ide = 0;
-    TxMessage->motor[data_channel - 1].rtr = 0;
-    TxMessage->motor[data_channel - 1].id = motor_id;
-    TxMessage->motor[data_channel - 1].dlc = 6;
+    if (!valid_pdo_slot(pdo_slot))
+        return;
+    Motor_Msg *frame = pdo_frame(TxMessage, pdo_slot);
+    set_frame_header(TxMessage, pdo_slot, can_id, 6);
 
     if (ack_status > 2)
         return;
@@ -453,12 +461,12 @@ void set_motor_feedbackKP_KD(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint
     if (fdbKD > 10000)
         fdbKD = 10000;
 
-    TxMessage->motor[data_channel - 1].data[0] = 0xC0 | ack_status;
-    TxMessage->motor[data_channel - 1].data[1] = 0x03;
-    TxMessage->motor[data_channel - 1].data[2] = fdbKP >> 8;
-    TxMessage->motor[data_channel - 1].data[3] = fdbKP & 0xff;
-    TxMessage->motor[data_channel - 1].data[4] = fdbKD >> 8;
-    TxMessage->motor[data_channel - 1].data[5] = fdbKD & 0xff;
+    frame->data[0] = 0xC0 | ack_status;
+    frame->data[1] = 0x03;
+    frame->data[2] = fdbKP >> 8;
+    frame->data[3] = fdbKP & 0xff;
+    frame->data[4] = fdbKD >> 8;
+    frame->data[5] = fdbKD & 0xff;
 }
 
 // This function use in ask communication mode.
@@ -466,14 +474,14 @@ void set_motor_feedbackKP_KD(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint
 motor_id:1~0x7FE
 param_cmd:1~9
 */
-void get_motor_parameter(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint16_t motor_id, uint8_t param_cmd) {
-    TxMessage->can_ide = 0;
-    TxMessage->motor[data_channel - 1].rtr = 0;
-    TxMessage->motor[data_channel - 1].id = motor_id;
-    TxMessage->motor[data_channel - 1].dlc = 2;
+void get_motor_parameter(EtherCAT_Msg *TxMessage, uint8_t pdo_slot, uint16_t can_id, uint8_t param_cmd) {
+    if (!valid_pdo_slot(pdo_slot))
+        return;
+    Motor_Msg *frame = pdo_frame(TxMessage, pdo_slot);
+    set_frame_header(TxMessage, pdo_slot, can_id, 2);
 
-    TxMessage->motor[data_channel - 1].data[0] = 0xE0;
-    TxMessage->motor[data_channel - 1].data[1] = param_cmd;
+    frame->data[0] = 0xE0;
+    frame->data[1] = param_cmd;
 }
 
 void Rv_Message_Print(uint8_t ack_status) {
@@ -495,7 +503,7 @@ void Rv_Message_Print(uint8_t ack_status) {
             printf("查询失败.\n");
         }
     } else {
-        for (int i = 0; i < 6; ++i) {
+        for (int i = 0; i < TOTAL_MOTOR_NUMBER; ++i) {
             if (rv_motor_msg[i].motor_id == 0) {
                 continue;
             }
@@ -566,9 +574,60 @@ void Rv_Message_Print(uint8_t ack_status) {
 
 uint16_t motor_id_check = 0;
 
+static int valid_pdo_slot(uint8_t pdo_slot) {
+    return pdo_slot >= 1 && pdo_slot <= ACTIVE_MOTOR_NUMBER;
+}
+
+static Motor_Msg *pdo_frame(EtherCAT_Msg *msg, uint8_t pdo_slot) {
+    if (!valid_pdo_slot(pdo_slot)) {
+        return NULL;
+    }
+    return &msg->motor[pdo_slot - 1];
+}
+
+static int find_global_id_by_can_id(const Slave *slave, uint16_t can_id) {
+    for (int i = 0; i < slave->motor_count; ++i) {
+        if (slave->motors[i].can_id == can_id) {
+            return slave->motors[i].global_id;
+        }
+    }
+    return -1;
+}
+
+static int find_slave_motor_by_slot(const Slave *slave, uint8_t pdo_slot) {
+    for (int i = 0; i < slave->motor_count; ++i) {
+        if (slave->motors[i].pdo_slot == pdo_slot) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+static int resolve_global_id(const Slave *slave, uint16_t can_id, uint8_t pdo_slot) {
+    const int by_can_id = find_global_id_by_can_id(slave, can_id);
+    if (by_can_id >= 0) {
+        return by_can_id;
+    }
+    const int by_slot = find_slave_motor_by_slot(slave, pdo_slot);
+    if (by_slot >= 0) {
+        return slave->motors[by_slot].global_id;
+    }
+    return -1;
+}
+
+static void set_frame_header(EtherCAT_Msg *TxMessage, uint8_t pdo_slot, uint16_t can_id, uint8_t dlc) {
+    Motor_Msg *frame = pdo_frame(TxMessage, pdo_slot);
+    if (frame == NULL) {
+        return;
+    }
+    TxMessage->can_ide = 0;
+    frame->id = can_id;
+    frame->rtr = 0;
+    frame->dlc = dlc;
+}
+
 void RV_can_data_repack(const EtherCAT_Msg *RxMessage, const uint8_t comm_mode, const Slave *slave,
                         uint8_t *motor_ack_status) {
-    uint8_t motor_id_t = 0;
     uint8_t ack_status = 0;
     int pos_int = 0;
     int spd_int = 0;
@@ -578,189 +637,200 @@ void RV_can_data_repack(const EtherCAT_Msg *RxMessage, const uint8_t comm_mode, 
 
     for (int i = 0; i < slave->motor_count; ++i) {
         const Motor *motor = &slave->motors[i];
-        const uint8_t global_id = motor->global_id;
+        const uint8_t pdo_index = motor->pdo_slot - 1;
+        if (motor->pdo_slot < 1 || motor->pdo_slot > ACTIVE_MOTOR_NUMBER) {
+            continue;
+        }
+        const Motor_Msg *frame = &RxMessage->motor[pdo_index];
+        int global_id = motor->global_id;
+        if (frame->id != 0x7FF) {
+            const int resolved = resolve_global_id(slave, frame->id, motor->pdo_slot);
+            if (resolved >= 0) {
+                global_id = resolved;
+            }
+        }
+        if (global_id < 0 || global_id >= TOTAL_MOTOR_NUMBER) {
+            continue;
+        }
         if (motor->type == MOTOR_YKS) {
             const float I_MIN = yks_motor_range.I_MIN[Z1_MOTOR_ID_Type[global_id]];
             const float I_MAX = yks_motor_range.I_MAX[Z1_MOTOR_ID_Type[global_id]];
             const float KT = yks_motor_range.KT[Z1_MOTOR_ID_Type[global_id]];
-            if (RxMessage->motor[i].dlc == 0)
+            if (frame->dlc == 0)
                 continue;
             // printf("motor%d:\n", i + 1);
-            if (RxMessage->motor[i].id == 0x7FF) {
-                if (RxMessage->motor[i].data[2] != 0x01) // determine whether it is a motor feedback instruction
+            if (frame->id == 0x7FF) {
+                if (frame->data[2] != 0x01) // determine whether it is a motor feedback instruction
                 {
-                    motor_ack_status[i] = 255;
+                    motor_ack_status[global_id] = 255;
                     // printf("motor%d: not a motor feedback instruction\n", i + 1);
                     continue;
                     // return 255; // it is not a motor feedback instruction
                 }
 
-                if ((RxMessage->motor[i].data[0] == 0xff) && (RxMessage->motor[i].data[1] == 0xFF)) {
-                    motor_comm_fbd.motor_id = RxMessage->motor[i].data[3] << 8 | RxMessage->motor[i].data[4];
+                if ((frame->data[0] == 0xff) && (frame->data[1] == 0xFF)) {
+                    motor_comm_fbd.motor_id = frame->data[3] << 8 | frame->data[4];
                     motor_comm_fbd.motor_fbd = 0x06;
-                } else if ((RxMessage->motor[i].data[0] == 0x80) && (RxMessage->motor[i].data[1] == 0x80))
+                } else if ((frame->data[0] == 0x80) && (frame->data[1] == 0x80))
                 // inquire failed
                 {
                     motor_comm_fbd.motor_id = 0;
                     motor_comm_fbd.motor_fbd = 0x80;
-                } else if ((RxMessage->motor[i].data[0] == 0x7F) &&
-                           (RxMessage->motor[i].data[1] == 0x7F)) // reset ID succeed
+                } else if ((frame->data[0] == 0x7F) &&
+                           (frame->data[1] == 0x7F)) // reset ID succeed
                 {
                     motor_comm_fbd.motor_id = 1;
                     motor_comm_fbd.motor_fbd = 0x05;
                 } else {
-                    motor_comm_fbd.motor_id = RxMessage->motor[i].data[0] << 8 | RxMessage->motor[i].data[1];
-                    motor_comm_fbd.motor_fbd = RxMessage->motor[i].data[3];
+                    motor_comm_fbd.motor_id = frame->data[0] << 8 | frame->data[1];
+                    motor_comm_fbd.motor_fbd = frame->data[3];
                 }
-                motor_ack_status[i] = 100 + i;
+                motor_ack_status[global_id] = 100 + pdo_index;
                 // return 100 + i;
-            } else if (comm_mode == 0x00 && RxMessage->motor[i].dlc != 0) // Response mode
+            } else if (comm_mode == 0x00 && frame->dlc != 0) // Response mode
             {
                 // printf("id = %d\n"i);
-                ack_status = RxMessage->motor[i].data[0] >> 5;
-                motor_id_t = RxMessage->motor[i].id - 1;
-                motor_id_check = RxMessage->motor[i].id;
-                rv_motor_msg[motor_id_t].motor_id = motor_id_check;
-                rv_motor_msg[motor_id_t].error = RxMessage->motor[i].data[0] & 0x1F;
+                ack_status = frame->data[0] >> 5;
+                motor_id_check = frame->id;
+                rv_motor_msg[global_id].motor_id = motor_id_check;
+                rv_motor_msg[global_id].error = frame->data[0] & 0x1F;
                 if (ack_status == 1) // response frame 1
                 {
-                    pos_int = RxMessage->motor[i].data[1] << 8 | RxMessage->motor[i].data[2];
-                    spd_int = RxMessage->motor[i].data[3] << 4 | (RxMessage->motor[i].data[4] & 0xF0) >> 4;
-                    cur_int = (RxMessage->motor[i].data[4] & 0x0F) << 8 | RxMessage->motor[i].data[5];
-                    error_int = RxMessage->motor[i].data[0] & 0x1F;
-                    mos_temperature_int = RxMessage->motor[i].data[7];
+                    pos_int = frame->data[1] << 8 | frame->data[2];
+                    spd_int = frame->data[3] << 4 | (frame->data[4] & 0xF0) >> 4;
+                    cur_int = (frame->data[4] & 0x0F) << 8 | frame->data[5];
+                    error_int = frame->data[0] & 0x1F;
+                    mos_temperature_int = frame->data[7];
 
-                    rv_motor_msg[motor_id_t].angle_actual_rad = uint_to_float(pos_int, POS_MIN, POS_MAX, 16);
-                    rv_motor_msg[motor_id_t].speed_actual_rad = uint_to_float(spd_int, SPD_MIN, SPD_MAX, 12);
-                    rv_motor_msg[motor_id_t].current_actual_float = KT * uint_to_float(cur_int, I_MIN, I_MAX, 12);
+                    rv_motor_msg[global_id].angle_actual_rad = uint_to_float(pos_int, POS_MIN, POS_MAX, 16);
+                    rv_motor_msg[global_id].speed_actual_rad = uint_to_float(spd_int, SPD_MIN, SPD_MAX, 12);
+                    rv_motor_msg[global_id].current_actual_float = KT * uint_to_float(cur_int, I_MIN, I_MAX, 12);
                     //这里我将电流乘以KT转变为力矩，所以实际上这里是力矩
-                    rv_motor_msg[motor_id_t].temperature = (RxMessage->motor[i].data[6] - 50) / 2;
-                    rv_motor_msg[motor_id_t].error = error_int;
-                    rv_motor_msg[motor_id_t].mos_temperature = (mos_temperature_int - 50) / 2;
+                    rv_motor_msg[global_id].temperature = (frame->data[6] - 50) / 2;
+                    rv_motor_msg[global_id].error = error_int;
+                    rv_motor_msg[global_id].mos_temperature = (mos_temperature_int - 50) / 2;
                 } else if (ack_status == 2) // response frame 2
                 {
-                    rv_type_convert.buf[0] = RxMessage->motor[i].data[4];
-                    rv_type_convert.buf[1] = RxMessage->motor[i].data[3];
-                    rv_type_convert.buf[2] = RxMessage->motor[i].data[2];
-                    rv_type_convert.buf[3] = RxMessage->motor[i].data[1];
-                    rv_motor_msg[motor_id_t].angle_actual_float = rv_type_convert.to_float;
-                    rv_motor_msg[motor_id_t].current_actual_int =
-                            RxMessage->motor[i].data[5] << 8 | RxMessage->motor[i].data[6];
-                    rv_motor_msg[motor_id_t].temperature = (RxMessage->motor[i].data[7] - 50) / 2;
-                    rv_motor_msg[motor_id_t].current_actual_float = rv_motor_msg[motor_id_t].current_actual_int /
+                    rv_type_convert.buf[0] = frame->data[4];
+                    rv_type_convert.buf[1] = frame->data[3];
+                    rv_type_convert.buf[2] = frame->data[2];
+                    rv_type_convert.buf[3] = frame->data[1];
+                    rv_motor_msg[global_id].angle_actual_float = rv_type_convert.to_float;
+                    rv_motor_msg[global_id].current_actual_int =
+                            frame->data[5] << 8 | frame->data[6];
+                    rv_motor_msg[global_id].temperature = (frame->data[7] - 50) / 2;
+                    rv_motor_msg[global_id].current_actual_float = rv_motor_msg[global_id].current_actual_int /
                                                                     100.0f;
                 } else if (ack_status == 3) // response frame 3
                 {
-                    rv_type_convert.buf[0] = RxMessage->motor[i].data[4];
-                    rv_type_convert.buf[1] = RxMessage->motor[i].data[3];
-                    rv_type_convert.buf[2] = RxMessage->motor[i].data[2];
-                    rv_type_convert.buf[3] = RxMessage->motor[i].data[1];
-                    rv_motor_msg[motor_id_t].speed_actual_float = rv_type_convert.to_float;
-                    rv_motor_msg[motor_id_t].current_actual_int =
-                            RxMessage->motor[i].data[5] << 8 | RxMessage->motor[i].data[6];
-                    rv_motor_msg[motor_id_t].temperature = (RxMessage->motor[i].data[7] - 50) / 2;
+                    rv_type_convert.buf[0] = frame->data[4];
+                    rv_type_convert.buf[1] = frame->data[3];
+                    rv_type_convert.buf[2] = frame->data[2];
+                    rv_type_convert.buf[3] = frame->data[1];
+                    rv_motor_msg[global_id].speed_actual_float = rv_type_convert.to_float;
+                    rv_motor_msg[global_id].current_actual_int =
+                            frame->data[5] << 8 | frame->data[6];
+                    rv_motor_msg[global_id].temperature = (frame->data[7] - 50) / 2;
 
 
-                    rv_motor_msg[motor_id_t].current_actual_float = rv_motor_msg[motor_id_t].current_actual_int /
+                    rv_motor_msg[global_id].current_actual_float = rv_motor_msg[global_id].current_actual_int /
                                                                     100.0f;
                 } else if (ack_status == 4) // response frame 4
                 {
-                    if (RxMessage->motor[i].dlc != 3) {
-                        motor_ack_status[i] = 255;
+                    if (frame->dlc != 3) {
+                        motor_ack_status[global_id] = 255;
                         continue;
                         // return 255;
                     }
-                    motor_comm_fbd.INS_code = RxMessage->motor[i].data[1];
-                    motor_comm_fbd.motor_fbd = RxMessage->motor[i].data[2];
+                    motor_comm_fbd.INS_code = frame->data[1];
+                    motor_comm_fbd.motor_fbd = frame->data[2];
                 } else if (ack_status == 5) // response frame 5
                 {
-                    motor_comm_fbd.INS_code = RxMessage->motor[i].data[1];
-                    if (motor_comm_fbd.INS_code == 1 && RxMessage->motor[i].dlc == 6) // get position
+                    motor_comm_fbd.INS_code = frame->data[1];
+                    if (motor_comm_fbd.INS_code == 1 && frame->dlc == 6) // get position
                     {
-                        rv_type_convert.buf[0] = RxMessage->motor[i].data[5];
-                        rv_type_convert.buf[1] = RxMessage->motor[i].data[4];
-                        rv_type_convert.buf[2] = RxMessage->motor[i].data[3];
-                        rv_type_convert.buf[3] = RxMessage->motor[i].data[2];
-                        rv_motor_msg[motor_id_t].angle_actual_float = rv_type_convert.to_float;
-                    } else if (motor_comm_fbd.INS_code == 2 && RxMessage->motor[i].dlc == 6) // get speed
+                        rv_type_convert.buf[0] = frame->data[5];
+                        rv_type_convert.buf[1] = frame->data[4];
+                        rv_type_convert.buf[2] = frame->data[3];
+                        rv_type_convert.buf[3] = frame->data[2];
+                        rv_motor_msg[global_id].angle_actual_float = rv_type_convert.to_float;
+                    } else if (motor_comm_fbd.INS_code == 2 && frame->dlc == 6) // get speed
                     {
-                        rv_type_convert.buf[0] = RxMessage->motor[i].data[5];
-                        rv_type_convert.buf[1] = RxMessage->motor[i].data[4];
-                        rv_type_convert.buf[2] = RxMessage->motor[i].data[3];
-                        rv_type_convert.buf[3] = RxMessage->motor[i].data[2];
-                        rv_motor_msg[motor_id_t].speed_actual_float = rv_type_convert.to_float;
-                    } else if (motor_comm_fbd.INS_code == 3 && RxMessage->motor[i].dlc == 6) // get current
+                        rv_type_convert.buf[0] = frame->data[5];
+                        rv_type_convert.buf[1] = frame->data[4];
+                        rv_type_convert.buf[2] = frame->data[3];
+                        rv_type_convert.buf[3] = frame->data[2];
+                        rv_motor_msg[global_id].speed_actual_float = rv_type_convert.to_float;
+                    } else if (motor_comm_fbd.INS_code == 3 && frame->dlc == 6) // get current
                     {
-                        rv_type_convert.buf[0] = RxMessage->motor[i].data[5];
-                        rv_type_convert.buf[1] = RxMessage->motor[i].data[4];
-                        rv_type_convert.buf[2] = RxMessage->motor[i].data[3];
-                        rv_type_convert.buf[3] = RxMessage->motor[i].data[2];
-                        rv_motor_msg[motor_id_t].current_actual_float = rv_type_convert.to_float;
-                    } else if (motor_comm_fbd.INS_code == 4 && RxMessage->motor[i].dlc == 6) // get power
+                        rv_type_convert.buf[0] = frame->data[5];
+                        rv_type_convert.buf[1] = frame->data[4];
+                        rv_type_convert.buf[2] = frame->data[3];
+                        rv_type_convert.buf[3] = frame->data[2];
+                        rv_motor_msg[global_id].current_actual_float = rv_type_convert.to_float;
+                    } else if (motor_comm_fbd.INS_code == 4 && frame->dlc == 6) // get power
                     {
-                        rv_type_convert.buf[0] = RxMessage->motor[i].data[5];
-                        rv_type_convert.buf[1] = RxMessage->motor[i].data[4];
-                        rv_type_convert.buf[2] = RxMessage->motor[i].data[3];
-                        rv_type_convert.buf[3] = RxMessage->motor[i].data[2];
-                        rv_motor_msg[motor_id_t].power = rv_type_convert.to_float;
-                    } else if (motor_comm_fbd.INS_code == 5 && RxMessage->motor[i].dlc == 4) // get acceleration
+                        rv_type_convert.buf[0] = frame->data[5];
+                        rv_type_convert.buf[1] = frame->data[4];
+                        rv_type_convert.buf[2] = frame->data[3];
+                        rv_type_convert.buf[3] = frame->data[2];
+                        rv_motor_msg[global_id].power = rv_type_convert.to_float;
+                    } else if (motor_comm_fbd.INS_code == 5 && frame->dlc == 4) // get acceleration
                     {
-                        rv_motor_msg[motor_id_t].acceleration =
-                                RxMessage->motor[i].data[2] << 8 | RxMessage->motor[i].data[3];
-                    } else if (motor_comm_fbd.INS_code == 6 && RxMessage->motor[i].dlc == 4) // get linkage_KP
+                        rv_motor_msg[global_id].acceleration =
+                                frame->data[2] << 8 | frame->data[3];
+                    } else if (motor_comm_fbd.INS_code == 6 && frame->dlc == 4) // get linkage_KP
                     {
-                        rv_motor_msg[motor_id_t].linkage_KP =
-                                RxMessage->motor[i].data[2] << 8 | RxMessage->motor[i].data[3];
-                    } else if (motor_comm_fbd.INS_code == 7 && RxMessage->motor[i].dlc == 4) // get speed_KI
+                        rv_motor_msg[global_id].linkage_KP =
+                                frame->data[2] << 8 | frame->data[3];
+                    } else if (motor_comm_fbd.INS_code == 7 && frame->dlc == 4) // get speed_KI
                     {
-                        rv_motor_msg[motor_id_t].speed_KI = RxMessage->motor[i].data[2] << 8 | RxMessage->motor[i].data[
-                                                                3];
-                    } else if (motor_comm_fbd.INS_code == 8 && RxMessage->motor[i].dlc == 4) // get feedback_KP
+                        rv_motor_msg[global_id].speed_KI = frame->data[2] << 8 | frame->data[
+                                                                 3];
+                    } else if (motor_comm_fbd.INS_code == 8 && frame->dlc == 4) // get feedback_KP
                     {
-                        rv_motor_msg[motor_id_t].feedback_KP =
-                                RxMessage->motor[i].data[2] << 8 | RxMessage->motor[i].data[3];
-                    } else if (motor_comm_fbd.INS_code == 9 && RxMessage->motor[i].dlc == 4) // get feedback_KD
+                        rv_motor_msg[global_id].feedback_KP =
+                                frame->data[2] << 8 | frame->data[3];
+                    } else if (motor_comm_fbd.INS_code == 9 && frame->dlc == 4) // get feedback_KD
                     {
-                        rv_motor_msg[motor_id_t].feedback_KD =
-                                RxMessage->motor[i].data[2] << 8 | RxMessage->motor[i].data[3];
+                        rv_motor_msg[global_id].feedback_KD =
+                                frame->data[2] << 8 | frame->data[3];
                     }
                 }
-                motor_ack_status[i] = ack_status;
+                motor_ack_status[global_id] = ack_status;
 
                 // return ack_status;
-            } else if (comm_mode == 0x01 && RxMessage->motor[i].dlc != 0) // automatic feedback mode
+            } else if (comm_mode == 0x01 && frame->dlc != 0) // automatic feedback mode
             {
-                motor_id_t = RxMessage->motor[i].id - 0x205;
-                rv_motor_msg[motor_id_t].motor_id = RxMessage->motor[i].id;
-                rv_motor_msg[motor_id_t].angle_actual_int = (uint16_t) (RxMessage->motor[i].data[0] << 8 |
-                                                                        RxMessage->motor[i].data[1]);
-                rv_motor_msg[motor_id_t].speed_actual_int = (int16_t) (RxMessage->motor[i].data[2] << 8 |
-                                                                       RxMessage->motor[i].data[3]);
-                rv_motor_msg[motor_id_t].current_actual_int = (RxMessage->motor[i].data[4] << 8 |
-                                                               RxMessage->motor[i].data[5]);
-                rv_motor_msg[motor_id_t].temperature = RxMessage->motor[i].data[6];
-                rv_motor_msg[motor_id_t].error = RxMessage->motor[i].data[7];
-                motor_ack_status[i] = 6;
+                rv_motor_msg[global_id].motor_id = frame->id;
+                rv_motor_msg[global_id].angle_actual_int = (uint16_t) (frame->data[0] << 8 |
+                                                                        frame->data[1]);
+                rv_motor_msg[global_id].speed_actual_int = (int16_t) (frame->data[2] << 8 |
+                                                                       frame->data[3]);
+                rv_motor_msg[global_id].current_actual_int = (frame->data[4] << 8 |
+                                                               frame->data[5]);
+                rv_motor_msg[global_id].temperature = frame->data[6];
+                rv_motor_msg[global_id].error = frame->data[7];
+                motor_ack_status[global_id] = 6;
                 // return 6;
             }
         } else if (motor->type == MOTOR_TI5) {
-            if (RxMessage->motor[i].dlc == 0) {
+            if (frame->dlc == 0) {
                 continue;
             }
             const float GEAR_RATIO = ti5_motor_range.GEAR_RATIO[Z1_MOTOR_ID_Type[global_id]];
             // printf("motor%d:\n", i + 1);
-            if (RxMessage->motor[i].dlc != 0) // Response mode
+            if (frame->dlc != 0) // Response mode
             {
-                motor_id_t = RxMessage->motor[i].id - 1;
-                motor_id_check = RxMessage->motor[i].id;
+                motor_id_check = frame->id;
 
-                rv_motor_msg[motor_id_t].motor_id = motor_id_check;
+                rv_motor_msg[global_id].motor_id = motor_id_check;
 
-                uint16_t ti5_cur_uint = RxMessage->motor[i].data[0] + (RxMessage->motor[i].data[1] << 8);
-                uint16_t ti5_spd_uint = RxMessage->motor[i].data[2] + (RxMessage->motor[i].data[3] << 8);
-                uint32_t ti5_pos_uint = RxMessage->motor[i].data[4] + (RxMessage->motor[i].data[5] << 8) + (
-                                            RxMessage->motor[i].data[6] << 16) + (
-                                            RxMessage->motor[i].data[7] << 24);
+                uint16_t ti5_cur_uint = frame->data[0] + (frame->data[1] << 8);
+                uint16_t ti5_spd_uint = frame->data[2] + (frame->data[3] << 8);
+                uint32_t ti5_pos_uint = frame->data[4] + (frame->data[5] << 8) + (
+                                            frame->data[6] << 16) + (
+                                            frame->data[7] << 24);
 
                 int16_t ti5_cur_int;
                 int16_t ti5_spd_int;
@@ -774,12 +844,12 @@ void RV_can_data_repack(const EtherCAT_Msg *RxMessage, const uint8_t comm_mode, 
                 float spd_float = ti5_spd_int;
                 double pos_double = ti5_pos_int;
 
-                rv_motor_msg[motor_id_t].current_actual_float =
+                rv_motor_msg[global_id].current_actual_float =
                         cur_float * ti5_motor_range.TC[Z1_MOTOR_ID_Type[global_id]];
-                rv_motor_msg[motor_id_t].speed_actual_rad = (spd_float * 360.0f) / (GEAR_RATIO * 100 * 57.2958f);
-                rv_motor_msg[motor_id_t].angle_actual_rad = (pos_double * 360.0f) / (65536 * GEAR_RATIO * 57.2958f);
+                rv_motor_msg[global_id].speed_actual_rad = (spd_float * 360.0f) / (GEAR_RATIO * 100 * 57.2958f);
+                rv_motor_msg[global_id].angle_actual_rad = (pos_double * 360.0f) / (65536 * GEAR_RATIO * 57.2958f);
 
-                motor_ack_status[i] = 1;
+                motor_ack_status[global_id] = 1;
                 // printf("CUR = %f ", rv_motor_msg[motor_id_t].current_actual_float);
                 // printf("SPD = %f ", rv_motor_msg[motor_id_t].speed_actual_float);
                 // printf("POS = %lf \n", rv_motor_msg[motor_id_t].angle_actual_float);
@@ -882,56 +952,52 @@ void RV_can_imu_data_repack(EtherCAT_Msg *RxMessage) {
 // 这个函数用于直接设置TI5电机电流数据封装发送，单位：毫安
 /*
 motor_id:1~0x7FE
-data_channel:1~6
+pdo_slot:1~24
 spd:-18000~18000
 ack_status:0~3
 */
-void set_ti5_current(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id, float cur) {
-    if (data_channel < 1 || data_channel > 6)
+void set_ti5_current(EtherCAT_Msg *TxMessage, uint8_t pdo_slot, uint32_t can_id, uint16_t global_id, float cur) {
+    if (!valid_pdo_slot(pdo_slot) || global_id >= TOTAL_MOTOR_NUMBER)
         return;
-    const float I_MAX = ti5_motor_range.I_MAX[Z1_MOTOR_ID_Type[motor_id]];
+    const float I_MAX = ti5_motor_range.I_MAX[Z1_MOTOR_ID_Type[global_id]];
 
-    TxMessage->can_ide = 0;
-    TxMessage->motor[data_channel - 1].rtr = 0;
-    TxMessage->motor[data_channel - 1].id = data_channel;
-    TxMessage->motor[data_channel - 1].dlc = 5;
+    Motor_Msg *frame = pdo_frame(TxMessage, pdo_slot);
+    set_frame_header(TxMessage, pdo_slot, can_id, 5);
 
     // 设置指令代码为 0x42
-    TxMessage->motor[data_channel - 1].data[0] = 0x42;
+    frame->data[0] = 0x42;
 
     uint32_t torque_uint = 0;
     double cur_double = clamping(cur, -I_MAX, I_MAX);
-    torque_uint = (unsigned int) (cur_double / ti5_motor_range.TC[Z1_MOTOR_ID_Type[motor_id]]);
+    torque_uint = (unsigned int) (cur_double / ti5_motor_range.TC[Z1_MOTOR_ID_Type[global_id]]);
     // printf("torque_uint = %d\n", torque_uint);
 
 
-    TxMessage->motor[data_channel - 1].data[1] = (uint8_t) (torque_uint & 0xFF);
-    TxMessage->motor[data_channel - 1].data[2] = (uint8_t) ((torque_uint >> 8) & 0xFF);
+    frame->data[1] = (uint8_t) (torque_uint & 0xFF);
+    frame->data[2] = (uint8_t) ((torque_uint >> 8) & 0xFF);
 
-    TxMessage->motor[data_channel - 1].data[3] = (uint8_t) ((torque_uint >> 16) & 0xFF);
-    TxMessage->motor[data_channel - 1].data[4] = (uint8_t) ((torque_uint >> 24) & 0xFF);
+    frame->data[3] = (uint8_t) ((torque_uint >> 16) & 0xFF);
+    frame->data[4] = (uint8_t) ((torque_uint >> 24) & 0xFF);
 }
 
 // 这个函数用于直接设置TI5电机速度数据封装发送，单位：弧度每秒
 /*
 motor_id:1~0x7FE
-data_channel:1~6
+pdo_slot:1~24
 spd:-18000~18000
 ack_status:0~3
 */
-void set_ti5_speed(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id, float spd) {
-    if (data_channel < 1 || data_channel > 6)
+void set_ti5_speed(EtherCAT_Msg *TxMessage, uint8_t pdo_slot, uint32_t can_id, uint16_t global_id, float spd) {
+    if (!valid_pdo_slot(pdo_slot) || global_id >= TOTAL_MOTOR_NUMBER)
         return;
-    const float V_MAX = ti5_motor_range.V_MAX[Z1_MOTOR_ID_Type[motor_id]];
-    const int GEAR_RATIO = ti5_motor_range.GEAR_RATIO[Z1_MOTOR_ID_Type[motor_id]];
+    const float V_MAX = ti5_motor_range.V_MAX[Z1_MOTOR_ID_Type[global_id]];
+    const int GEAR_RATIO = ti5_motor_range.GEAR_RATIO[Z1_MOTOR_ID_Type[global_id]];
 
-    TxMessage->can_ide = 0;
-    TxMessage->motor[data_channel - 1].rtr = 0;
-    TxMessage->motor[data_channel - 1].id = data_channel;
-    TxMessage->motor[data_channel - 1].dlc = 5;
+    Motor_Msg *frame = pdo_frame(TxMessage, pdo_slot);
+    set_frame_header(TxMessage, pdo_slot, can_id, 5);
 
     // 设置指令代码为 0x43
-    TxMessage->motor[data_channel - 1].data[0] = 0x43;
+    frame->data[0] = 0x43;
 
     // 计算公式
     double speed_rps = clamping(spd, -V_MAX, V_MAX);
@@ -941,33 +1007,31 @@ void set_ti5_speed(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor
     uint32_t speed_uint = 0;
     speed_uint = (unsigned int) (speed_rps);
 
-    TxMessage->motor[data_channel - 1].data[1] = (uint8_t) (speed_uint & 0xFF);
-    TxMessage->motor[data_channel - 1].data[2] = (uint8_t) ((speed_uint >> 8) & 0xFF);
+    frame->data[1] = (uint8_t) (speed_uint & 0xFF);
+    frame->data[2] = (uint8_t) ((speed_uint >> 8) & 0xFF);
 
-    TxMessage->motor[data_channel - 1].data[3] = (uint8_t) ((speed_uint >> 16) & 0xFF);
-    TxMessage->motor[data_channel - 1].data[4] = (uint8_t) ((speed_uint >> 24) & 0xFF);
+    frame->data[3] = (uint8_t) ((speed_uint >> 16) & 0xFF);
+    frame->data[4] = (uint8_t) ((speed_uint >> 24) & 0xFF);
 }
 
 // 这个函数用于直接设置TI5电机位置数据封装发送，单位：弧度
 /*
 motor_id:1~0x7FE
-data_channel:1~6
+pdo_slot:1~24
 pos:-18000~18000
 ack_status:0~3
 */
-void set_ti5_position(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id, float pos) {
-    if (data_channel < 1 || data_channel > 6)
+void set_ti5_position(EtherCAT_Msg *TxMessage, uint8_t pdo_slot, uint32_t can_id, uint16_t global_id, float pos) {
+    if (!valid_pdo_slot(pdo_slot) || global_id >= TOTAL_MOTOR_NUMBER)
         return;
 
-    const int GEAR_RATIO = ti5_motor_range.GEAR_RATIO[Z1_MOTOR_ID_Type[motor_id]];
+    const int GEAR_RATIO = ti5_motor_range.GEAR_RATIO[Z1_MOTOR_ID_Type[global_id]];
 
-    TxMessage->can_ide = 0;
-    TxMessage->motor[data_channel - 1].rtr = 0;
-    TxMessage->motor[data_channel - 1].id = data_channel;
-    TxMessage->motor[data_channel - 1].dlc = 5;
+    Motor_Msg *frame = pdo_frame(TxMessage, pdo_slot);
+    set_frame_header(TxMessage, pdo_slot, can_id, 5);
 
     // 设置指令代码为 0x44
-    TxMessage->motor[data_channel - 1].data[0] = 0x44;
+    frame->data[0] = 0x44;
 
     // 计算公式
     double position_rps = (pos / 360.0f) * (GEAR_RATIO * 65536 * 57.2958f);
@@ -976,40 +1040,38 @@ void set_ti5_position(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t mo
     uint32_t position_uint = 0;
     position_uint = (unsigned int) (clamping(position_rps, -174626721.0, 174626721.0));
 
-    TxMessage->motor[data_channel - 1].data[1] = (uint8_t) (position_uint & 0xFF);
-    TxMessage->motor[data_channel - 1].data[2] = (uint8_t) ((position_uint >> 8) & 0xFF);
+    frame->data[1] = (uint8_t) (position_uint & 0xFF);
+    frame->data[2] = (uint8_t) ((position_uint >> 8) & 0xFF);
 
-    TxMessage->motor[data_channel - 1].data[3] = (uint8_t) ((position_uint >> 16) & 0xFF);
-    TxMessage->motor[data_channel - 1].data[4] = (uint8_t) ((position_uint >> 24) & 0xFF);
+    frame->data[3] = (uint8_t) ((position_uint >> 16) & 0xFF);
+    frame->data[4] = (uint8_t) ((position_uint >> 24) & 0xFF);
 }
 
 
 // 这个函数用于设置TI5电机刹车
 /*
 motor_id:1~0x7FE
-data_channel:1~6
+pdo_slot:1~24
 spd:-18000~18000
 ack_status:0~3
 */
-void set_ti5_stop(EtherCAT_Msg *TxMessage, uint8_t data_channel, uint32_t motor_id, int times) {
-    if (data_channel < 1 || data_channel > 6)
+void set_ti5_stop(EtherCAT_Msg *TxMessage, uint8_t pdo_slot, uint32_t can_id, int times) {
+    if (!valid_pdo_slot(pdo_slot))
         return;
 
-    TxMessage->can_ide = 0;
-    TxMessage->motor[data_channel - 1].rtr = 0;
-    TxMessage->motor[data_channel - 1].id = motor_id;
-    TxMessage->motor[data_channel - 1].dlc = 5;
+    Motor_Msg *frame = pdo_frame(TxMessage, pdo_slot);
+    set_frame_header(TxMessage, pdo_slot, can_id, 5);
 
     // 设置指令代码为 0x44
-    TxMessage->motor[data_channel - 1].data[0] = 0x02;
+    frame->data[0] = 0x02;
 
     uint32_t delay_time = 0;
     delay_time = (unsigned int) (times);
 
 
-    TxMessage->motor[data_channel - 1].data[1] = (uint8_t) (delay_time & 0xFF);
-    TxMessage->motor[data_channel - 1].data[2] = (uint8_t) ((delay_time >> 8) & 0xFF);
+    frame->data[1] = (uint8_t) (delay_time & 0xFF);
+    frame->data[2] = (uint8_t) ((delay_time >> 8) & 0xFF);
 
-    TxMessage->motor[data_channel - 1].data[3] = (uint8_t) ((delay_time >> 16) & 0xFF);
-    TxMessage->motor[data_channel - 1].data[4] = (uint8_t) ((delay_time >> 24) & 0xFF);
+    frame->data[3] = (uint8_t) ((delay_time >> 16) & 0xFF);
+    frame->data[4] = (uint8_t) ((delay_time >> 24) & 0xFF);
 }

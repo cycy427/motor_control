@@ -71,7 +71,7 @@ void Z1Legs::PrintMotorState(const int size) const {
         mvprintw(4, 103, "Soc | ");
         mvprintw(4, 111, "Temperature | ");
         BmsState state = battery_handler_->getState();
-        mvprintw(6, 103, "%.2f", state.soc);
+        mvprintw(6, 103, "%.2d", state.soc);
         mvprintw(6, 111, "%.2f", state.temperature);
         attroff(COLOR_PAIR(3));
     }

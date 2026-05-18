@@ -13,7 +13,7 @@
    请安装：Boost 输入`sudo apt-get install libboost-all-dev`
 2. 使用`ifconfig`指令确定接入从机的网卡名称  `sudo apt-get install net-tools`
 3. 将该网卡名称填入到`main.cpp`中、"在while函数中需添加不少于10MS的延时，否则电机无法正常运行"
-4. 修改`transmit.h`中的最大从机数目（默认为4）
+4. 检查`transmit.h`中的从站和电机数量。当前默认适配2个 EtherCAT-CANFD 从站和30个机器人电机。
 5. 编译工程
     ```shell
    mkdir build
@@ -34,13 +34,14 @@
 * 具体可以使用的指令有（括号中为默认值），参数具体含义可以参考电机使用说明书
   * MotorIdGet \<SlaveId\>
   * MotorIdSet \<SlaveId\> \<MotorId\> \<NewMotorId\>
-  * MotorSpeedSet \<SlaveId\>\<PassAge> \<MotorId\> \<Speed\>(0) \<Current\>(500) \<AckStatus\>(2)
-  * MotorPositionSet \<SlaveId\>\<PassAge> \<MotorId\> \<Position\>(0) \<Speed\>(50) \<Current\>(500) \<AckStatus\>(2)
+  * MotorSpeedSet \<SlaveId\> \<PdoSlot\> \<CanId\> \<Speed\>(0) \<Current\>(500) \<AckStatus\>(2)
+  * MotorPositionSet \<SlaveId\> \<PdoSlot\> \<CanId\> \<Position\>(0) \<Speed\>(50) \<Current\>(500) \<AckStatus\>(2)
+
+其中 `SlaveId` 为0开始的从站数组下标，当前有效范围为0-1；`PdoSlot` 为每个从站内部的PDO槽位，当前有效范围为1-24。
 
 ### 特别注意
-ethercat 从站默认分配六个通道，CAN1通道为1，2，3；CAN2通道为 4，5，6；
-更改ID，等设置指令均使用CAN1，即1，2，3通道
-设置速度、力矩等指令可在函数中自主选择，通道设置为函数中第二个变量“passage”可选择。
+当前主站适配新的 EtherCAT-CANFD 从站：每个从站预留40个PDO帧槽，前24个槽有效；槽位1-8对应CANFD1，9-16对应CANFD2，17-24对应CANFD3。
+完整机器人默认映射为：电机0-23接在第1个从站槽位1-24，电机24-29接在第2个从站槽位1-6。CAN ID使用全局编号，电机0-29分别对应CAN ID 1-30；硬件驱动器ID必须与该编号一致。
 
 ### 二次开发
 * 多线程功能
@@ -79,4 +80,3 @@ ethercat 从站默认分配六个通道，CAN1通道为1，2，3；CAN2通道为
   检查程序中是否有线程干扰；给主站连接程序独立线程进行测试；检测程序运行中是否运行时间过长，超过了从站板最大等待时间
 * ethercat板子在连接时经常连接不上
   保持稳定供电，从站板供电需要至少500mA的电流，同时不同主站运行速度不同，可能会有所影响
-

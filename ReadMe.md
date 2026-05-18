@@ -75,7 +75,7 @@ typedef struct {
 2. 安装ncurses库，该库用于显示终端界面`sudo apt-get install libncurses5-dev libncursesw5-dev`
 3. 使用`ifconfig`指令确定接入从机的网卡名称  `sudo apt-get install net-tools`
 4. 将该网卡名称填入到[main.cpp](main.cpp)中、"在while函数中需添加不少于10MS的延时，否则电机无法正常运行"
-5. 修改[transmit.h](app/transmit.h)中的最大从机数目（默认为5）
+5. 检查[transmit.h](app/transmit.h)中的从站与电机数量。当前默认适配两个 EtherCAT-CANFD 从站，30 个机器人电机。
 6.
 
 如果需要使用SBUS接收机，需要修改串口的别名，才能找到这个接收机，具体使用教程可以参见 [SBUS转USB串口配置教程](https://www.wolai.com/kUuBkzjtbkCvuwPxWN3Epj)
@@ -149,13 +149,9 @@ Z1Legs类，***默认为PR模式***，也就是已经经过了闭链运动学的
 包含了有关Ethercat板子所接电机型号的设置，以及对应的参数设置，需要使用者提前注意设置好
 在[transmit.cpp](app/transmit.cpp)中，包含所接Ti5电机和YKS电机数量的设置，以及最大从站数量的设置，需要使用者根据自己的电机数量进行修改
 
-ethercat 从站默认分配六个通道，CAN1通道为1，2，3；CAN2通道为 4，5，6；
-更改ID，等设置指令均使用CAN1，即1，2，3通道
-设置速度、力矩等指令可在函数中自主选择，通道设置为函数中第二个变量“passage”可选择。
-
-Ethercat驱动板内部有6个通道，使用的时候指定通道即可，电机的ID号必须是1-6也只能是1-6
-
-***无论是左腿还是右腿，只要是接在Ethercat板子上面的电机，都必须是1-6的ID号，否则只能控制电机但是无法拿到电机回传的数据***
+当前底层默认适配新的 EtherCAT-CANFD 从站：每个从站预留 40 个 PDO 帧槽，其中前 24 个槽有效；槽位 1-8 对应 CANFD1，9-16 对应 CANFD2，17-24 对应 CANFD3。
+完整机器人默认使用 2 个 EtherCAT-CANFD 从站：电机 0-23 接在第 1 个从站槽位 1-24，电机 24-29 接在第 2 个从站槽位 1-6。
+CAN ID 使用全局编号策略，即电机 0-29 分别对应 CAN ID 1-30。硬件侧驱动器 ID 必须与该策略一致，否则可能出现只能下发命令但无法正确回传状态的情况。
 
 安装xone手柄驱动：（获取力反馈，并非必须）需要同时安装xone和xpadneo才能用，就听神奇的
 https://gitcode.com/gh_mirrors/xo/xone
@@ -179,8 +175,8 @@ C++使用方法：
      cmake .. 这一步如果提示错误,请删除build文件夹,重新创建
      如果还不行，请先解压example中的dds_int，然后按照其中的readme.md安装环境，再重新编译
 
-2. 检查app/motor_control.c文件中的电机型号设置是否正确，如有需要，修改，电机的型号是否正确
-   也就是检查Z1_MOTOR_ID_Type和g_slaves数组初始化是否正确，前者是电机的顺序
+2. 检查app/motor_control.c文件中的电机型号和映射设置是否正确，如有需要，修改电机型号或接线映射。
+   `Z1_MOTOR_ID_Type` 是电机型号顺序，`g_motor_map` / `g_slaves` 是全局电机到 EtherCAT 从站、PDO 槽位、CAN ID 的映射。
 3. 检查app/transmit.cpp文件中的Z1_MOTOR_POS_MAX到Z1_MOTOR_TOR_MIN是否正确，这里是限制位置等量（速度和力矩有待实验证明）
 4. 检查Z1_legs.h中LegDirectionMotor_数组的电机转向是否正确，如有需要，修改
 5. 在main.cpp中，检查第一行CYCLONEDDS_URI的路径是否正确，如有需要，修改
@@ -234,7 +230,7 @@ C++使用方法：
 
 ### 注意事项
 
-1. 电机id号参考app/motor_control.c中的g_slaves的global_id，与上位机显示的序列相同。
+1. 电机全局序号参考app/motor_control.c中的`g_motor_map[].global_id`，CAN ID参考`g_motor_map[].can_id`，与默认硬件编号1-30对应。
 2. 请先杀掉./YKS_SDK程序后再拍急停关闭电机，如果先关闭了电机再关程序，请同时将ethercat版也断电，即将电池断电
 
 #### 获得原始数据

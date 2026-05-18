@@ -5,6 +5,10 @@
 #include "command.h"
 
 void sendToQueue(int slaveId, const EtherCAT_Msg_ptr &msg) {
+    if (slaveId < 0 || slaveId >= SLAVE_NUMBER) {
+        std::cout << "SlaveId out of range, valid range is 0-" << (SLAVE_NUMBER - 1) << "\n";
+        return;
+    }
     if (messages[slaveId].write_available()) {
         messages[slaveId].push(msg);
     } else {
@@ -17,8 +21,9 @@ unsigned help(const std::vector<std::string> &) {
     std::cout << "Available Commands:\n"
               << "\tMotorIdGet <SlaveId>\n"
               << "\tMotorIdSet <SlaveId> <MotorId> <NewMotorId>\n"
-              << "\tMotorSpeedSet <SlaveId> <PassAge> <MotorId> <Speed>(0) <Current>(500) <AckStatus>(2)\n"
-              << "\tMotorPositionSet <SlaveId> <PassAge> <MotorId> <Position>(0) <Speed>(50) <Current>(500) <AckStatus>(2)\n";
+              << "\tMotorSpeedSet <SlaveId> <PdoSlot> <CanId> <Speed>(0) <Current>(500) <AckStatus>(2)\n"
+              << "\tMotorPositionSet <SlaveId> <PdoSlot> <CanId> <Position>(0) <Speed>(50) <Current>(500) <AckStatus>(2)\n"
+              << "\tSlaveId is 0-based; PdoSlot is 1-24 on each EtherCAT-CANFD slave.\n";
     return 0;
 }
 
@@ -80,7 +85,7 @@ unsigned motorSpeedSet(const std::vector<std::string> &input) {
             break;
         default:
             std::cout << "Command format error\n" <<
-                      "\tShould be \"MotorSpeedSet <SlaveId> <PassAge> <OldMotorId> <Speed>(0) <Current>(500) <AckStatus>(2)\"\n";
+                      "\tShould be \"MotorSpeedSet <SlaveId> <PdoSlot> <CanId> <Speed>(0) <Current>(500) <AckStatus>(2)\"\n";
             return 1;
     }
     EtherCAT_Msg_ptr msg(new EtherCAT_Msg);
@@ -113,7 +118,7 @@ unsigned motoPositionSet(const std::vector<std::string> &input) {
             break;
         default:
             std::cout << "Command format error\n" <<
-                      "\tShould be \"MotorPositionSet <SlaveId> <PassAge> <OldMotorId> <Position>(0) <Speed>(50) <Current>(500) <AckStatus>(2)\"\n";
+                      "\tShould be \"MotorPositionSet <SlaveId> <PdoSlot> <CanId> <Position>(0) <Speed>(50) <Current>(500) <AckStatus>(2)\"\n";
             return 1;
     }
     EtherCAT_Msg_ptr msg(new EtherCAT_Msg);
