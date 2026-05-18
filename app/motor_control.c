@@ -21,17 +21,20 @@ TI5_MOTOR_RANGE ti5_motor_range = {
 };
 //int Z1_YKS_MOTOR_ID_Type[6] = {A13720, A10020_1, A8112, A13715, A6408, A6408};//这个是Z1的第一版机器人的腿部电机的顺序
 //int Z1_YKS_MOTOR_ID_Type[6] = {A13715, A10020_2, A10020_1, A13720, A8112, A8112};//这个是Z1.5机器人的腿部电机的顺序
-//这个要根据实际的Z1机器人电机型号来设置，global_id从0开始，对应上层30电机顺序。
+//这个要根据实际的Z1机器人电机型号来设置，global_id从0开始，对应上层48电机顺序。
 int Z1_MOTOR_ID_Type[TOTAL_MOTOR_NUMBER] = {
     A13715, A10020_2, A10020_1, A13720, A8112, A8112, //下肢 左腿
     A13715, A10020_2, A10020_1, A13720, A8112, A8112, //下肢 右腿
     A8112, A6408, A6408, A4310, A4310, A4310, //上肢 左臂
     A8112, A6408, A6408, A4310, A4310, A4310, //上肢 右臂
-    A8112, A8112, A8112, A10020_1, A10020_1, A10020_1 //两肩和腰部
+    A8112, A8112, A8112, A10020_1, A10020_1, A10020_1, //两肩和腰部
+    A8112, A8112, A8112, A8112, A8112, A8112, //扩展电机 30~35
+    A8112, A8112, A8112, A8112, A8112, A8112, //扩展电机 36~41
+    A8112, A8112, A8112, A8112, A8112, A8112 //扩展电机 42~47
 };
 
 // 新EtherCAT-CANFD从站映射：
-// 从站1使用槽位1~24，对应CAN ID 1~24；从站2使用槽位1~6，对应CAN ID 25~30。
+// 从站1使用槽位1~24，对应CAN ID 1~24；从站2使用槽位1~24，对应CAN ID 25~48。
 // 每个从站槽位1~8为CANFD1，9~16为CANFD2，17~24为CANFD3。
 Motor g_motor_map[TOTAL_MOTOR_NUMBER] = {
     {MOTOR_YKS, 0, 1, 1, 0},
@@ -64,6 +67,24 @@ Motor g_motor_map[TOTAL_MOTOR_NUMBER] = {
     {MOTOR_YKS, 1, 4, 28, 27},
     {MOTOR_YKS, 1, 5, 29, 28},
     {MOTOR_YKS, 1, 6, 30, 29},
+    {MOTOR_YKS, 1, 7, 31, 30},
+    {MOTOR_YKS, 1, 8, 32, 31},
+    {MOTOR_YKS, 1, 9, 33, 32},
+    {MOTOR_YKS, 1, 10, 34, 33},
+    {MOTOR_YKS, 1, 11, 35, 34},
+    {MOTOR_YKS, 1, 12, 36, 35},
+    {MOTOR_YKS, 1, 13, 37, 36},
+    {MOTOR_YKS, 1, 14, 38, 37},
+    {MOTOR_YKS, 1, 15, 39, 38},
+    {MOTOR_YKS, 1, 16, 40, 39},
+    {MOTOR_YKS, 1, 17, 41, 40},
+    {MOTOR_YKS, 1, 18, 42, 41},
+    {MOTOR_YKS, 1, 19, 43, 42},
+    {MOTOR_YKS, 1, 20, 44, 43},
+    {MOTOR_YKS, 1, 21, 45, 44},
+    {MOTOR_YKS, 1, 22, 46, 45},
+    {MOTOR_YKS, 1, 23, 47, 46},
+    {MOTOR_YKS, 1, 24, 48, 47},
 };
 
 Slave g_slaves[SLAVE_NUMBER] = {
@@ -99,7 +120,7 @@ Slave g_slaves[SLAVE_NUMBER] = {
     },
     {
         .slave_id = 2,
-        .motor_count = 6,
+        .motor_count = 24,
         .motors = {
             {MOTOR_YKS, 1, 1, 25, 24},
             {MOTOR_YKS, 1, 2, 26, 25},
@@ -107,6 +128,24 @@ Slave g_slaves[SLAVE_NUMBER] = {
             {MOTOR_YKS, 1, 4, 28, 27},
             {MOTOR_YKS, 1, 5, 29, 28},
             {MOTOR_YKS, 1, 6, 30, 29},
+            {MOTOR_YKS, 1, 7, 31, 30},
+            {MOTOR_YKS, 1, 8, 32, 31},
+            {MOTOR_YKS, 1, 9, 33, 32},
+            {MOTOR_YKS, 1, 10, 34, 33},
+            {MOTOR_YKS, 1, 11, 35, 34},
+            {MOTOR_YKS, 1, 12, 36, 35},
+            {MOTOR_YKS, 1, 13, 37, 36},
+            {MOTOR_YKS, 1, 14, 38, 37},
+            {MOTOR_YKS, 1, 15, 39, 38},
+            {MOTOR_YKS, 1, 16, 40, 39},
+            {MOTOR_YKS, 1, 17, 41, 40},
+            {MOTOR_YKS, 1, 18, 42, 41},
+            {MOTOR_YKS, 1, 19, 43, 42},
+            {MOTOR_YKS, 1, 20, 44, 43},
+            {MOTOR_YKS, 1, 21, 45, 44},
+            {MOTOR_YKS, 1, 22, 46, 45},
+            {MOTOR_YKS, 1, 23, 47, 46},
+            {MOTOR_YKS, 1, 24, 48, 47},
         }
     }
 };

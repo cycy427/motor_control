@@ -11,6 +11,7 @@
 #include <condition_variable>
 #include <cstdlib>
 #include <iostream>
+#include <algorithm>
 #include <csignal> // 信号头文件
 #include <unistd.h>   // write(), STDOUT_FILENO
 #include <cstring>   // strlen()
@@ -105,7 +106,8 @@ void zero_out() {
 
 void DDS_Get_Leg_Motor_Cmds(const int motor_num, const motorcmds &cmds, YKSMotorData *motor_cmds) {
     // 拿到所有DDS传过来的电机指令数据，然后传给main函数当中的全局数组，通过电机数量可以区分到底是上肢还是下肢的指令
-    for (int i = 0; i < motor_num; i++) {
+    const int available_num = std::min<int>(motor_num, cmds.cmds().size());
+    for (int i = 0; i < available_num; i++) {
         motor_cmds[i].pos_des_ = cmds.cmds()[i].pos();
         motor_cmds[i].vel_des_ = cmds.cmds()[i].vel();
         motor_cmds[i].ff_ = cmds.cmds()[i].tau();
@@ -117,7 +119,8 @@ void DDS_Get_Leg_Motor_Cmds(const int motor_num, const motorcmds &cmds, YKSMotor
 
 void DDS_Get_Z1_5_WB_Motor_Cmds(const int motor_num, const motorcmds &cmds, YKSMotorData *motor_cmds) {
     // 拿到所有DDS传过来的电机指令数据，然后传给main函数当中的全局数组，通过电机数量可以区分到底是上肢还是下肢的指令
-    for (int i = 0; i < motor_num; i++) {
+    const int available_num = std::min<int>(motor_num, cmds.cmds().size());
+    for (int i = 0; i < available_num; i++) {
         motor_cmds[i].pos_des_ = cmds.cmds()[i].pos();
         motor_cmds[i].vel_des_ = cmds.cmds()[i].vel();
         motor_cmds[i].ff_ = cmds.cmds()[i].tau();
@@ -129,7 +132,8 @@ void DDS_Get_Z1_5_WB_Motor_Cmds(const int motor_num, const motorcmds &cmds, YKSM
 
 void DDS_Get_Arm_Motor_Cmds(const int motor_num, const motorcmds &cmds, YKSMotorData *motor_cmds) {
     // 拿到所有DDS传过来的电机指令数据，然后传给main函数当中的全局数组，通过电机数量可以区分到底是上肢还是下肢的指令
-    for (int i = 0; i < motor_num; i++) {
+    const int available_num = std::min<int>(motor_num, cmds.cmds().size());
+    for (int i = 0; i < available_num; i++) {
         motor_cmds[i + 12].pos_des_ = cmds.cmds()[i].pos();
         motor_cmds[i + 12].vel_des_ = cmds.cmds()[i].vel();
         motor_cmds[i + 12].ff_ = cmds.cmds()[i].tau();
@@ -141,7 +145,8 @@ void DDS_Get_Arm_Motor_Cmds(const int motor_num, const motorcmds &cmds, YKSMotor
 
 void DDS_Get_Body_Motor_Cmds(const int motor_num, const motorcmds &cmds, YKSMotorData *motor_cmds) {
     // 拿到所有DDS传过来的电机指令数据，然后传给main函数当中的全局数组，通过电机数量可以区分到底是上肢还是下肢的指令
-    for (int i = 0; i < motor_num; i++) {
+    const int available_num = std::min<int>(motor_num, cmds.cmds().size());
+    for (int i = 0; i < available_num; i++) {
         motor_cmds[i + 24].pos_des_ = cmds.cmds()[i].pos();
         motor_cmds[i + 24].vel_des_ = cmds.cmds()[i].vel();
         motor_cmds[i + 24].ff_ = cmds.cmds()[i].tau();

@@ -4,11 +4,12 @@
 #include <thread>
 #include <csignal>
 #include <atomic>
+#include <algorithm>
 
 #include "dds/dds.hpp"
 #include "nubotddsmsg.hpp"
 
-#define TOTAL_MOTOR_NUMBER 30
+#define TOTAL_MOTOR_NUMBER 48
 #define ARM_MOTOR_NUMBER 12 //双臂的电机数
 #define BODY_MOTOR_NUMBER 6 //双臂的电机数
 
@@ -52,7 +53,8 @@ void signal_handler(int signal) {
 
 void DDS_Get_Z1_5_WB_Motor_States(const int motor_num, const motorstates &states, YKSMotorData *motor_cmds) {
     // 拿到所有DDS传过来的电机状态数据，然后传给main函数当中的全局数组
-    for (int i = 0; i < motor_num; i++) {
+    const int available_num = std::min<int>(motor_num, states.states().size());
+    for (int i = 0; i < available_num; i++) {
         motor_cmds[i].mode = states.states()[i].mode();
         motor_cmds[i].pos_ = states.states()[i].pos();
         motor_cmds[i].vel_ = states.states()[i].vel();
@@ -64,7 +66,8 @@ void DDS_Get_Z1_5_WB_Motor_States(const int motor_num, const motorstates &states
 }
 void DDS_Get_ARM_Motor_States(const int motor_num, const motorstates &states, YKSMotorData *motor_cmds) {
     // 拿到所有DDS传过来的电机状态数据，然后传给main函数当中的全局数组
-    for (int i = 0; i < motor_num; i++) {
+    const int available_num = std::min<int>(motor_num, states.states().size());
+    for (int i = 0; i < available_num; i++) {
         motor_cmds[i+12].mode = states.states()[i].mode();
         motor_cmds[i+12].pos_ = states.states()[i].pos();
         motor_cmds[i+12].vel_ = states.states()[i].vel();
@@ -77,7 +80,8 @@ void DDS_Get_ARM_Motor_States(const int motor_num, const motorstates &states, YK
 
 void DDS_Get_BODY_Motor_States(const int motor_num, const motorstates &states, YKSMotorData *motor_cmds) {
     // 拿到所有DDS传过来的电机状态数据，然后传给main函数当中的全局数组
-    for (int i = 0; i < motor_num; i++) {
+    const int available_num = std::min<int>(motor_num, states.states().size());
+    for (int i = 0; i < available_num; i++) {
         motor_cmds[i+24].mode = states.states()[i].mode();
         motor_cmds[i+24].pos_ = states.states()[i].pos();
         motor_cmds[i+24].vel_ = states.states()[i].vel();
@@ -287,7 +291,7 @@ int main() {
 
     motorcmds body_Cmds;
     body_Cmds.level(1); // 设置为上肢
-    body_Cmds.cmds().resize(ARM_MOTOR_NUMBER);
+    body_Cmds.cmds().resize(BODY_MOTOR_NUMBER);
     //初始化
     // for (int i = 0; i < TOTAL_MOTOR_NUMBER; ++i) {
     //     auto &cmd = z1_5_wb_Cmds.cmds()[i];
@@ -327,7 +331,7 @@ int main() {
     dds::sub::LoanedSamples<motorstates> samples_body;
 
     setArmYKSSquatControl(13, 0, 0, 0, 0, 0, 10);//12-23
-    setBodyYKSSquatControl(25, 0, 0, 0, 0, 0, 10);//24-30
+    setBodyYKSSquatControl(25, 0, 0, 0, 0, 0, 10);//24-29
     while (!quit) {
         /////////////////////////////////////////////////////////////////////////////////////////////
 

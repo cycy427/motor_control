@@ -75,7 +75,7 @@ typedef struct {
 2. 安装ncurses库，该库用于显示终端界面`sudo apt-get install libncurses5-dev libncursesw5-dev`
 3. 使用`ifconfig`指令确定接入从机的网卡名称  `sudo apt-get install net-tools`
 4. 将该网卡名称填入到[main.cpp](main.cpp)中、"在while函数中需添加不少于10MS的延时，否则电机无法正常运行"
-5. 检查[transmit.h](app/transmit.h)中的从站与电机数量。当前默认适配两个 EtherCAT-CANFD 从站，30 个机器人电机。
+5. 检查[transmit.h](app/transmit.h)中的从站与电机数量。当前默认适配两个 EtherCAT-CANFD 从站，48 个机器人电机。
 6.
 
 如果需要使用SBUS接收机，需要修改串口的别名，才能找到这个接收机，具体使用教程可以参见 [SBUS转USB串口配置教程](https://www.wolai.com/kUuBkzjtbkCvuwPxWN3Epj)
@@ -150,8 +150,8 @@ Z1Legs类，***默认为PR模式***，也就是已经经过了闭链运动学的
 在[transmit.cpp](app/transmit.cpp)中，包含所接Ti5电机和YKS电机数量的设置，以及最大从站数量的设置，需要使用者根据自己的电机数量进行修改
 
 当前底层默认适配新的 EtherCAT-CANFD 从站：每个从站预留 40 个 PDO 帧槽，其中前 24 个槽有效；槽位 1-8 对应 CANFD1，9-16 对应 CANFD2，17-24 对应 CANFD3。
-完整机器人默认使用 2 个 EtherCAT-CANFD 从站：电机 0-23 接在第 1 个从站槽位 1-24，电机 24-29 接在第 2 个从站槽位 1-6。
-CAN ID 使用全局编号策略，即电机 0-29 分别对应 CAN ID 1-30。硬件侧驱动器 ID 必须与该策略一致，否则可能出现只能下发命令但无法正确回传状态的情况。
+完整机器人默认使用 2 个 EtherCAT-CANFD 从站，两个从站都启用 24 个有效槽位：电机 0-23 接在第 1 个从站槽位 1-24，电机 24-47 接在第 2 个从站槽位 1-24。
+CAN ID 使用全局编号策略，即电机 0-47 分别对应 CAN ID 1-48。硬件侧驱动器 ID 必须与该策略一致，否则可能出现只能下发命令但无法正确回传状态的情况。
 
 安装xone手柄驱动：（获取力反馈，并非必须）需要同时安装xone和xpadneo才能用，就听神奇的
 https://gitcode.com/gh_mirrors/xo/xone
@@ -192,9 +192,9 @@ C++使用方法：
    比如：No module named 'nubotddsmsg' 进入example/yksddss/文件夹中的readme.md安装消息库
 
 4. 所写的发送程序为z1_5_wb.z1_5_wb_squat_control(),请阅读函数注释，将函数参数修改为需要发送的数据，然后调用该函数，需要
-   修改的值一般为index，这个是电机的全局id号，和./YKS_SDK终端所显示的一致，每次发送都是30个数据一块发送，要是
+   修改的值一般为index，这个是电机的全局id号，和./YKS_SDK终端所显示的一致，每次发送都是48个数据一块发送，要是
    只需要控制双足，那么可以修改for i in range(12): z1_5_wb.z1_5_wb_squat_control(),其余的不改即可
-5. id 设置为 双足：0-11 双臂 12-23 躯干 24-29
+5. 既有机器人本体 id 设置为 双足：0-11 双臂 12-23 躯干 24-29；第二从站扩展槽位为 30-47
 
 #### imu使用说明：
 1. example/dds_imu/imu_pub.py为imu发布节点，开启一个新终端，进入相关环境运行即可
@@ -214,7 +214,7 @@ C++使用方法：
 
 ### 注意，这一步不能接反，不确定请找接过的人！！！
 
-2. 修改电机的can id，然后接到板子上，CAN1通道为电机can id 1，2，3；CAN2通道为电机can id 4，5，6；
+2. 修改电机的 CAN ID，然后接到板子上。默认映射为每个从站 24 个有效槽：槽位 1-8 接 CANFD1，槽位 9-16 接 CANFD2，槽位 17-24 接 CANFD3；第 1 个从站对应全局电机 0-23 / CAN ID 1-24，第 2 个从站对应全局电机 24-47 / CAN ID 25-48。
 
 ## 调试步骤
 
@@ -230,7 +230,7 @@ C++使用方法：
 
 ### 注意事项
 
-1. 电机全局序号参考app/motor_control.c中的`g_motor_map[].global_id`，CAN ID参考`g_motor_map[].can_id`，与默认硬件编号1-30对应。
+1. 电机全局序号参考app/motor_control.c中的`g_motor_map[].global_id`，CAN ID参考`g_motor_map[].can_id`，与默认硬件编号1-48对应。
 2. 请先杀掉./YKS_SDK程序后再拍急停关闭电机，如果先关闭了电机再关程序，请同时将ethercat版也断电，即将电池断电
 
 #### 获得原始数据

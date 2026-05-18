@@ -13,7 +13,7 @@
    请安装：Boost 输入`sudo apt-get install libboost-all-dev`
 2. 使用`ifconfig`指令确定接入从机的网卡名称  `sudo apt-get install net-tools`
 3. 将该网卡名称填入到`main.cpp`中、"在while函数中需添加不少于10MS的延时，否则电机无法正常运行"
-4. 检查`transmit.h`中的从站和电机数量。当前默认适配2个 EtherCAT-CANFD 从站和30个机器人电机。
+4. 检查`transmit.h`中的从站和电机数量。当前默认适配2个 EtherCAT-CANFD 从站和48个机器人电机。
 5. 编译工程
     ```shell
    mkdir build
@@ -41,7 +41,7 @@
 
 ### 特别注意
 当前主站适配新的 EtherCAT-CANFD 从站：每个从站预留40个PDO帧槽，前24个槽有效；槽位1-8对应CANFD1，9-16对应CANFD2，17-24对应CANFD3。
-完整机器人默认映射为：电机0-23接在第1个从站槽位1-24，电机24-29接在第2个从站槽位1-6。CAN ID使用全局编号，电机0-29分别对应CAN ID 1-30；硬件驱动器ID必须与该编号一致。
+完整机器人默认映射为：电机0-23接在第1个从站槽位1-24，电机24-47接在第2个从站槽位1-24。CAN ID使用全局编号，电机0-47分别对应CAN ID 1-48；硬件驱动器ID必须与该编号一致。
 
 ### 二次开发
 * 多线程功能

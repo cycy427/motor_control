@@ -44,7 +44,7 @@ class Z1RemoteClient(threading.Thread):
         if role not in ['arm', 'leg', 'body', 'Z1_5_WB']:
             raise ValueError("role must be 'arm' or 'leg' or 'body' or 'Z1_5_WB'")
 
-        motornum = {'arm': 12, 'leg': 12, 'body': 6, 'Z1_5_WB': 30}
+        motornum = {'arm': 12, 'leg': 12, 'body': 6, 'Z1_5_WB': 48}
         levels = {'leg': 0, 'arm': 1, 'body': 2, 'Z1_5_WB': 3}
 
         self.daemon = True
@@ -225,7 +225,7 @@ class Z1RemoteClient(threading.Thread):
 
     def z1_5_wb_squat_control(self, index, mode, pos, vel, tau, kp, kd):
         """
-        :param index: 关节索引（全局ID）双足：0-11 双臂 12-23 躯干 24-29
+        :param index: 关节索引（全局ID）双足：0-11 双臂 12-23 躯干 24-29 扩展电机 30-47
         :param pos, vel, tau, kp, kd: 目标值
         :param mode: 控制模式 (0: 力位混合 1: position, 2: torque, 3: velocity)
         """
@@ -264,7 +264,7 @@ class Z1RemoteClient(threading.Thread):
 if __name__ == '__main__':
     z1_5_wb = Z1RemoteClient(WHOLEBODYCMDTOPIC, WHOLEBODYSTATETOPIC, 'Z1_5_WB')
 
-    # for i in range(30):
+    # for i in range(48):
     #     # print(i)
     #     z1_5_wb.z1_5_wb_squat_control(i, 0, 0, 0, 0, 100, 10)
     #

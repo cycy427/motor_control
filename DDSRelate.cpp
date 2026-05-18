@@ -3,6 +3,7 @@
 //
 // DDSRelate.cpp
 #include "DDSRelate.h"
+#include <algorithm>
 
 
 DDSRelate::DDSRelate() {
@@ -10,7 +11,8 @@ DDSRelate::DDSRelate() {
 }
 
 void DDSRelate::DDS_Get_Leg_Motor_Cmds(const int motor_num, const motorcmds &cmds, YKSMotorData *motor_cmds) {
-    for (int i = 0; i < motor_num; i++) {
+    const int available_num = std::min<int>(motor_num, cmds.cmds().size());
+    for (int i = 0; i < available_num; i++) {
         motor_cmds[i].pos_des_ = cmds.cmds()[i].pos();
         motor_cmds[i].vel_des_ = cmds.cmds()[i].vel();
         motor_cmds[i].ff_ = cmds.cmds()[i].tau();
@@ -21,7 +23,8 @@ void DDSRelate::DDS_Get_Leg_Motor_Cmds(const int motor_num, const motorcmds &cmd
 }
 
 void DDSRelate::DDS_Get_Z1_5_WB_Motor_Cmds(const int motor_num, const motorcmds &cmds, YKSMotorData *motor_cmds) {
-    for (int i = 0; i < motor_num; i++) {
+    const int available_num = std::min<int>(motor_num, cmds.cmds().size());
+    for (int i = 0; i < available_num; i++) {
         motor_cmds[i].pos_des_ = cmds.cmds()[i].pos();
         motor_cmds[i].vel_des_ = cmds.cmds()[i].vel();
         motor_cmds[i].ff_ = cmds.cmds()[i].tau();
@@ -32,7 +35,8 @@ void DDSRelate::DDS_Get_Z1_5_WB_Motor_Cmds(const int motor_num, const motorcmds 
 }
 
 void DDSRelate::DDS_Get_Arm_Motor_Cmds(const int motor_num, const motorcmds &cmds, YKSMotorData *motor_cmds) {
-    for (int i = 0; i < motor_num; i++) {
+    const int available_num = std::min<int>(motor_num, cmds.cmds().size());
+    for (int i = 0; i < available_num; i++) {
         motor_cmds[i + 12].pos_des_ = cmds.cmds()[i].pos();
         motor_cmds[i + 12].vel_des_ = cmds.cmds()[i].vel();
         motor_cmds[i + 12].ff_ = cmds.cmds()[i].tau();
@@ -43,7 +47,8 @@ void DDSRelate::DDS_Get_Arm_Motor_Cmds(const int motor_num, const motorcmds &cmd
 }
 
 void DDSRelate::DDS_Get_Body_Motor_Cmds(const int motor_num, const motorcmds &cmds, YKSMotorData *motor_cmds) {
-    for (int i = 0; i < motor_num; i++) {
+    const int available_num = std::min<int>(motor_num, cmds.cmds().size());
+    for (int i = 0; i < available_num; i++) {
         motor_cmds[i + 24].pos_des_ = cmds.cmds()[i].pos();
         motor_cmds[i + 24].vel_des_ = cmds.cmds()[i].vel();
         motor_cmds[i + 24].ff_ = cmds.cmds()[i].tau();
