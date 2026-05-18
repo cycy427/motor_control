@@ -145,6 +145,24 @@ typedef struct {
 
 Z1Legs类，***默认为PR模式***，也就是已经经过了闭链运动学的解算，而不是直接控制单电机，是耦合控制双电机
 
+#### Z1Legs闭链踝关节正逆解说明
+
+`Z1Legs` 中的 `Mode::PR` 是默认控制模式。该模式下，上层接口仍然按照机器人逻辑关节发送和读取数据，而不是直接按照脚踝 A/B 两个物理电机控制。
+
+逻辑关节索引如下：
+
+- 左腿脚踝：`4` 表示 `LeftAnklePitch`，`5` 表示 `LeftAnkleRoll`。
+- 右腿脚踝：`10` 表示 `RightAnklePitch`，`11` 表示 `RightAnkleRoll`。
+- 在底层电机映射中，脚踝仍由 A/B 两个电机耦合驱动：左脚踝 `LeftAnkleB=4`、`LeftAnkleA=5`，右脚踝 `RightAnkleB=10`、`RightAnkleA=11`。
+
+发送命令时，`setMotorCommand()` 会执行逆运动学：上层给定的脚踝 `Pitch/Roll` 期望位置、速度和前馈力矩，会被转换为两个物理脚踝电机 A/B 的命令。位置逆解由 `inverse_kinematics()` 计算，速度通过数值雅可比矩阵换算，前馈力矩按 Pitch/Roll 组合关系分配到 A/B 电机。
+
+读取反馈时，`getMotorData()` 会执行正运动学：先读取 A/B 两个物理电机的实际位置、速度和力矩，再通过 `Pitch_forward_kinematics()` 和 `Roll_forward_kinematics()` 还原为上层看到的脚踝 `Pitch/Roll` 逻辑关节状态。因此在 `sudo ./YKS_SDK` 的全屏状态显示和 DDS whole-body 状态中，索引 `4/5/10/11` 默认表示逻辑脚踝 Pitch/Roll，而不是原始 A/B 电机角度。
+
+正运动学求解内部使用 `forward_kinematics()` 做牛顿迭代，并反复调用 `inverse_kinematics()` 计算残差和数值雅可比。由于机械边界、反馈噪声或初始姿态可能让几何约束中的 `asin()` 输入略微超过 `[-1, 1]`，当前实现会先将该输入钳位到 `[-1, 1]`，并在迭代过程中遇到非有限值时回退，避免单次异常反馈在全屏显示或 DDS 状态中扩散成 `nan`。该钳位是闭链运动学的数值保护，不改变 CAN 返回帧的原始解包结果；如果某个关节持续接近边界或反复触发保护，应优先检查实际脚踝 A/B 电机零位、方向、机械安装和 `LegDirectionMotor_`。
+
+如果需要绕过闭链解算、直接控制脚踝 A/B 两个物理电机，需要将 `Z1Legs` 的模式改为 `Mode::AB` 或自行创建不经过 PR 解算的控制类。直接调试电机时还需要重点检查 `Z1Legs.h` 中的 `LegDirectionMotor_`，确保实际电机正方向与 URDF/控制坐标系一致。所有位置单位为 rad，速度单位为 rad/s，力矩单位为 N.m。
+
 在[motor_control.c](app/motor_control.c)和[motor_control.h](app/motor_control.h)
 包含了有关Ethercat板子所接电机型号的设置，以及对应的参数设置，需要使用者提前注意设置好
 在[transmit.cpp](app/transmit.cpp)中，包含所接Ti5电机和YKS电机数量的设置，以及最大从站数量的设置，需要使用者根据自己的电机数量进行修改

@@ -5,6 +5,22 @@
 #include "Z1Legs.h"
 extern std::atomic<bool> stop_thread;
 
+namespace {
+double clampUnit(const double value) {
+    if (value > 1.0) {
+        return 1.0;
+    }
+    if (value < -1.0) {
+        return -1.0;
+    }
+    return value;
+}
+
+double finiteOrZero(const double value) {
+    return std::isfinite(value) ? value : 0.0;
+}
+}
+
 Z1Legs::Z1Legs() : stop_(false), time_(0.0), control_dt_(1), duration_(3.0), counter_(0),
                    mode_pr_(Mode::PR), mode_machine_(0) {
     control_thread_ = std::make_shared<std::thread>(&Z1Legs::Control, this);
@@ -81,33 +97,36 @@ void Z1Legs::PrintMotorState(const int size) const {
 
     // 打印电机状态
     for (int i = 0; i < size; ++i) {
+        move(i + 8, 0);
+        clrtoeol();
+
         attron(COLOR_PAIR(1));
         mvprintw(i + 8, 0, "%d", i);
         attroff(COLOR_PAIR(1));
 
         attron(COLOR_PAIR(2));
-        mvprintw(i + 8, 11, "%.3f", motor_print_[i].pos_);
+        mvprintw(i + 8, 11, "%9.3f", finiteOrZero(motor_print_[i].pos_));
         attroff(COLOR_PAIR(2));
 
         attron(COLOR_PAIR(3));
-        mvprintw(i + 8, 24, "%.3f", motor_print_[i].vel_);
+        mvprintw(i + 8, 24, "%9.3f", finiteOrZero(motor_print_[i].vel_));
         attroff(COLOR_PAIR(3));
 
         attron(COLOR_PAIR(4));
-        mvprintw(i + 8, 35, "%.3f", motor_print_[i].tau_);
+        mvprintw(i + 8, 35, "%9.3f", finiteOrZero(motor_print_[i].tau_));
         attroff(COLOR_PAIR(4));
 
         attron(COLOR_PAIR(5));
-        mvprintw(i + 8, 46, "%.3f", motor_print_[i].pos_des_);
+        mvprintw(i + 8, 46, "%9.3f", finiteOrZero(motor_print_[i].pos_des_));
         attroff(COLOR_PAIR(5));
 
         attron(COLOR_PAIR(6));
-        mvprintw(i + 8, 63, "%.3f", motor_print_[i].vel_des_);
+        mvprintw(i + 8, 63, "%9.3f", finiteOrZero(motor_print_[i].vel_des_));
         attroff(COLOR_PAIR(6));
 
-        mvprintw(i + 8, 79, "%.3f", motor_print_[i].kp_);
-        mvprintw(i + 8, 87, "%.3f", motor_print_[i].kd_);
-        mvprintw(i + 8, 95, "%.3f", motor_print_[i].ff_);
+        mvprintw(i + 8, 79, "%7.3f", finiteOrZero(motor_print_[i].kp_));
+        mvprintw(i + 8, 87, "%7.3f", finiteOrZero(motor_print_[i].kd_));
+        mvprintw(i + 8, 95, "%7.3f", finiteOrZero(motor_print_[i].ff_));
     }
 }
 
@@ -197,14 +216,14 @@ Z1Legs::InverseKinematicsResult Z1Legs::inverse_kinematics(double roll, double p
     double k2 = -2 * L3 * z_c1;
     double a1 = L3*L3 + x_c1*x_c1 + pow(y_b1 - y_z1, 2) + z_c1*z_c1 - L1*L1;
     double denominator1 = sqrt(k1*k1 + k2*k2);
-    double theta1 = (denominator1 > 1e-6) ? asin(a1 / denominator1) - atan2(k1, k2) : 0.0;
+    double theta1 = (denominator1 > 1e-6) ? asin(clampUnit(a1 / denominator1)) - atan2(k1, k2) : 0.0;
 
     // 计算theta2（脚踝B）
     double k3 = -2 * L4 * x_c2;
     double k4 = -2 * L4 * (z_c2 + H2);
     double a2 = L4*L4 + x_c2*x_c2 + pow(y_b2 - y_z2, 2) + pow(z_c2 + H2, 2) - L2*L2;
     double denominator2 = sqrt(k3*k3 + k4*k4);
-    double theta2 = (denominator2 > 1e-6) ? asin(a2 / denominator2) - atan2(k3, k4) : 0.0;
+    double theta2 = (denominator2 > 1e-6) ? asin(clampUnit(a2 / denominator2)) - atan2(k3, k4) : 0.0;
 
     return {theta1, theta2};
 }
@@ -247,6 +266,12 @@ void Z1Legs::inverse_velocity(double roll, double pitch, const double end_vel[2]
 
 void Z1Legs::forward_kinematics(double theta1, double theta2, double& roll, double& pitch) const {
     // 牛顿迭代法求解正向运动学
+    if (!std::isfinite(theta1) || !std::isfinite(theta2)) {
+        roll = 0.0;
+        pitch = 0.0;
+        return;
+    }
+
     double current_roll = 0.0, current_pitch = 0.0;
     const int max_iter = 100;
     const double tol = 1e-4;
@@ -255,6 +280,9 @@ void Z1Legs::forward_kinematics(double theta1, double theta2, double& roll, doub
         auto current_theta = inverse_kinematics(current_roll, current_pitch);
         double res1 = current_theta.theta1 - theta1;
         double res2 = current_theta.theta2 - theta2;
+        if (!std::isfinite(res1) || !std::isfinite(res2)) {
+            break;
+        }
         if (hypot(res1, res2) < tol) break;
 
         // 计算雅可比矩阵
@@ -266,8 +294,16 @@ void Z1Legs::forward_kinematics(double theta1, double theta2, double& roll, doub
         // 更新roll和pitch
         double delta_roll = (-res1 * J[1][1] + res2 * J[0][1]) / det;
         double delta_pitch = (res1 * J[1][0] - res2 * J[0][0]) / det;
+        if (!std::isfinite(delta_roll) || !std::isfinite(delta_pitch)) {
+            break;
+        }
         current_roll += delta_roll;
         current_pitch += delta_pitch;
+        if (!std::isfinite(current_roll) || !std::isfinite(current_pitch)) {
+            current_roll = 0.0;
+            current_pitch = 0.0;
+            break;
+        }
     }
 
     roll = current_roll;
