@@ -27,10 +27,7 @@
 #define BODYCMDTOPIC "/nubot/z1/bodymotorcmds"
 #define BODYSTATETOPIC "/nubot/z1/bodymotorstates"
 
-#define WHOLEBODYCMDTOPIC  "/nubot/z1/wholebodymotorcmds"
-#define WHOLEBODYSTATETOPIC  "/nubot/z1/wholebodymotorstates"
-
-#define SBUSSTATETOPIC  "/nubot/z1/wholebodymotorstates"
+#define SBUSSTATETOPIC  "/nubot/z1/sbusstates"
 
 #define IMUPUBDATATOPIC  "/nubot/z1/imupubdata"
 #define HCMDPUBDATATOPIC  "/nubot/z1/hcmdpubdata"
@@ -108,25 +105,13 @@ void DDS_Get_Leg_Motor_Cmds(const int motor_num, const motorcmds &cmds, YKSMotor
     // 拿到所有DDS传过来的电机指令数据，然后传给main函数当中的全局数组，通过电机数量可以区分到底是上肢还是下肢的指令
     const int available_num = std::min<int>(motor_num, cmds.cmds().size());
     for (int i = 0; i < available_num; i++) {
-        motor_cmds[i].pos_des_ = cmds.cmds()[i].pos();
-        motor_cmds[i].vel_des_ = cmds.cmds()[i].vel();
-        motor_cmds[i].ff_ = cmds.cmds()[i].tau();
-        motor_cmds[i].mode = cmds.cmds()[i].mode();
-        motor_cmds[i].kp_ = cmds.cmds()[i].kp();
-        motor_cmds[i].kd_ = cmds.cmds()[i].kd();
-    }
-}
-
-void DDS_Get_Z1_5_WB_Motor_Cmds(const int motor_num, const motorcmds &cmds, YKSMotorData *motor_cmds) {
-    // 拿到所有DDS传过来的电机指令数据，然后传给main函数当中的全局数组，通过电机数量可以区分到底是上肢还是下肢的指令
-    const int available_num = std::min<int>(motor_num, cmds.cmds().size());
-    for (int i = 0; i < available_num; i++) {
-        motor_cmds[i].pos_des_ = cmds.cmds()[i].pos();
-        motor_cmds[i].vel_des_ = cmds.cmds()[i].vel();
-        motor_cmds[i].ff_ = cmds.cmds()[i].tau();
-        motor_cmds[i].mode = cmds.cmds()[i].mode();
-        motor_cmds[i].kp_ = cmds.cmds()[i].kp();
-        motor_cmds[i].kd_ = cmds.cmds()[i].kd();
+        const int gid = kLegMotorIds[i];
+        motor_cmds[gid].pos_des_ = cmds.cmds()[i].pos();
+        motor_cmds[gid].vel_des_ = cmds.cmds()[i].vel();
+        motor_cmds[gid].ff_ = cmds.cmds()[i].tau();
+        motor_cmds[gid].mode = cmds.cmds()[i].mode();
+        motor_cmds[gid].kp_ = cmds.cmds()[i].kp();
+        motor_cmds[gid].kd_ = cmds.cmds()[i].kd();
     }
 }
 
@@ -134,12 +119,13 @@ void DDS_Get_Arm_Motor_Cmds(const int motor_num, const motorcmds &cmds, YKSMotor
     // 拿到所有DDS传过来的电机指令数据，然后传给main函数当中的全局数组，通过电机数量可以区分到底是上肢还是下肢的指令
     const int available_num = std::min<int>(motor_num, cmds.cmds().size());
     for (int i = 0; i < available_num; i++) {
-        motor_cmds[i + 12].pos_des_ = cmds.cmds()[i].pos();
-        motor_cmds[i + 12].vel_des_ = cmds.cmds()[i].vel();
-        motor_cmds[i + 12].ff_ = cmds.cmds()[i].tau();
-        motor_cmds[i + 12].mode = cmds.cmds()[i].mode();
-        motor_cmds[i + 12].kp_ = cmds.cmds()[i].kp();
-        motor_cmds[i + 12].kd_ = cmds.cmds()[i].kd();
+        const int gid = kArmMotorIds[i];
+        motor_cmds[gid].pos_des_ = cmds.cmds()[i].pos();
+        motor_cmds[gid].vel_des_ = cmds.cmds()[i].vel();
+        motor_cmds[gid].ff_ = cmds.cmds()[i].tau();
+        motor_cmds[gid].mode = cmds.cmds()[i].mode();
+        motor_cmds[gid].kp_ = cmds.cmds()[i].kp();
+        motor_cmds[gid].kd_ = cmds.cmds()[i].kd();
     }
 }
 
@@ -147,12 +133,13 @@ void DDS_Get_Body_Motor_Cmds(const int motor_num, const motorcmds &cmds, YKSMoto
     // 拿到所有DDS传过来的电机指令数据，然后传给main函数当中的全局数组，通过电机数量可以区分到底是上肢还是下肢的指令
     const int available_num = std::min<int>(motor_num, cmds.cmds().size());
     for (int i = 0; i < available_num; i++) {
-        motor_cmds[i + 24].pos_des_ = cmds.cmds()[i].pos();
-        motor_cmds[i + 24].vel_des_ = cmds.cmds()[i].vel();
-        motor_cmds[i + 24].ff_ = cmds.cmds()[i].tau();
-        motor_cmds[i + 24].mode = cmds.cmds()[i].mode();
-        motor_cmds[i + 24].kp_ = cmds.cmds()[i].kp();
-        motor_cmds[i + 24].kd_ = cmds.cmds()[i].kd();
+        const int gid = kBodyMotorIds[i];
+        motor_cmds[gid].pos_des_ = cmds.cmds()[i].pos();
+        motor_cmds[gid].vel_des_ = cmds.cmds()[i].vel();
+        motor_cmds[gid].ff_ = cmds.cmds()[i].tau();
+        motor_cmds[gid].mode = cmds.cmds()[i].mode();
+        motor_cmds[gid].kp_ = cmds.cmds()[i].kp();
+        motor_cmds[gid].kd_ = cmds.cmds()[i].kd();
     }
 }
 
@@ -173,17 +160,18 @@ void DDS_Pub_Arm_Motor_Data(motorstates &states, dds::pub::DataWriter<motorstate
     // 拿到所有DDS传过来的电机指令数据，然后传给main函数当中的全局数组，通过电机数量可以区分到底是上肢还是下肢的指令
     int motor_num = ARM_MOTOR_NUMBER;
     for (int i = 0; i < motor_num; i++) {
+        const int gid = kArmMotorIds[i];
         auto &state = states.states()[i];
-        state.mode(motor_data_[i + 12].mode);
-        state.index(i + 12);
-        state.pos(motor_data_[i + 12].pos_);
-        state.vel(motor_data_[i + 12].vel_);
-        state.cur(motor_data_[i + 12].tau_);
-        state.tau(motor_data_[i + 12].tau_);
-        state.tau_raw(motor_data_[i + 12].tau_);
-        state.error(motor_data_[i + 12].error_);
-        state.tem(motor_data_[i + 12].temperature_);
-        state.mos_tem(motor_data_[i + 12].mos_temperature_);
+        state.mode(motor_data_[gid].mode);
+        state.index(gid);
+        state.pos(motor_data_[gid].pos_);
+        state.vel(motor_data_[gid].vel_);
+        state.cur(motor_data_[gid].tau_);
+        state.tau(motor_data_[gid].tau_);
+        state.tau_raw(motor_data_[gid].tau_);
+        state.error(motor_data_[gid].error_);
+        state.tem(motor_data_[gid].temperature_);
+        state.mos_tem(motor_data_[gid].mos_temperature_);
     }
     writer.write(states);
 }
@@ -194,38 +182,18 @@ void DDS_Pub_Leg_Motor_Data(motorstates &states, dds::pub::DataWriter<motorstate
     int motor_num = LEG_MOTOR_NUMBER;
 
     for (int i = 0; i < motor_num; i++) {
+        const int gid = kLegMotorIds[i];
         auto &state = states.states()[i];
-        state.mode(motor_data_[i].mode);
-        state.index(i);
-        state.pos(motor_data_[i].pos_);
-        state.vel(motor_data_[i].vel_);
-        state.cur(motor_data_[i].tau_);
-        state.tau(motor_data_[i].tau_);
-        state.tau_raw(motor_data_[i].tau_);
-        state.error(motor_data_[i].error_);
-        state.tem(motor_data_[i].temperature_);
-        state.mos_tem(motor_data_[i].mos_temperature_);
-    }
-    writer.write(states);
-}
-
-void DDS_Pub_Z1_5_WB_Motor_Data(motorstates &states, dds::pub::DataWriter<motorstates> &writer,
-                                const YKSMotorData *motor_data_) {
-    // 拿到所有DDS传过来的电机指令数据，然后传给main函数当中的全局数组，通过电机数量可以区分到底是上肢还是下肢的指令
-    int motor_num = TOTAL_MOTOR_NUMBER;
-
-    for (int i = 0; i < motor_num; i++) {
-        auto &state = states.states()[i];
-        state.mode(motor_data_[i].mode);
-        state.index(i);
-        state.pos(motor_data_[i].pos_);
-        state.vel(motor_data_[i].vel_);
-        state.cur(motor_data_[i].tau_);
-        state.tau(motor_data_[i].tau_);
-        state.tau_raw(motor_data_[i].tau_);
-        state.error(motor_data_[i].error_);
-        state.tem(motor_data_[i].temperature_);
-        state.mos_tem(motor_data_[i].mos_temperature_);
+        state.mode(motor_data_[gid].mode);
+        state.index(gid);
+        state.pos(motor_data_[gid].pos_);
+        state.vel(motor_data_[gid].vel_);
+        state.cur(motor_data_[gid].tau_);
+        state.tau(motor_data_[gid].tau_);
+        state.tau_raw(motor_data_[gid].tau_);
+        state.error(motor_data_[gid].error_);
+        state.tem(motor_data_[gid].temperature_);
+        state.mos_tem(motor_data_[gid].mos_temperature_);
     }
     writer.write(states);
 }
@@ -251,17 +219,18 @@ void DDS_Pub_Body_Motor_Data(motorstates &states, dds::pub::DataWriter<motorstat
     int motor_num = BODY_MOTOR_NUMBER;
 
     for (int i = 0; i < motor_num; i++) {
+        const int gid = kBodyMotorIds[i];
         auto &state = states.states()[i];
-        state.mode(motor_data_[i + 24].mode);
-        state.index(i + 24);
-        state.pos(motor_data_[i + 24].pos_);
-        state.vel(motor_data_[i + 24].vel_);
-        state.cur(motor_data_[i + 24].tau_);
-        state.tau(motor_data_[i + 24].tau_);
-        state.tau_raw(motor_data_[i + 24].tau_);
-        state.error(motor_data_[i + 24].error_);
-        state.tem(motor_data_[i + 24].temperature_);
-        state.mos_tem(motor_data_[i + 24].mos_temperature_);
+        state.mode(motor_data_[gid].mode);
+        state.index(gid);
+        state.pos(motor_data_[gid].pos_);
+        state.vel(motor_data_[gid].vel_);
+        state.cur(motor_data_[gid].tau_);
+        state.tau(motor_data_[gid].tau_);
+        state.tau_raw(motor_data_[gid].tau_);
+        state.error(motor_data_[gid].error_);
+        state.tem(motor_data_[gid].temperature_);
+        state.mos_tem(motor_data_[gid].mos_temperature_);
     }
     writer.write(states);
 }
@@ -291,20 +260,6 @@ void DDS_Leg_SUB(dds::sub::DataReader<motorcmds> &Reader, dds::sub::LoanedSample
         }
     }
 }
-
-void DDS_Z1_5_WB_SUB(dds::sub::DataReader<motorcmds> &Reader, dds::sub::LoanedSamples<motorcmds> &samples) {
-    samples = Reader.take();
-    if (samples.length() > 0) {
-        for (auto sample_iter = samples.begin(); sample_iter < samples.end(); ++sample_iter) {
-            const motorcmds &cmds = sample_iter->data();
-            const dds::sub::SampleInfo &info = sample_iter->info();
-            if (info.valid()) {
-                DDS_Get_Z1_5_WB_Motor_Cmds(TOTAL_MOTOR_NUMBER, cmds, my_motor_data);
-            }
-        }
-    }
-}
-
 
 void DDS_Body_SUB(dds::sub::DataReader<motorcmds> &Reader, dds::sub::LoanedSamples<motorcmds> &samples) {
     samples = Reader.take();
@@ -447,20 +402,6 @@ int main() {
     dds::sub::DataReader<motorcmds> bodyReader(bodySubscriber, bodytopicsub, bodyReadQos);
     std::cout << "=== [body subscriber] get ready! " << std::endl;
 
-    // z1_5_wb订阅 ========================================================================================
-    //定义z1_5_wb订阅者话题
-    dds::topic::Topic<motorcmds> z1_5_wb_topicsub(participant, WHOLEBODYCMDTOPIC);
-    //定义z1_5_wb订阅者话题Qos
-    dds::sub::Subscriber z1_5_wb_Subscriber(participant);
-    dds::sub::qos::DataReaderQos z1_5_wb_ReadQos = z1_5_wb_Subscriber.default_datareader_qos();
-    z1_5_wb_ReadQos << dds::core::policy::Reliability::BestEffort() //尽力传输，只发一次
-            << dds::core::policy::Durability::Volatile() //持久化，比如订阅者后加入，则不接受历史信息，只接收自加入以来的消息
-            << dds::core::policy::History::KeepLast(5); //保留近5条消息
-
-    //定义z1_5_wbReader
-    dds::sub::DataReader<motorcmds> z1_5_wb_Reader(z1_5_wb_Subscriber, z1_5_wb_topicsub, z1_5_wb_ReadQos);
-    std::cout << "=== [z1_5_wb subscriber] get ready! " << std::endl;
-
     // imu订阅 ========================================================================================
     //定义imu订阅者话题
     dds::topic::Topic<imudata> imu_topicsub(participant, IMUPUBDATATOPIC);
@@ -476,9 +417,9 @@ int main() {
     std::cout << "=== [imu subscriber] get ready! " << std::endl;
 
     // hcmd订阅 ========================================================================================
-    //定义z1_5_wb订阅者话题
+    //定义hcmd订阅者话题
     dds::topic::Topic<hcmddata> hcmd_topicsub(participant, HCMDPUBDATATOPIC);
-    //定义z1_5_wb订阅者话题Qos
+    //定义hcmd订阅者话题Qos
     dds::sub::Subscriber hcmd_Subscriber(participant);
     dds::sub::qos::DataReaderQos hcmd_ReadQos = hcmd_Subscriber.default_datareader_qos();
     hcmd_ReadQos << dds::core::policy::Reliability::BestEffort() //尽力传输，只发一次
@@ -557,19 +498,6 @@ int main() {
     dds::pub::DataWriter<motorstates> bodyWriter(bodyPublisher, bodytopicpub, bodywriterQos);
     std::cout << "=== [body publisher] get ready! " << std::endl;
 
-    // z1_5_wb发布 =======================================================================================
-    // 定义z1_5_wb发布者话题
-    dds::topic::qos::TopicQos z1_5_wb_topicpubQos;
-    z1_5_wb_topicpubQos << dds::core::policy::Reliability::BestEffort() //尽力传输，只发一次
-            << dds::core::policy::Durability::Volatile() //持久化，比如订阅者后加入，则不接受历史信息，只接收自加入以来的消息
-            << dds::core::policy::History::KeepLast(5); //保留近5条消息
-    dds::topic::Topic<motorstates> z1_5_wb_topicpub(participant, WHOLEBODYSTATETOPIC);
-    // 创建 Publisher 和 DataWriter
-    dds::pub::Publisher z1_5_wb_Publisher(participant);
-    dds::pub::qos::DataWriterQos z1_5_wb_writerQos(z1_5_wb_topicpubQos); // datawriter的qos应当继承自topic的qos
-    dds::pub::DataWriter<motorstates> z1_5_wb_Writer(z1_5_wb_Publisher, z1_5_wb_topicpub, z1_5_wb_writerQos);
-    std::cout << "=== [z1_5_wb publisher] get ready! " << std::endl;
-
     // // // SBUS发布 =======================================================================================
     // // // 定义SBUS发布者话题
     // dds::topic::qos::TopicQos sbus_topicpubQos;
@@ -616,17 +544,12 @@ int main() {
     bodyStates.level(2); // 设置为躯干
     bodyStates.states().resize(BODY_MOTOR_NUMBER);
 
-    motorstates z1_5_wb_States;
-    z1_5_wb_States.level(3); // 设置为z1_5_wb
-    z1_5_wb_States.states().resize(TOTAL_MOTOR_NUMBER);
-
     sbusdata sbus_States;
 
 
     dds::sub::LoanedSamples<motorcmds> samples_leg;
     dds::sub::LoanedSamples<motorcmds> samples_arm;
     dds::sub::LoanedSamples<motorcmds> samples_body;
-    dds::sub::LoanedSamples<motorcmds> samples_z1_5_wb;
     dds::sub::LoanedSamples<imudata> samples_imu;
     dds::sub::LoanedSamples<hcmddata> samples_hcmd;
     dds::sub::LoanedSamples<logicdata> samples_logic;
@@ -672,14 +595,6 @@ int main() {
         DDS_Arm_SUB(armReader, samples_arm); //
         //读取body订阅的消息 -----------------------------------------------------------------------------
         DDS_Body_SUB(bodyReader, samples_body); //
-        //消息断开连接处理
-        // if (is_hcmd_run == true && is_imu_run == true && is_logic_run == true) {
-        //     //读取Z1_5_WB订阅的消息 -----------------------------------------------------------------------------
-        //     DDS_Z1_5_WB_SUB(z1_5_wb_Reader, samples_z1_5_wb);
-        // }
-        //读取Z1_5_WB订阅的消息 -----------------------------------------------------------------------------
-        DDS_Z1_5_WB_SUB(z1_5_wb_Reader, samples_z1_5_wb);
-
 
         /////////////////////////////////////////////////////////////////////////////////////////////
 #endif
@@ -706,8 +621,6 @@ int main() {
         DDS_Pub_Leg_Motor_Data(legStates, legWriter, my_motor_data);
         ///将躯干电机状态写入消息 啦啦啦啦啦啦啦啦啦啦啦
         DDS_Pub_Body_Motor_Data(bodyStates, bodyWriter, my_motor_data);
-        // 将Z1_5_WB电机状态写入消息 啦啦啦啦啦啦啦啦啦啦啦
-        DDS_Pub_Z1_5_WB_Motor_Data(z1_5_wb_States, z1_5_wb_Writer, my_motor_data);
         ///通过Socket将电机状态发送给用户端
         // sender.sendSocketMotorData(my_motor_data); //通过Socket反馈电机当前的数据
         // SBusData data = sbus_receiver.getData();

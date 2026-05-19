@@ -17,6 +17,8 @@ pkg_check_modules(NCURSES REQUIRED ncurses)
 set(SOURCES
         app/motor_control.c
         app/motor_control.h
+        app/robot_layout.c
+        app/robot_layout.h
         app/math_ops.c
         app/math_ops.h
         app/transmit.cpp

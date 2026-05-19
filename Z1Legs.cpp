@@ -45,7 +45,7 @@ void Z1Legs::PrintFrequency(int &iteration_count, std::chrono::high_resolution_c
     }
 }
 
-void Z1Legs::PrintMotorState(const int size) const {
+void Z1Legs::PrintMotorState(const int /*size*/) const {
 
     // 打印 flag 状态
     attron(COLOR_PAIR(3));
@@ -53,80 +53,52 @@ void Z1Legs::PrintMotorState(const int size) const {
     mvprintw(2, 12, "Hcmd: %s", is_hcmd_run_ ? "OK" : "ERR");
     mvprintw(2, 22, "Logic: %s", is_logic_run_ ? "OK" : "ERR");
     mvprintw(2, 36, "Bms: %s", is_bms_run_ ? "OK" : "ERR");
-    attroff(COLOR_PAIR(3));
-
-    attron(COLOR_PAIR(1)); // Blue for position
-    mvprintw(4, 0, "Motor ID | ");
-    attroff(COLOR_PAIR(1));
-
-    attron(COLOR_PAIR(2)); // Green for velocity
-    mvprintw(4, 11, "Pos (pos_) | ");
-    attroff(COLOR_PAIR(2));
-
-    attron(COLOR_PAIR(3)); // Red for torque
-    mvprintw(4, 23, "Vel (vel_) | ");
-    attroff(COLOR_PAIR(3));
-
-    attron(COLOR_PAIR(4)); // Yellow for desired position
-    mvprintw(4, 34, "Tau (tau_) | ");
-    attroff(COLOR_PAIR(4));
-
-    attron(COLOR_PAIR(5)); // Magenta for desired velocity
-    mvprintw(4, 46, "Des Pos (pos_des_) | ");
-    attroff(COLOR_PAIR(5));
-
-    attron(COLOR_PAIR(6)); // Cyan for KP, KD, FF
-    mvprintw(4, 63, "Des Vel (vel_des_) | ");
-    attroff(COLOR_PAIR(6));
-
-    mvprintw(4, 79, "KP (kp_) | ");
-    mvprintw(4, 87, "KD (kd_) | ");
-    mvprintw(4, 95, "FF (ff_)");
     if (battery_enable_) {
-        attron(COLOR_PAIR(3));
-        mvprintw(4, 103, "Soc | ");
-        mvprintw(4, 111, "Temperature | ");
-        BmsState state = battery_handler_->getState();
-        mvprintw(6, 103, "%.2d", state.soc);
-        mvprintw(6, 111, "%.2f", state.temperature);
-        attroff(COLOR_PAIR(3));
+        const BmsState state = battery_handler_->getState();
+        mvprintw(2, 48, "Soc: %d%% Temp: %.2f", state.soc, state.temperature);
     }
+    attroff(COLOR_PAIR(3));
+
+    mvprintw(4, 0, "ID  | Joint                | Pos      | Vel      | Tau      | DesPos   | DesVel   | KP    | KD    | FF");
 
     mvprintw(5, 0,
              "------------------------------------------------------------------------------------------------------------------");
 
     // 打印电机状态
-    for (int i = 0; i < size; ++i) {
-        move(i + 8, 0);
+    for (int row = 0; row < ACTIVE_MOTOR_NUMBER; ++row) {
+        const int i = kAllActiveIds[row];
+        move(row + 6, 0);
         clrtoeol();
 
         attron(COLOR_PAIR(1));
-        mvprintw(i + 8, 0, "%d", i);
+        mvprintw(row + 6, 0, "%2d", i);
         attroff(COLOR_PAIR(1));
 
+        mvprintw(row + 6, 6, "%-20s", kJointNames[i]);
+
         attron(COLOR_PAIR(2));
-        mvprintw(i + 8, 11, "%9.3f", finiteOrZero(motor_print_[i].pos_));
+        mvprintw(row + 6, 28, "%9.3f", finiteOrZero(motor_print_[i].pos_));
         attroff(COLOR_PAIR(2));
 
         attron(COLOR_PAIR(3));
-        mvprintw(i + 8, 24, "%9.3f", finiteOrZero(motor_print_[i].vel_));
+        mvprintw(row + 6, 39, "%9.3f", finiteOrZero(motor_print_[i].vel_));
         attroff(COLOR_PAIR(3));
 
         attron(COLOR_PAIR(4));
-        mvprintw(i + 8, 35, "%9.3f", finiteOrZero(motor_print_[i].tau_));
+        mvprintw(row + 6, 50, "%9.3f", finiteOrZero(motor_print_[i].tau_));
         attroff(COLOR_PAIR(4));
 
         attron(COLOR_PAIR(5));
-        mvprintw(i + 8, 46, "%9.3f", finiteOrZero(motor_print_[i].pos_des_));
+        mvprintw(row + 6, 61, "%9.3f", finiteOrZero(motor_print_[i].pos_des_));
         attroff(COLOR_PAIR(5));
 
         attron(COLOR_PAIR(6));
-        mvprintw(i + 8, 63, "%9.3f", finiteOrZero(motor_print_[i].vel_des_));
+        mvprintw(row + 6, 72, "%9.3f", finiteOrZero(motor_print_[i].vel_des_));
         attroff(COLOR_PAIR(6));
 
-        mvprintw(i + 8, 79, "%7.3f", finiteOrZero(motor_print_[i].kp_));
-        mvprintw(i + 8, 87, "%7.3f", finiteOrZero(motor_print_[i].kd_));
-        mvprintw(i + 8, 95, "%7.3f", finiteOrZero(motor_print_[i].ff_));
+        mvprintw(row + 6, 83, "%7.3f", finiteOrZero(motor_print_[i].kp_));
+        mvprintw(row + 6, 91, "%7.3f", finiteOrZero(motor_print_[i].kd_));
+        mvprintw(row + 6, 99, "%7.3f", finiteOrZero(motor_print_[i].ff_));
     }
 }
 

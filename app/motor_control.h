@@ -84,6 +84,30 @@
 #define I13720_MIN (-220.0f)
 #define T13720_MAX 400.0f
 #define I13720_MAX 220.0f
+//EC-A4315-P2-36: rated 25 Nm / 10.22 A, peak 75 Nm / 30 A
+#define KT4315 2.80f
+#define T4315_MIN (-75.0f)
+#define I4315_MIN (-30.0f)
+#define T4315_MAX 75.0f
+#define I4315_MAX 30.0f
+//EC-A8116-P1-18H: rated 40 Nm / 21 A, peak 130 Nm / 70 A
+#define KT8116 2.35f
+#define T8116_MIN (-130.0f)
+#define I8116_MIN (-70.0f)
+#define T8116_MAX 130.0f
+#define I8116_MAX 70.0f
+//EC-A6416-P2-30.25H: rated 25 Nm / 9.4 A, peak 132 Nm / 60 A
+#define KT6416 2.65f
+#define T6416_MIN (-132.0f)
+#define I6416_MIN (-60.0f)
+#define T6416_MAX 132.0f
+#define I6416_MAX 60.0f
+//EC-A2806-P2-36: rated 3 Nm / 2.4 A, peak 12 Nm / 10 A
+#define KT2806 1.35f
+#define T2806_MIN (-12.0f)
+#define I2806_MIN (-10.0f)
+#define T2806_MAX 12.0f
+#define I2806_MAX 10.0f
 //Ti5电机
 //CRA-RI30-40-PRO-101
 #define GEAR_30_40_PRO 101//减速比
@@ -137,8 +161,13 @@ enum YKS_MOTOR_TYPE {
     A10020_1 = 3,
     A10020_2 = 4,
     A13715 = 5,
-    A13720 = 6
-}; //YKS只有7种类型的电机
+    A13720 = 6,
+    A4315 = 7,
+    A8116 = 8,
+    A6416 = 9,
+    A2806 = 10
+};
+#define YKS_MOTOR_TYPE_COUNT 11
 enum TI5_MOTOR_TYPE {
     CRA_RI30_40_PRO_101 = 0,
     CRA_RI40_52_PRO_101 = 1,
@@ -149,13 +178,13 @@ enum TI5_MOTOR_TYPE {
     CRA_RI90_70_PRO_S_101 = 6
 }; //Ti5电机
 typedef struct {
-    float KD_MIN[7]; //YKS只有7种类型的电机
-    float KD_MAX[7];
-    float T_MIN[7];
-    float T_MAX[7];
-    float I_MIN[7];
-    float I_MAX[7];
-    float KT[7];
+    float KD_MIN[YKS_MOTOR_TYPE_COUNT];
+    float KD_MAX[YKS_MOTOR_TYPE_COUNT];
+    float T_MIN[YKS_MOTOR_TYPE_COUNT];
+    float T_MAX[YKS_MOTOR_TYPE_COUNT];
+    float I_MIN[YKS_MOTOR_TYPE_COUNT];
+    float I_MAX[YKS_MOTOR_TYPE_COUNT];
+    float KT[YKS_MOTOR_TYPE_COUNT];
 } YKS_MOTOR_RANGE;
 
 // 父结构体，包含子结构体数组和其他独立参数
@@ -232,7 +261,7 @@ typedef struct {
 //-------------------------------------
 // 从站（Slave）结构体
 //-------------------------------------
-#define MAX_MOTORS_PER_SLAVE ACTIVE_MOTOR_NUMBER
+#define MAX_MOTORS_PER_SLAVE ACTIVE_PDO_SLOT_NUMBER
 
 typedef struct {
     int slave_id; // EtherCAT slave ID，1开始
@@ -243,6 +272,8 @@ typedef struct {
 extern Slave g_slaves[SLAVE_NUMBER];
 extern Motor g_motor_map[TOTAL_MOTOR_NUMBER];
 
+extern YKS_MOTOR_RANGE yks_motor_range;
+extern int Z1_MOTOR_ID_Type[TOTAL_MOTOR_NUMBER];
 
 extern OD_Motor_Msg rv_motor_msg[TOTAL_MOTOR_NUMBER];
 extern IMU_Msg imu_msg;

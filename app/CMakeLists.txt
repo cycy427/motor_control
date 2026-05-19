@@ -18,6 +18,8 @@ set(CMAKE_CXX_STANDARD 17)
 
 set(SOURCES motor_control.c
         motor_control.h
+        robot_layout.c
+        robot_layout.h
         math_ops.c
         math_ops.h
         transmit.cpp

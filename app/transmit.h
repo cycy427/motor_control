@@ -8,9 +8,6 @@
 #define TRANSMIT_H
 
 #define SLAVE_NUMBER 2 //新EtherCAT-CANFD从站数
-#define LEG_MOTOR_NUMBER 12 //双腿的电机数
-#define ARM_MOTOR_NUMBER 12 //双臂的电机数
-#define BODY_MOTOR_NUMBER 6 //身体的电机数
 #define TOTAL_MOTOR_NUMBER 48 //接入的总电机数：2个从站 x 每从站24个CANFD槽
 #define TOTAL_CAN_NUMBER TOTAL_MOTOR_NUMBER //机器人电机限制数组长度
 
@@ -18,6 +15,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "config.h"
+#include "robot_layout.h"
 #include "ethercat.h"
 #include "sys/time.h"
 

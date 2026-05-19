@@ -35,27 +35,44 @@ enum class Mode {
 };
 
 enum Z1JointIndex {
+    // 左腿
     LeftHipPitch = 0,
     LeftHipRoll = 1,
     LeftHipYaw = 2,
     LeftKnee = 3,
-    //下面四个待定
     LeftAnklePitch = 4,
     LeftAnkleB = 4,
     LeftAnkleRoll = 5,
     LeftAnkleA = 5,
-
-    RightHipPitch = 6,
-    RightHipRoll = 7,
-    RightHipYaw = 8,
-    RightKnee = 9,
-
-    RightAnklePitch = 10,
-    RightAnkleB = 10,
-    RightAnkleRoll = 11,
-    RightAnkleA = 11,
-
-    WaistYaw = 12
+    // 右腿
+    RightHipPitch = 8,
+    RightHipRoll = 9,
+    RightHipYaw = 10,
+    RightKnee = 11,
+    RightAnklePitch = 12,
+    RightAnkleB = 12,
+    RightAnkleRoll = 13,
+    RightAnkleA = 13,
+    // 腰
+    WaistRoll = 16,
+    WaistPitch = 17,
+    WaistYaw = 18,
+    // 左臂
+    LeftShoulderPitch = 24,
+    LeftShoulderRoll = 25,
+    LeftShoulderYaw = 26,
+    LeftElbow = 27,
+    LeftForearmRoll = 28,
+    LeftWristYaw = 29,
+    LeftWristPitch = 30,
+    // 右臂
+    RightShoulderPitch = 32,
+    RightShoulderRoll = 33,
+    RightShoulderYaw = 34,
+    RightElbow = 35,
+    RightForearmRoll = 36,
+    RightWristYaw = 37,
+    RightWristPitch = 38
 };
 
 class Z1Legs {
@@ -148,14 +165,27 @@ private:
     // const std::vector<int> LegDirectionMotor_ = {-1, 1,-1,-1,1,1,
     //     -1,1,-1,1,1,1 ,        1,1,1,1,1,1,       1,1,1,1,1,1  ,1,1,1,1,1};//用于根据实际电机的正方向来进行针对性设置，以适配URDF模型的坐标系
     const int LegDirectionMotor_[TOTAL_MOTOR_NUMBER] = {
+        // 0-5 左腿
         -1, 1, -1, -1, -1, 1,
+        // 6-7 预留
+        1, 1,
+        // 8-13 右腿
         -1, 1, -1, 1, -1, 1,
-        1, -1, -1, 1, 1, 1,
-        1, -1, 1, 1, 1, 1,
-        1, -1, 1, 1, 1, 1,
+        // 14-15 预留
+        1, 1,
+        // 16-18 腰
+        1, 1, 1,
+        // 19-23 预留
+        1, 1, 1, 1, 1,
+        // 24-30 左臂
+        1, 1, 1, 1, 1, 1, 1,
+        // 31 预留
+        1,
+        // 32-38 右臂
+        1, 1, 1, 1, 1, 1, 1,
+        // 39-47 预留
         1, 1, 1, 1, 1, 1,
-        1, 1, 1, 1, 1, 1,
-        1, 1, 1, 1, 1, 1
+        1, 1, 1
     }; // 明确指定大小
     enum Direction {
         LeftLeg = 0,

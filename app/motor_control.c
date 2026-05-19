@@ -1,13 +1,17 @@
 #include "motor_control.h"
 
 YKS_MOTOR_RANGE yks_motor_range = {
-    .KD_MIN = {KD1_MIN, KD1_MIN, KD1_MIN, KD2_MIN, KD2_MIN, KD2_MIN, KD2_MIN},
-    .KD_MAX = {KD1_MAX, KD1_MAX, KD1_MAX, KD2_MAX, KD2_MAX, KD2_MAX, KD2_MAX},
-    .T_MIN = {T4310_MIN, T6408_MIN, T8112_MIN, T10020_1_MIN, T10020_2_MIN, T13715_MIN, T13720_MIN},
-    .T_MAX = {T4310_MAX, T6408_MAX, T8112_MAX, T10020_1_MAX, T10020_2_MAX, T13715_MAX, T13720_MAX},
-    .I_MIN = {I4310_MIN, I6408_MIN, I8112_MIN, I10020_1_MIN, I10020_2_MIN, I13715_MIN, I13720_MIN},
-    .I_MAX = {I4310_MAX, I6408_MAX, I8112_MAX, I10020_1_MAX, I10020_2_MAX, I13715_MAX, I13720_MAX},
-    .KT = {KT4310, KT6408, KT8112, KT10020_1, KT10020_2, KT13715, KT13720}
+    .KD_MIN = {KD1_MIN, KD1_MIN, KD1_MIN, KD2_MIN, KD2_MIN, KD2_MIN, KD2_MIN, KD1_MIN, KD1_MIN, KD1_MIN, KD1_MIN},
+    .KD_MAX = {KD1_MAX, KD1_MAX, KD1_MAX, KD2_MAX, KD2_MAX, KD2_MAX, KD2_MAX, KD1_MAX, KD1_MAX, KD1_MAX, KD1_MAX},
+    .T_MIN = {T4310_MIN, T6408_MIN, T8112_MIN, T10020_1_MIN, T10020_2_MIN, T13715_MIN, T13720_MIN,
+              T4315_MIN, T8116_MIN, T6416_MIN, T2806_MIN},
+    .T_MAX = {T4310_MAX, T6408_MAX, T8112_MAX, T10020_1_MAX, T10020_2_MAX, T13715_MAX, T13720_MAX,
+              T4315_MAX, T8116_MAX, T6416_MAX, T2806_MAX},
+    .I_MIN = {I4310_MIN, I6408_MIN, I8112_MIN, I10020_1_MIN, I10020_2_MIN, I13715_MIN, I13720_MIN,
+              I4315_MIN, I8116_MIN, I6416_MIN, I2806_MIN},
+    .I_MAX = {I4310_MAX, I6408_MAX, I8112_MAX, I10020_1_MAX, I10020_2_MAX, I13715_MAX, I13720_MAX,
+              I4315_MAX, I8116_MAX, I6416_MAX, I2806_MAX},
+    .KT = {KT4310, KT6408, KT8112, KT10020_1, KT10020_2, KT13715, KT13720, KT4315, KT8116, KT6416, KT2806}
 };
 
 TI5_MOTOR_RANGE ti5_motor_range = {
@@ -23,14 +27,16 @@ TI5_MOTOR_RANGE ti5_motor_range = {
 //int Z1_YKS_MOTOR_ID_Type[6] = {A13715, A10020_2, A10020_1, A13720, A8112, A8112};//这个是Z1.5机器人的腿部电机的顺序
 //这个要根据实际的Z1机器人电机型号来设置，global_id从0开始，对应上层48电机顺序。
 int Z1_MOTOR_ID_Type[TOTAL_MOTOR_NUMBER] = {
-    A13715, A10020_2, A10020_1, A13720, A8112, A8112, //下肢 左腿
-    A13715, A10020_2, A10020_1, A13720, A8112, A8112, //下肢 右腿
-    A8112, A6408, A6408, A4310, A4310, A4310, //上肢 左臂
-    A8112, A6408, A6408, A4310, A4310, A4310, //上肢 右臂
-    A8112, A8112, A8112, A10020_1, A10020_1, A10020_1, //两肩和腰部
-    A8112, A8112, A8112, A8112, A8112, A8112, //扩展电机 30~35
-    A8112, A8112, A8112, A8112, A8112, A8112, //扩展电机 36~41
-    A8112, A8112, A8112, A8112, A8112, A8112 //扩展电机 42~47
+    A8116, A6416, A6408, A8116, A4315, A4315,
+    A8112, A8112,
+    A8116, A6416, A6408, A8116, A4315, A4315,
+    A8112, A8112,
+    A4315, A4315, A8112,
+    A8112, A8112, A8112, A8112, A8112,
+    A6408, A4310, A4310, A4310, A4310, A2806, A2806,
+    A8112,
+    A6408, A4310, A4310, A4310, A4310, A2806, A2806,
+    A8112, A8112, A8112, A8112, A8112, A8112, A8112, A8112, A8112
 };
 
 // 新EtherCAT-CANFD从站映射：
@@ -614,7 +620,7 @@ void Rv_Message_Print(uint8_t ack_status) {
 uint16_t motor_id_check = 0;
 
 static int valid_pdo_slot(uint8_t pdo_slot) {
-    return pdo_slot >= 1 && pdo_slot <= ACTIVE_MOTOR_NUMBER;
+    return pdo_slot >= 1 && pdo_slot <= ACTIVE_PDO_SLOT_NUMBER;
 }
 
 static Motor_Msg *pdo_frame(EtherCAT_Msg *msg, uint8_t pdo_slot) {
@@ -677,7 +683,7 @@ void RV_can_data_repack(const EtherCAT_Msg *RxMessage, const uint8_t comm_mode, 
     for (int i = 0; i < slave->motor_count; ++i) {
         const Motor *motor = &slave->motors[i];
         const uint8_t pdo_index = motor->pdo_slot - 1;
-        if (motor->pdo_slot < 1 || motor->pdo_slot > ACTIVE_MOTOR_NUMBER) {
+        if (motor->pdo_slot < 1 || motor->pdo_slot > ACTIVE_PDO_SLOT_NUMBER) {
             continue;
         }
         const Motor_Msg *frame = &RxMessage->motor[pdo_index];

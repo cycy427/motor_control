@@ -11,7 +11,7 @@
 
 #define CAN_CHANNEL_NUMBER 3
 #define MOTOR_PER_CAN_CHANNEL 8
-#define ACTIVE_MOTOR_NUMBER (CAN_CHANNEL_NUMBER * MOTOR_PER_CAN_CHANNEL)
+#define ACTIVE_PDO_SLOT_NUMBER (CAN_CHANNEL_NUMBER * MOTOR_PER_CAN_CHANNEL)
 // The new EtherCAT-CANFD slave reserves 40 PDO frame slots. The current
 // firmware uses the first 24 slots as 3 CANFD buses x 8 frames.
 #define MOTOR_NUMBER 40
