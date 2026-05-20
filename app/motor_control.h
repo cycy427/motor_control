@@ -44,9 +44,9 @@
 
 //EC-A4310-P2-36
 #define KT4310 1.40f
-#define T4310_MIN (-30.0f)
+#define T4310_MIN (-36.0f)
 #define I4310_MIN (-30.0f)
-#define T4310_MAX 30.0f
+#define T4310_MAX 36.0f
 #define I4310_MAX 30.0f
 //EC-A6408-P2-25
 #define KT6408 2.35f
@@ -68,9 +68,9 @@
 #define I10020_1_MAX 70.0f
 //EC-A10020-P2-24
 #define KT10020_2 2.60f
-#define T10020_2_MIN (-300.0f)
+#define T10020_2_MIN (-330.0f)
 #define I10020_2_MIN (-140.0f)
-#define T10020_2_MAX 300.0f
+#define T10020_2_MAX 330.0f
 #define I10020_2_MAX 140.0f
 //EC A13715-P1-12.67
 #define KT13715 2.50f
