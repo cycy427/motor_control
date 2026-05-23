@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1120" viewBox="0 0 1800 1120">
+<defs>
+<marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth"><path d="M2,2 L10,6 L2,10 Z" fill="#475569" /></marker>
+<marker id="orangeArrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth"><path d="M2,2 L10,6 L2,10 Z" fill="#ea580c" /></marker>
+</defs>
+<rect width="1800" height="1120" fill="#f8fafc" />
+<text x="900" y="72" text-anchor="middle" font-size="30" font-weight="700" fill="#0f172a" font-family="Noto Sans CJK SC, Noto Sans CJK, Microsoft YaHei, SimHei, Arial, sans-serif">底层驱动层架构图</text>
+<text x="900" y="118" text-anchor="middle" font-size="24" font-weight="400" fill="#475569" font-family="Noto Sans CJK SC, Noto Sans CJK, Microsoft YaHei, SimHei, Arial, sans-serif">主线：DDS 统一接口 -&gt; YKS_SDK 主程序 -&gt; EtherCAT 实时传输 -&gt; EtherCAT-CANFD 从站 -&gt; 关节模组</text>
+<rect x="70" y="150" width="1660" height="360" rx="24" fill="#ffffff" opacity="0.84" stroke="#e2e8f0" stroke-width="2" />
+<text x="118" y="204" text-anchor="start" font-size="25" font-weight="700" fill="#334155" font-family="Noto Sans CJK SC, Noto Sans CJK, Microsoft YaHei, SimHei, Arial, sans-serif">控制下发与反馈回传主链路</text>
+<rect x="70" y="535" width="1660" height="250" rx="24" fill="#ffffff" opacity="0.84" stroke="#e2e8f0" stroke-width="2" />
+<text x="118" y="589" text-anchor="start" font-size="25" font-weight="700" fill="#334155" font-family="Noto Sans CJK SC, Noto Sans CJK, Microsoft YaHei, SimHei, Arial, sans-serif">CAN FD 从站适配链路</text>
+<rect x="70" y="810" width="1660" height="235" rx="24" fill="#ffffff" opacity="0.84" stroke="#e2e8f0" stroke-width="2" />
+<text x="118" y="864" text-anchor="start" font-size="25" font-weight="700" fill="#334155" font-family="Noto Sans CJK SC, Noto Sans CJK, Microsoft YaHei, SimHei, Arial, sans-serif">辅助入口与运行保障</text>
+<rect x="120" y="220" width="300" height="170" rx="20" fill="#dbeafe" stroke="#2563eb" stroke-width="5" />
+<text x="270.0" y="264" text-anchor="middle" font-size="28" font-weight="700" fill="#0f172a" font-family="Noto Sans CJK SC, Noto Sans CJK, Microsoft YaHei, SimHei, Arial, sans-serif">上层控制</text>
+<text x="270.0" y="302" text-anchor="middle" font-size="23" font-weight="400" fill="#1e293b" font-family="Noto Sans CJK SC, Noto Sans CJK, Microsoft YaHei, SimHei, Arial, sans-serif">运动控制 / 状态机</text>
+<text x="270.0" y="334" text-anchor="middle" font-size="23" font-weight="400" fill="#1e293b" font-family="Noto Sans CJK SC, Noto Sans CJK, Microsoft YaHei, SimHei, Arial, sans-serif">DDS 命令与状态话题</text>
+<rect x="470" y="220" width="300" height="170" rx="20" fill="#dcfce7" stroke="#16a34a" stroke-width="5" />
+<text x="620.0" y="264" text-anchor="middle" font-size="28" font-weight="700" fill="#0f172a" font-family="Noto Sans CJK SC, Noto Sans CJK, Microsoft YaHei, SimHei, Arial, sans-serif">YKS_SDK</text>
+<text x="620.0" y="302" text-anchor="middle" font-size="23" font-weight="400" fill="#1e293b" font-family="Noto Sans CJK SC, Noto Sans CJK, Microsoft YaHei, SimHei, Arial, sans-serif">YKSMotorData 统一缓存</text>
+<text x="620.0" y="334" text-anchor="middle" font-size="23" font-weight="400" fill="#1e293b" font-family="Noto Sans CJK SC, Noto Sans CJK, Microsoft YaHei, SimHei, Arial, sans-serif">1 ms 主循环</text>
+<rect x="820" y="220" width="300" height="170" rx="20" fill="#e0f2fe" stroke="#0284c7" stroke-width="5" />
+<text x="970.0" y="264" text-anchor="middle" font-size="28" font-weight="700" fill="#0f172a" font-family="Noto Sans CJK SC, Noto Sans CJK, Microsoft YaHei, SimHei, Arial, sans-serif">EtherCAT 主站</text>
+<text x="970.0" y="302" text-anchor="middle" font-size="23" font-weight="400" fill="#1e293b" font-family="Noto Sans CJK SC, Noto Sans CJK, Microsoft YaHei, SimHei, Arial, sans-serif">SOEM 初始化</text>
+<text x="970.0" y="334" text-anchor="middle" font-size="23" font-weight="400" fill="#1e293b" font-family="Noto Sans CJK SC, Noto Sans CJK, Microsoft YaHei, SimHei, Arial, sans-serif">Tx/Rx 过程数据与状态监测</text>
+<rect x="1170" y="220" width="300" height="170" rx="20" fill="#fef3c7" stroke="#d97706" stroke-width="5" />
+<text x="1320.0" y="264" text-anchor="middle" font-size="28" font-weight="700" fill="#0f172a" font-family="Noto Sans CJK SC, Noto Sans CJK, Microsoft YaHei, SimHei, Arial, sans-serif">EtherCAT-CANFD 从站</text>
+<text x="1320.0" y="302" text-anchor="middle" font-size="23" font-weight="400" fill="#1e293b" font-family="Noto Sans CJK SC, Noto Sans CJK, Microsoft YaHei, SimHei, Arial, sans-serif">主站侧透明适配</text>
+<text x="1320.0" y="334" text-anchor="middle" font-size="23" font-weight="400" fill="#1e293b" font-family="Noto Sans CJK SC, Noto Sans CJK, Microsoft YaHei, SimHei, Arial, sans-serif">每从站 3 路 CANFD</text>
+<text x="1320.0" y="366" text-anchor="middle" font-size="23" font-weight="400" fill="#1e293b" font-family="Noto Sans CJK SC, Noto Sans CJK, Microsoft YaHei, SimHei, Arial, sans-serif">24 有效槽 / 40 预留槽</text>
+<rect x="1520" y="220" width="150" height="170" rx="20" fill="#fce7f3" stroke="#db2777" stroke-width="5" />
+<text x="1595.0" y="264" text-anchor="middle" font-size="24" font-weight="700" fill="#0f172a" font-family="Noto Sans CJK SC, Noto Sans CJK, Microsoft YaHei, SimHei, Arial, sans-serif">关节模组</text>
+<text x="1595.0" y="302" text-anchor="middle" font-size="21" font-weight="400" fill="#1e293b" font-family="Noto Sans CJK SC, Noto Sans CJK, Microsoft YaHei, SimHei, Arial, sans-serif">YKS / TI5</text>
+<text x="1595.0" y="332" text-anchor="middle" font-size="21" font-weight="400" fill="#1e293b" font-family="Noto Sans CJK SC, Noto Sans CJK, Microsoft YaHei, SimHei, Arial, sans-serif">EYOU / SE</text>
+<line x1="420" y1="305" x2="470" y2="305" stroke="#475569" stroke-width="3" marker-end="url(#arrow)" />
+<rect x="410.0" y="271" width="70" height="35" rx="6" fill="#ffffff" opacity="0.95" />
+<text x="445" y="299" text-anchor="middle" font-size="20" font-weight="400" fill="#475569" font-family="Noto Sans CJK SC, Noto Sans CJK, Microsoft YaHei, SimHei, Arial, sans-serif">命令</text>
+<line x1="770" y1="305" x2="820" y2="305" stroke="#475569" stroke-width="3" marker-end="url(#arrow)" />
+<rect x="760.0" y="271" width="70" height="35" rx="6" fill="#ffffff" opacity="0.95" />
+<text x="795" y="299" text-anchor="middle" font-size="20" font-weight="400" fill="#475569" font-family="Noto Sans CJK SC, Noto Sans CJK, Microsoft YaHei, SimHei, Arial, sans-serif">缓存</text>
+<line x1="1120" y1="305" x2="1170" y2="305" stroke="#475569" stroke-width="3" marker-end="url(#arrow)" />
+<rect x="1085.4" y="271" width="119.2" height="35" rx="6" fill="#ffffff" opacity="0.95" />
+<text x="1145" y="299" text-anchor="middle" font-size="20" font-weight="400" fill="#475569" font-family="Noto Sans CJK SC, Noto Sans CJK, Microsoft YaHei, SimHei, Arial, sans-serif">EtherCAT</text>
+<line x1="1470" y1="305" x2="1520" y2="305" stroke="#475569" stroke-width="3" marker-end="url(#arrow)" />
+<rect x="1455.24" y="246" width="79.52" height="31" rx="6" fill="#ffffff" opacity="0.95" />
+<text x="1495" y="270" text-anchor="middle" font-size="16" font-weight="400" fill="#475569" font-family="Noto Sans CJK SC, Noto Sans CJK, Microsoft YaHei, SimHei, Arial, sans-serif">CANFD</text>
+<path d="M1575 430 C1320 505 870 505 600 430" fill="none" stroke="#64748b" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="12 12" marker-end="url(#arrow)" />
+<rect x="882.75" y="428" width="314.5" height="34" rx="6" fill="#ffffff" opacity="0.95" />
+<text x="1040" y="455" text-anchor="middle" font-size="19" font-weight="400" fill="#64748b" font-family="Noto Sans CJK SC, Noto Sans CJK, Microsoft YaHei, SimHei, Arial, sans-serif">反馈：协议解包 -&gt; 状态缓存 -&gt; DDS 发布</text>
+<rect x="160" y="610" width="430" height="130" rx="20" fill="#ecfdf5" stroke="#059669" stroke-width="5" />
+<text x="375.0" y="654" text-anchor="middle" font-size="24" font-weight="700" fill="#0f172a" font-family="Noto Sans CJK SC, Noto Sans CJK, Microsoft YaHei, SimHei, Arial, sans-serif">主站适配内容</text>
+<text x="375.0" y="692" text-anchor="middle" font-size="20" font-weight="400" fill="#1e293b" font-family="Noto Sans CJK SC, Noto Sans CJK, Microsoft YaHei, SimHei, Arial, sans-serif">从站数量 / PDO 槽位</text>
+<text x="375.0" y="721" text-anchor="middle" font-size="20" font-weight="400" fill="#1e293b" font-family="Noto Sans CJK SC, Noto Sans CJK, Microsoft YaHei, SimHei, Arial, sans-serif">CAN ID 与全局电机 ID 映射</text>
+<rect x="690" y="610" width="420" height="130" rx="20" fill="#f0f9ff" stroke="#0ea5e9" stroke-width="5" />
+<text x="900.0" y="654" text-anchor="middle" font-size="24" font-weight="700" fill="#0f172a" font-family="Noto Sans CJK SC, Noto Sans CJK, Microsoft YaHei, SimHei, Arial, sans-serif">当前源码映射</text>
+<text x="900.0" y="692" text-anchor="middle" font-size="20" font-weight="400" fill="#1e293b" font-family="Noto Sans CJK SC, Noto Sans CJK, Microsoft YaHei, SimHei, Arial, sans-serif">g_slaves / g_motor_map</text>
+<text x="900.0" y="721" text-anchor="middle" font-size="20" font-weight="400" fill="#1e293b" font-family="Noto Sans CJK SC, Noto Sans CJK, Microsoft YaHei, SimHei, Arial, sans-serif">2 从站 x 24 槽 = 48 电机</text>
+<rect x="1210" y="610" width="440" height="130" rx="20" fill="#fff7ed" stroke="#ea580c" stroke-width="5" />
+<text x="1430.0" y="654" text-anchor="middle" font-size="24" font-weight="700" fill="#0f172a" font-family="Noto Sans CJK SC, Noto Sans CJK, Microsoft YaHei, SimHei, Arial, sans-serif">从站侧升级收益</text>
+<text x="1430.0" y="692" text-anchor="middle" font-size="20" font-weight="400" fill="#1e293b" font-family="Noto Sans CJK SC, Noto Sans CJK, Microsoft YaHei, SimHei, Arial, sans-serif">更高数据段速率 / 更强吞吐</text>
+<text x="1430.0" y="721" text-anchor="middle" font-size="20" font-weight="400" fill="#1e293b" font-family="Noto Sans CJK SC, Noto Sans CJK, Microsoft YaHei, SimHei, Arial, sans-serif">多电机高频控制余量提升</text>
+<line x1="590" y1="675" x2="690" y2="675" stroke="#475569" stroke-width="3" marker-end="url(#arrow)" />
+<rect x="605.0" y="642" width="70" height="33" rx="6" fill="#ffffff" opacity="0.95" />
+<text x="640" y="668" text-anchor="middle" font-size="18" font-weight="400" fill="#475569" font-family="Noto Sans CJK SC, Noto Sans CJK, Microsoft YaHei, SimHei, Arial, sans-serif">源码配置</text>
+<line x1="1110" y1="675" x2="1210" y2="675" stroke="#475569" stroke-width="3" marker-end="url(#arrow)" />
+<rect x="1122.1" y="642" width="75.8" height="33" rx="6" fill="#ffffff" opacity="0.95" />
+<text x="1160" y="668" text-anchor="middle" font-size="18" font-weight="400" fill="#475569" font-family="Noto Sans CJK SC, Noto Sans CJK, Microsoft YaHei, SimHei, Arial, sans-serif">从站能力</text>
+<path d="M1430 610 C1410 545 1385 475 1385 390" fill="none" stroke="#ea580c" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="12 12" marker-end="url(#orangeArrow)" />
+<rect x="1340.76" y="473" width="208.48" height="34" rx="6" fill="#ffffff" opacity="0.95" />
+<text x="1445" y="500" text-anchor="middle" font-size="19" font-weight="400" fill="#ea580c" font-family="Noto Sans CJK SC, Noto Sans CJK, Microsoft YaHei, SimHei, Arial, sans-serif">实现 CANFD 物理总线</text>
+<rect x="160" y="875" width="450" height="130" rx="20" fill="#fffbeb" stroke="#ca8a04" stroke-width="5" />
+<text x="385.0" y="919" text-anchor="middle" font-size="24" font-weight="700" fill="#0f172a" font-family="Noto Sans CJK SC, Noto Sans CJK, Microsoft YaHei, SimHei, Arial, sans-serif">手动调试入口</text>
+<text x="385.0" y="957" text-anchor="middle" font-size="20" font-weight="400" fill="#1e293b" font-family="Noto Sans CJK SC, Noto Sans CJK, Microsoft YaHei, SimHei, Arial, sans-serif">master_stack_test</text>
+<text x="385.0" y="986" text-anchor="middle" font-size="20" font-weight="400" fill="#1e293b" font-family="Noto Sans CJK SC, Noto Sans CJK, Microsoft YaHei, SimHei, Arial, sans-serif">单链路联调与电机持久配置</text>
+<rect x="675" y="875" width="450" height="130" rx="20" fill="#f5f3ff" stroke="#7c3aed" stroke-width="5" />
+<text x="900.0" y="919" text-anchor="middle" font-size="24" font-weight="700" fill="#0f172a" font-family="Noto Sans CJK SC, Noto Sans CJK, Microsoft YaHei, SimHei, Arial, sans-serif">外设与自检</text>
+<text x="900.0" y="957" text-anchor="middle" font-size="20" font-weight="400" fill="#1e293b" font-family="Noto Sans CJK SC, Noto Sans CJK, Microsoft YaHei, SimHei, Arial, sans-serif">Hipnuc IMU / Logitech 手柄</text>
+<text x="900.0" y="986" text-anchor="middle" font-size="20" font-weight="400" fill="#1e293b" font-family="Noto Sans CJK SC, Noto Sans CJK, Microsoft YaHei, SimHei, Arial, sans-serif">在线后进入正常主循环</text>
+<rect x="1190" y="875" width="450" height="130" rx="20" fill="#fef2f2" stroke="#dc2626" stroke-width="5" />
+<text x="1415.0" y="919" text-anchor="middle" font-size="24" font-weight="700" fill="#0f172a" font-family="Noto Sans CJK SC, Noto Sans CJK, Microsoft YaHei, SimHei, Arial, sans-serif">诊断与安全</text>
+<text x="1415.0" y="957" text-anchor="middle" font-size="20" font-weight="400" fill="#1e293b" font-family="Noto Sans CJK SC, Noto Sans CJK, Microsoft YaHei, SimHei, Arial, sans-serif">TX 日志 / RawCanProbe / WKC</text>
+<text x="1415.0" y="986" text-anchor="middle" font-size="20" font-weight="400" fill="#1e293b" font-family="Noto Sans CJK SC, Noto Sans CJK, Microsoft YaHei, SimHei, Arial, sans-serif">错误恢复与退出零命令</text>
+<text x="900" y="1090" text-anchor="middle" font-size="20" font-weight="400" fill="#475569" font-family="Noto Sans CJK SC, Noto Sans CJK, Microsoft YaHei, SimHei, Arial, sans-serif">说明：主站仍通过 EtherCAT 过程数据收发命令和反馈；CANFD 差异主要由从站/驱动器侧实现，主站侧负责槽位、ID 与数量适配。</text>
+</svg>

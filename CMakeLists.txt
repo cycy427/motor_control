@@ -51,8 +51,6 @@ idlcxx_generate(TARGET nubotddsmsg FILES nubotddsmsg.idl)
 
 # 添加可执行文件 YKS_SDK
 add_executable(YKS_SDK main.cpp JoyStickHandler.cpp Z1Legs.cpp BmsHandler.cpp SBusReceiver.cpp SocketSender.cpp SocketReceiver.cpp
-        DDSRelate.cpp
-        DDSRelate.h
         MotorDataLogger.h
         MotorDataLogger.cpp)
 
