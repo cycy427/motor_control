@@ -1,10 +1,97 @@
----
-author: GoldenPhilosophy
-date: 2025-03-11
----
-## 可以直接阅读下方的简要说明，这里作为补充说明
+### 使用简要说明，先阅读这个，有需要再阅读下面完整教程
 
-## YKS_SDK 简介
+C++使用方法：
+
+0. 安装依赖库：
+`sudo apt install libtinfo-dev libreadline-dev libboost-all-dev libncurses5-dev libncursesw5-dev net-tools`
+
+1. 将build文件夹删除，重新创建工程后编译
+    ```shell
+       mkdir build
+       cd build
+       cmake .. //这一步如果提示错误,请删除build文件夹,重新创建
+       make
+       sudo ./YKS_SDK
+     cmake .. 这一步如果提示错误,请删除build文件夹,重新创建
+     如果还不行，请先解压example中的dds_int，然后按照其中的readme.md安装环境，再重新编译
+
+2. 检查app/motor_control.c文件中的电机型号和映射设置是否正确，如有需要，修改电机型号或接线映射。
+   `Z1_MOTOR_ID_Type` 是电机型号顺序，`g_motor_map` / `g_slaves` 是全局电机到 EtherCAT 从站、PDO 槽位、CAN ID 的映射。
+3. 检查app/transmit.cpp文件中的Z1_MOTOR_POS_MAX到Z1_MOTOR_TOR_MIN是否正确，这里是限制位置等量（速度和力矩有待实验证明）
+4. 检查Z1_legs.h中LegDirectionMotor_数组的电机转向是否正确，如有需要，修改
+5. 在main.cpp中，检查第一行CYCLONEDDS_URI的路径是否正确，如有需要，修改
+6. 在main.cpp中，检查CAT_Init("enp3s0")中的网口名称是否正确，如有需要，修改
+7. 如果使用python控制，检查上述内容后在中终端中打开就行了，换一个终端使用python对齐修改
+
+#### python控制电机运动：
+
+1. 完成c++的第一步，打开一个终端将./build/YKS_SDK运行起来
+2. 首先打开安装了dds库的python环境，如果没有安装参开dds_int中的readme.md安装环境和example/yksddss/文件夹中的readme.md安装消息库
+3. 例程为./example/yksddss/yksddspy/z1rc.py，认真阅读后可以只打开ethercat板子但是不打开电机进行测试，看./YKS_SDK
+   页面是否有收到消息，通信成功后参考这个例程写自己收发程序或者调用这个例程的函数皆可
+   比如：No module named 'nubotddsmsg' 进入example/yksddss/文件夹中的readme.md安装消息库
+
+4. 当前主程序使用 leg / arm / body 三路 DDS 分组接口：leg 12 个、body 3 个、arm 14 个。发送程序中的 `index` 使用电机全局 ID，和 `./YKS_SDK` 终端显示以及 `robot_layout.c` 中的主动关节 ID 一致；只控制双足时，仅发送 leg 分组或只更新 `kLegMotorIds` 对应的全局 ID。
+5. 当前机器人主动关节不是连续 0-28 编号，而是稀疏全局 ID：双腿见 `kLegMotorIds`，躯干见 `kBodyMotorIds`，双臂见 `kArmMotorIds`。底层 48 个槽位中未列入这些数组的 ID 作为预留或未启用槽位处理。
+
+#### imu使用说明：
+1. example/dds_imu/imu_pub.py为imu发布节点，开启一个新终端，进入相关环境运行即可
+2. example/dds_imu/imu_sub.py为imu订阅节点，开启一个新终端，进入相关环境运行即可，可以调用其中的函数自己使用
+
+#### 遥控器使用说明：
+1. example/logitech/logic_pub.py为logic发布节点，开启一个新终端，进入相关环境运行即可
+2. example/logitech/logic_sub.py为logic订阅节点，开启一个新终端，进入相关环境运行即可，可以调用其中的函数自己使用
+
+#### SBUS接收机使用说明：
+1. SBUS 默认不启动；当前主程序中的 SBUS 接收机和 DDS 发布节点保持关闭，运行 `sudo ./YKS_SDK` 不会主动打开串口。
+2. 如需使用 SBUS，需要在 `main.cpp` 中重新启用 SBUS publisher、`SBusReceiver` 实例和循环发布调用，再运行 `example/yksddss/yksddspy/sbus_sub.py` 订阅数据。
+
+#### 接线说明
+
+1. 接入一个5V电源：将电池线连接至Ethercat板子的电源一端，这一端是靠近STM32芯片的一端，另一端连接至上位机网口。
+
+### 注意，这一步不能接反，不确定请找接过的人！！！
+
+2. 修改电机的 CAN ID，然后接到板子上。默认映射为每个从站 24 个有效槽：槽位 1-8 接 CANFD1，槽位 9-16 接 CANFD2，槽位 17-24 接 CANFD3；第 1 个从站对应底层全局槽位 0-23 / CAN ID 1-24，第 2 个从站对应底层全局槽位 24-47 / CAN ID 25-48。当前机器人实际主动关节只使用 `robot_layout.c` 中列出的稀疏全局 ID。
+
+## 调试步骤
+
+规范使用步骤：
+
+- 开启：先ethercat板子上电，然后电机上电，打开sudo ./YKS_SDK，有返回值值之后再用DDS下发指令。
+- 关闭：
+- （1）先杀死终端中的sudo ./YKS_SDK,再拍急停，此时可以不关闭电池电源（关闭ethercat板子供电），重新打开电机急停开关，电机上电，打开sudo
+  ./YKS_SDK，进程重新启动。
+- （2）先拍急停，此时电机断电，然后关闭程序，此时不可以直接打开急停和打开sudo ./YKS_SDK，而是要关闭电源开关（关闭ethercat板子供电），重新打开的步骤。
+  调试建议：
+- 如果有时间的话，先只打开ethercat板子进行调试，通过./YKS_SDK终端观察下发的命令是否正确，确认无误后再关闭ethercat板子电源，重新上述的开启步骤
+
+### 注意事项
+
+1. 底层槽位和 CAN ID 参考app/motor_control.c中的`g_motor_map[].global_id`和`g_motor_map[].can_id`，与默认硬件编号1-48对应；当前主动关节列表参考app/robot_layout.c中的`kLegMotorIds`、`kBodyMotorIds`、`kArmMotorIds`。
+2. 请先杀掉./YKS_SDK程序后再拍急停关闭电机，如果先关闭了电机再关程序，请同时将ethercat版也断电，即将电池断电
+
+#### 获得原始数据
+
+1. 调用：z1_leg.cpp里面的EtherCAT_Send_Command（）用户发送数据给ethercat的地方
+2. 进入transmit.cpp里面的EtherCAT_Send_Command,根据mode的不同调用不同的解码函数，其中力位混合模式在mode==0的set_ti5_current()
+上修改，要拿到原始数据，可以进入这些set_ti5_xxx函数，修改返回值
+
+#### 完整更改消息包
+
+- 改变example/yksddss/nubotidl/nubotddsmsg.idl 的内容，与最外层的nubotddsmsg.idl文件统一
+
+- 使用命令重新生成 nubotddsmsg库
+  ```
+  idlc -l py nubotddsmsg.idl
+  ```
+- 重新进入nubotidl文件夹，在该目录下执行 pip install .
+
+#### DDS分组使用简要说明
+当前主程序使用 leg / arm / body 三路 DDS 分组收发，不再使用旧的 wholebody `DDS_Z1_5_WB_*` 主程序路径。上层程序需要与底层保持一致：双腿发送 12 个关节、躯干发送 3 个关节、双臂发送 14 个关节，消息中的 `index` 按 `robot_layout.c` 中的全局 ID 填写。
+
+
+## YKS_SDK 完整说明
 
 YKS_SDK是一个开源的Ethercat驱动程序，基于SOEM库实现了Ethercat主站和从站的通信，并提供了一系列的API接口，方便用户使用。
 
@@ -43,9 +130,6 @@ typedef struct {
 
 - 该函数为非阻塞函数，立即返回
 
-#### 建议添加一个CAT_stop函数，增加停止功能
-
-#### 建议添加一个反馈状态的函数，用于监测通信状态
 
 ### 基本流程示例（伪代码）：
 
@@ -75,10 +159,10 @@ typedef struct {
 2. 安装ncurses库，该库用于显示终端界面`sudo apt-get install libncurses5-dev libncursesw5-dev`
 3. 使用`ifconfig`指令确定接入从机的网卡名称  `sudo apt-get install net-tools`
 4. 将该网卡名称填入到[main.cpp](main.cpp)中、"在while函数中需添加不少于10MS的延时，否则电机无法正常运行"
-5. 检查[transmit.h](app/transmit.h)中的从站与电机数量。当前默认适配两个 EtherCAT-CANFD 从站，48 个机器人电机。
+5. 检查[transmit.h](app/transmit.h)中的从站与槽位容量。当前底层默认保留 2 个 EtherCAT-CANFD 从站、48 个 PDO/CAN ID 槽位容量；当前机器人控制链路启用 29 个主动关节。
 6.
 
-如果需要使用SBUS接收机，需要修改串口的别名，才能找到这个接收机，具体使用教程可以参见 [SBUS转USB串口配置教程](https://www.wolai.com/kUuBkzjtbkCvuwPxWN3Epj)
+SBUS 默认不启动；如果需要使用SBUS接收机，需要先在主程序中启用对应代码，并修改串口的别名，才能找到这个接收机，具体使用教程可以参见 [SBUS转USB串口配置教程](https://www.wolai.com/kUuBkzjtbkCvuwPxWN3Epj)
 
 7. 安装依赖库：
    `sudo apt install libtinfo-dev libreadline-dev libboost-all-dev libncurses5-dev libncursesw5-dev net-tools`
@@ -165,108 +249,13 @@ Z1Legs类，***默认为PR模式***，也就是已经经过了闭链运动学的
 
 在[motor_control.c](app/motor_control.c)和[motor_control.h](app/motor_control.h)
 包含了有关Ethercat板子所接电机型号的设置，以及对应的参数设置，需要使用者提前注意设置好
-在[transmit.cpp](app/transmit.cpp)中，包含所接Ti5电机和YKS电机数量的设置，以及最大从站数量的设置，需要使用者根据自己的电机数量进行修改
+在[transmit.cpp](app/transmit.cpp)中，包含所接Ti5电机和YKS电机数量的设置，以及最大从站数量的设置，需要使用者根据自己的电机数量进行修改。当前主动关节拓扑以[robot_layout.h](app/robot_layout.h)和[robot_layout.c](app/robot_layout.c)为准：双腿 12 个、躯干 3 个、双臂 14 个，共 29 个主动关节。
 
 当前底层默认适配新的 EtherCAT-CANFD 从站：每个从站预留 40 个 PDO 帧槽，其中前 24 个槽有效；槽位 1-8 对应 CANFD1，9-16 对应 CANFD2，17-24 对应 CANFD3。
-完整机器人默认使用 2 个 EtherCAT-CANFD 从站，两个从站都启用 24 个有效槽位：电机 0-23 接在第 1 个从站槽位 1-24，电机 24-47 接在第 2 个从站槽位 1-24。
-CAN ID 使用全局编号策略，即电机 0-47 分别对应 CAN ID 1-48。硬件侧驱动器 ID 必须与该策略一致，否则可能出现只能下发命令但无法正确回传状态的情况。
+底层容量默认使用 2 个 EtherCAT-CANFD 从站，两个从站都启用 24 个有效槽位：底层全局槽位 0-23 接在第 1 个从站槽位 1-24，底层全局槽位 24-47 接在第 2 个从站槽位 1-24。
+CAN ID 使用全局编号策略，即底层全局槽位 0-47 分别对应 CAN ID 1-48。硬件侧驱动器 ID 必须与该策略一致，否则可能出现只能下发命令但无法正确回传状态的情况。当前机器人控制链路只使用其中的稀疏主动关节 ID 集合，具体列表见 `kLegMotorIds`、`kBodyMotorIds`、`kArmMotorIds`。
 
 安装xone手柄驱动：（获取力反馈，并非必须）需要同时安装xone和xpadneo才能用，就听神奇的
 https://gitcode.com/gh_mirrors/xo/xone
 
 更多教程参见app文件夹下的[YKS官方教程](app/README.md#SOEM主站)
-
-### 使用简要说明，先阅读这个，不行再阅读上述完整教程（旧）
-
-C++使用方法：
-
-0. 安装依赖库：
-`sudo apt install libtinfo-dev libreadline-dev libboost-all-dev libncurses5-dev libncursesw5-dev net-tools`
-
-1. 将build文件夹删除，重新创建工程后编译
-    ```shell
-       mkdir build
-       cd build
-       cmake .. //这一步如果提示错误,请删除build文件夹,重新创建
-       make
-       sudo ./YKS_SDK
-     cmake .. 这一步如果提示错误,请删除build文件夹,重新创建
-     如果还不行，请先解压example中的dds_int，然后按照其中的readme.md安装环境，再重新编译
-
-2. 检查app/motor_control.c文件中的电机型号和映射设置是否正确，如有需要，修改电机型号或接线映射。
-   `Z1_MOTOR_ID_Type` 是电机型号顺序，`g_motor_map` / `g_slaves` 是全局电机到 EtherCAT 从站、PDO 槽位、CAN ID 的映射。
-3. 检查app/transmit.cpp文件中的Z1_MOTOR_POS_MAX到Z1_MOTOR_TOR_MIN是否正确，这里是限制位置等量（速度和力矩有待实验证明）
-4. 检查Z1_legs.h中LegDirectionMotor_数组的电机转向是否正确，如有需要，修改
-5. 在main.cpp中，检查第一行CYCLONEDDS_URI的路径是否正确，如有需要，修改
-6. 在main.cpp中，检查CAT_Init("enp3s0")中的网口名称是否正确，如有需要，修改
-7. 如果使用python控制，检查上述内容后在中终端中打开就行了，换一个终端使用python对齐修改
-
-#### python控制电机运动：
-
-1. 完成c++的第一步，打开一个终端将./build/YKS_SDK运行起来
-2. 首先打开安装了dds库的python环境，如果没有安装参开dds_int中的readme.md安装环境和example/yksddss/文件夹中的readme.md安装消息库
-3. 例程为./example/yksddss/yksddspy/z1rc.py，认真阅读后可以只打开ethercat板子但是不打开电机进行测试，看./YKS_SDK
-   页面是否有收到消息，通信成功后参考这个例程写自己收发程序或者调用这个例程的函数皆可
-   比如：No module named 'nubotddsmsg' 进入example/yksddss/文件夹中的readme.md安装消息库
-
-4. 所写的发送程序为z1_5_wb.z1_5_wb_squat_control(),请阅读函数注释，将函数参数修改为需要发送的数据，然后调用该函数，需要
-   修改的值一般为index，这个是电机的全局id号，和./YKS_SDK终端所显示的一致，每次发送都是48个数据一块发送，要是
-   只需要控制双足，那么可以修改for i in range(12): z1_5_wb.z1_5_wb_squat_control(),其余的不改即可
-5. 既有机器人本体 id 设置为 双足：0-11 双臂 12-23 躯干 24-29；第二从站扩展槽位为 30-47
-
-#### imu使用说明：
-1. example/dds_imu/imu_pub.py为imu发布节点，开启一个新终端，进入相关环境运行即可
-2. example/dds_imu/imu_sub.py为imu订阅节点，开启一个新终端，进入相关环境运行即可，可以调用其中的函数自己使用
-
-#### SBUS接收机使用说明：
-1. 主程序中已经打开了为SBUS发布节点，运行sudo ./YKS_SDK即可
-2. example/yksddss/yksddspy/sbus_sub.py为sbus订阅节点，开启一个新终端，进入相关环境运行即可，可以调用其中的函数自己使用
-
-#### imu使用说明：
-1. example/logitech/logic_pub.py为logic发布节点，开启一个新终端，进入相关环境运行即可
-2. example/logitech/logic_sub.py为logic订阅节点，开启一个新终端，进入相关环境运行即可，可以调用其中的函数自己使用
-
-#### 接线说明
-
-1. 接入一个5V电源：将电池线连接至Ethercat板子的电源一端，这一端是靠近STM32芯片的一端，另一端连接至上位机网口。
-
-### 注意，这一步不能接反，不确定请找接过的人！！！
-
-2. 修改电机的 CAN ID，然后接到板子上。默认映射为每个从站 24 个有效槽：槽位 1-8 接 CANFD1，槽位 9-16 接 CANFD2，槽位 17-24 接 CANFD3；第 1 个从站对应全局电机 0-23 / CAN ID 1-24，第 2 个从站对应全局电机 24-47 / CAN ID 25-48。
-
-## 调试步骤
-
-规范使用步骤：
-
-- 开启：先ethercat板子上电，然后电机上电，打开sudo ./YKS_SDK，有返回值值之后再用DDS下发指令。
-- 关闭：
-- （1）先杀死终端中的sudo ./YKS_SDK,再拍急停，此时可以不关闭电池电源（关闭ethercat板子供电），重新打开电机急停开关，电机上电，打开sudo
-  ./YKS_SDK，进程重新启动。
-- （2）先拍急停，此时电机断电，然后关闭程序，此时不可以直接打开急停和打开sudo ./YKS_SDK，而是要关闭电源开关（关闭ethercat板子供电），重新打开的步骤。
-  调试建议：
-- 如果有时间的话，先只打开ethercat板子进行调试，通过./YKS_SDK终端观察下发的命令是否正确，确认无误后再关闭ethercat板子电源，重新上述的开启步骤
-
-### 注意事项
-
-1. 电机全局序号参考app/motor_control.c中的`g_motor_map[].global_id`，CAN ID参考`g_motor_map[].can_id`，与默认硬件编号1-48对应。
-2. 请先杀掉./YKS_SDK程序后再拍急停关闭电机，如果先关闭了电机再关程序，请同时将ethercat版也断电，即将电池断电
-
-#### 获得原始数据
-
-1. 调用：z1_leg.cpp里面的EtherCAT_Send_Command（）用户发送数据给ethercat的地方
-2. 进入transmit.cpp里面的EtherCAT_Send_Command,根据mode的不同调用不同的解码函数，其中力位混合模式在mode==0的set_ti5_current()
-上修改，要拿到原始数据，可以进入这些set_ti5_xxx函数，修改返回值
-
-#### 完整更改消息包
-
-- 改变example/yksddss/nubotidl/nubotddsmsg.idl 的内容，与最外层的nubotddsmsg.idl文件统一
-
-- 使用命令重新生成 nubotddsmsg库
-  ```
-  idlc -l py nubotddsmsg.idl
-  ```
-- 重新进入nubotidl文件夹，在该目录下执行 pip install .
-
-#### 解耦使用简要说明 解耦和不解耦不能同时使用,请确保底层和上层一致
-1. 解耦：底层注释掉DDS_Z1_5_WB_SUB(z1_5_wb_Reader, samples_z1_5_wb);和DDS_Pub_Z1_5_WB_Motor_Data(z1_5_wb_States, z1_5_wb_Writer, my_motor_data);
-2. 不解耦：底层注释掉DDS_Leg_SUB，DDS_Arm_SUB，DDS_Body_SUB，DDS_Pub_Arm_Motor_Data，DDS_Pub_Leg_Motor_Data，DDS_Pub_Body_Motor_Data
