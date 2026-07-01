@@ -37,11 +37,11 @@
   * MotorSpeedSet \<SlaveId\> \<PdoSlot\> \<CanId\> \<Speed\>(0) \<Current\>(500) \<AckStatus\>(2)
   * MotorPositionSet \<SlaveId\> \<PdoSlot\> \<CanId\> \<Position\>(0) \<Speed\>(50) \<Current\>(500) \<AckStatus\>(2)
 
-其中 `SlaveId` 为0开始的从站数组下标，当前有效范围为0-1；`PdoSlot` 为每个从站内部的PDO槽位，当前有效范围为1-24。
+其中 `SlaveId` 为0开始的从站数组下标，当前有效范围为0-1；`PdoSlot` 为每个从站内部的PDO槽位，当前有效范围为1-24；`CanId` 为该从站内实际电机 CAN ID，默认同样为1-24，不使用文档全局 ID。
 
 ### 特别注意
 当前主站适配新的 EtherCAT-CANFD 从站：每个从站预留40个PDO帧槽，前24个槽有效；槽位1-8对应CANFD1，9-16对应CANFD2，17-24对应CANFD3。
-完整机器人默认映射为：电机0-23接在第1个从站槽位1-24，电机24-47接在第2个从站槽位1-24。CAN ID使用全局编号，电机0-47分别对应CAN ID 1-48；硬件驱动器ID必须与该编号一致。
+完整机器人默认映射为：电机0-23接在第1个从站槽位1-24，电机24-47接在第2个从站槽位1-24。全局 ID 只用于主站区分、数组索引和上层映射；实际 CAN ID 在每个从站内按槽位重复使用1-24，硬件驱动器ID应按所在从站的本地 CAN ID 配置。
 
 ### 二次开发
 * 多线程功能

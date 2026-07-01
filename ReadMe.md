@@ -52,7 +52,7 @@ C++使用方法：
 
 ### 注意，这一步不能接反，不确定请找接过的人！！！
 
-2. 修改电机的 CAN ID，然后接到板子上。默认映射为每个从站 24 个有效槽：槽位 1-8 接 CANFD1，槽位 9-16 接 CANFD2，槽位 17-24 接 CANFD3；第 1 个从站对应底层全局槽位 0-23 / CAN ID 1-24，第 2 个从站对应底层全局槽位 24-47 / CAN ID 25-48。当前机器人实际主动关节只使用 `robot_layout.c` 中列出的稀疏全局 ID。
+2. 修改电机的 CAN ID，然后接到板子上。默认映射为每个从站 24 个有效槽：槽位 1-8 接 CANFD1 / CAN ID 1-8，槽位 9-16 接 CANFD2 / CAN ID 9-16，槽位 17-24 接 CANFD3 / CAN ID 17-24；第 1 个从站对应底层全局槽位 0-23，第 2 个从站对应底层全局槽位 24-47。CAN ID 是每个从站内的实际电机 ID，不使用跨从站全局编号。当前机器人实际主动关节只使用 `robot_layout.c` 中列出的稀疏全局 ID。
 
 ## 调试步骤
 
@@ -68,7 +68,7 @@ C++使用方法：
 
 ### 注意事项
 
-1. 底层槽位和 CAN ID 参考app/motor_control.c中的`g_motor_map[].global_id`和`g_motor_map[].can_id`，与默认硬件编号1-48对应；当前主动关节列表参考app/robot_layout.c中的`kLegMotorIds`、`kBodyMotorIds`、`kArmMotorIds`。
+1. 底层槽位、从站内 CAN ID 和主站全局 ID 参考app/motor_control.c中的`g_motor_map[].pdo_slot`、`g_motor_map[].can_id`和`g_motor_map[].global_id`；当前主动关节列表参考app/robot_layout.c中的`kLegMotorIds`、`kBodyMotorIds`、`kArmMotorIds`。
 2. 请先杀掉./YKS_SDK程序后再拍急停关闭电机，如果先关闭了电机再关程序，请同时将ethercat版也断电，即将电池断电
 
 #### 获得原始数据
@@ -159,7 +159,7 @@ typedef struct {
 2. 安装ncurses库，该库用于显示终端界面`sudo apt-get install libncurses5-dev libncursesw5-dev`
 3. 使用`ifconfig`指令确定接入从机的网卡名称  `sudo apt-get install net-tools`
 4. 将该网卡名称填入到[main.cpp](main.cpp)中、"在while函数中需添加不少于10MS的延时，否则电机无法正常运行"
-5. 检查[transmit.h](app/transmit.h)中的从站与槽位容量。当前底层默认保留 2 个 EtherCAT-CANFD 从站、48 个 PDO/CAN ID 槽位容量；当前机器人控制链路启用 29 个主动关节。
+5. 检查[transmit.h](app/transmit.h)中的从站与槽位容量。当前底层默认保留 2 个 EtherCAT-CANFD 从站、48 个 PDO/全局 ID 槽位容量；当前机器人控制链路启用 29 个主动关节。
 6.
 
 SBUS 默认不启动；如果需要使用SBUS接收机，需要先在主程序中启用对应代码，并修改串口的别名，才能找到这个接收机，具体使用教程可以参见 [SBUS转USB串口配置教程](https://www.wolai.com/kUuBkzjtbkCvuwPxWN3Epj)
@@ -253,7 +253,7 @@ Z1Legs类，***默认为PR模式***，也就是已经经过了闭链运动学的
 
 当前底层默认适配新的 EtherCAT-CANFD 从站：每个从站预留 40 个 PDO 帧槽，其中前 24 个槽有效；槽位 1-8 对应 CANFD1，9-16 对应 CANFD2，17-24 对应 CANFD3。
 底层容量默认使用 2 个 EtherCAT-CANFD 从站，两个从站都启用 24 个有效槽位：底层全局槽位 0-23 接在第 1 个从站槽位 1-24，底层全局槽位 24-47 接在第 2 个从站槽位 1-24。
-CAN ID 使用全局编号策略，即底层全局槽位 0-47 分别对应 CAN ID 1-48。硬件侧驱动器 ID 必须与该策略一致，否则可能出现只能下发命令但无法正确回传状态的情况。当前机器人控制链路只使用其中的稀疏主动关节 ID 集合，具体列表见 `kLegMotorIds`、`kBodyMotorIds`、`kArmMotorIds`。
+全局 ID 仅用于主站跨从站区分、数组索引和 DDS 关节映射；实际下发到 CANFD 总线的 CAN ID 按每个从站内部重复编号：槽位 1-24 对应 CAN ID 1-24。硬件侧驱动器 ID 应按所在从站内的本地 CAN ID 配置，而不是按文档全局 ID 配置。当前机器人控制链路只使用其中的稀疏主动关节 ID 集合，具体列表见 `kLegMotorIds`、`kBodyMotorIds`、`kArmMotorIds`。
 
 安装xone手柄驱动：（获取力反馈，并非必须）需要同时安装xone和xpadneo才能用，就听神奇的
 https://gitcode.com/gh_mirrors/xo/xone

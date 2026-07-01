@@ -43,13 +43,6 @@ typedef struct {
 extern YKS_IMUData imuData_recv;
 extern OSAL_THREAD_HANDLE checkThread;
 
-extern float Z1_MOTOR_POS_MAX[TOTAL_CAN_NUMBER];
-extern float Z1_MOTOR_POS_MIN[TOTAL_CAN_NUMBER];
-extern float Z1_MOTOR_SPE_MAX[TOTAL_CAN_NUMBER];
-extern float Z1_MOTOR_SPE_MIN[TOTAL_CAN_NUMBER];
-extern float Z1_MOTOR_TOR_MAX[TOTAL_CAN_NUMBER];
-extern float Z1_MOTOR_TOR_MIN[TOTAL_CAN_NUMBER];
-
 int CAT_Init(const char *device_name);
 
 void EtherCAT_Transmit();

@@ -254,7 +254,7 @@ typedef struct {
     MotorType type; // 电机类型（枚举）
     uint8_t slave_idx; // EtherCAT从站数组下标，0开始
     uint8_t pdo_slot; // 从站PDO槽位，1~24；1~8/CANFD1，9~16/CANFD2，17~24/CANFD3
-    uint16_t can_id; // 实际下发到CANFD总线的电机ID
+    uint16_t can_id; // 当前从站内实际下发到CANFD总线的电机ID，不是global_id
     int global_id; // 全局唯一ID，用于跨从站管理
 } Motor;
 

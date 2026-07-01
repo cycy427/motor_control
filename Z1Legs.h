@@ -1,8 +1,8 @@
 //
 // Created by lijinzhe on 25-3-1.
 //
-#ifndef YKS_SDK_Z1LEGS_H
-#define YKS_SDK_Z1LEGS_H
+#ifndef YKS_SDK_Z1LEGS_Z20_H
+#define YKS_SDK_Z1LEGS_Z20_H
 
 #define PRINT_MOTOR_STATE //如果想要显示机器人的所有电机的状态，请将此宏定义开启
 
@@ -55,7 +55,9 @@ enum Z1JointIndex {
     RightAnkleA = 13,
     // 腰
     WaistRoll = 16,
+    WaistA = 16,
     WaistPitch = 17,
+    WaistB = 17,
     WaistYaw = 18,
     // 左臂
     LeftShoulderPitch = 24,
@@ -63,16 +65,16 @@ enum Z1JointIndex {
     LeftShoulderYaw = 26,
     LeftElbow = 27,
     LeftForearmRoll = 28,
-    LeftWristYaw = 29,
-    LeftWristPitch = 30,
+    LeftWristPitch = 29,
+    LeftWristYaw = 30,
     // 右臂
     RightShoulderPitch = 32,
     RightShoulderRoll = 33,
     RightShoulderYaw = 34,
     RightElbow = 35,
     RightForearmRoll = 36,
-    RightWristYaw = 37,
-    RightWristPitch = 38
+    RightWristPitch = 37,
+    RightWristYaw = 38
 };
 
 class Z1Legs {
@@ -118,6 +120,10 @@ private:
     void compute_jacobian(double roll, double pitch, double J[2][2], double delta = 1e-6) const;
     void inverse_velocity(double roll, double pitch, const double end_vel[2], double joint_vel[2]) const;
     void forward_kinematics(double theta1, double theta2, double& roll, double& pitch) const;
+	InverseKinematicsResult waist_inverse_kinematics(double roll, double pitch) const;
+    void waist_compute_jacobian(double roll, double pitch, double J[2][2], double delta = 1e-6) const;
+    void waist_inverse_velocity(double roll, double pitch, const double end_vel[2], double joint_vel[2]) const;
+    void waist_forward_kinematics(double theta1, double theta2, double& roll, double& pitch) const;
 	void pseudo_inverse(const double J[2][2], double invJ[2][2]) const;
 
     YKSMotorData Pitch_forward_kinematics(const YKSMotorData &Ankle_A_motors, const YKSMotorData &Ankle_B_motors,  int direction) ;
@@ -132,6 +138,15 @@ private:
     //输入目标踝关节的俯仰角横滚角计算脚踝B电机的旋转角度
     YKSMotorData AnkleB_inverse_kinematics(const YKSMotorData &pitch_joint_cmd,
                                            const YKSMotorData &roll_joint_cmd,  int direction) ;
+
+    YKSMotorData WaistPitch_forward_kinematics(const YKSMotorData &waist_a_motor,
+                                               const YKSMotorData &waist_b_motor);
+    YKSMotorData WaistRoll_forward_kinematics(const YKSMotorData &waist_a_motor,
+                                              const YKSMotorData &waist_b_motor);
+    YKSMotorData WaistA_inverse_kinematics(const YKSMotorData &pitch_joint_cmd,
+                                           const YKSMotorData &roll_joint_cmd);
+    YKSMotorData WaistB_inverse_kinematics(const YKSMotorData &pitch_joint_cmd,
+                                           const YKSMotorData &roll_joint_cmd);
 
     std::shared_ptr<std::thread> control_thread_;
     // Stiffness for all Z1 Joints
@@ -166,11 +181,11 @@ private:
     //     -1,1,-1,1,1,1 ,        1,1,1,1,1,1,       1,1,1,1,1,1  ,1,1,1,1,1};//用于根据实际电机的正方向来进行针对性设置，以适配URDF模型的坐标系
     const int LegDirectionMotor_[TOTAL_MOTOR_NUMBER] = {
         // 0-5 左腿
-        -1, 1, -1, -1, -1, 1,
+        1, 1, -1, -1, 1, 1,
         // 6-7 预留
         1, 1,
         // 8-13 右腿
-        -1, 1, -1, 1, -1, 1,
+        -1, 1, -1, 1, 1, 1,
         // 14-15 预留
         1, 1,
         // 16-18 腰
@@ -178,15 +193,16 @@ private:
         // 19-23 预留
         1, 1, 1, 1, 1,
         // 24-30 左臂
-        1, 1, 1, 1, 1, 1, 1,
+        1, 1, -1, 1, 1, 1, 1,
         // 31 预留
         1,
         // 32-38 右臂
-        1, 1, 1, 1, 1, 1, 1,
+        -1, 1, -1, -1, 1, -1, 1,
         // 39-47 预留
         1, 1, 1, 1, 1, 1,
         1, 1, 1
     }; // 明确指定大小
+
     enum Direction {
         LeftLeg = 0,
         RightLeg = 1

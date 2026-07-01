@@ -23,7 +23,8 @@ unsigned help(const std::vector<std::string> &) {
               << "\tMotorIdSet <SlaveId> <MotorId> <NewMotorId>\n"
               << "\tMotorSpeedSet <SlaveId> <PdoSlot> <CanId> <Speed>(0) <Current>(500) <AckStatus>(2)\n"
               << "\tMotorPositionSet <SlaveId> <PdoSlot> <CanId> <Position>(0) <Speed>(50) <Current>(500) <AckStatus>(2)\n"
-              << "\tSlaveId is 0-based; PdoSlot is 1-24 on each EtherCAT-CANFD slave.\n";
+              << "\tSlaveId is 0-based; PdoSlot is 1-24 on each EtherCAT-CANFD slave.\n"
+              << "\tCanId is the real motor CAN ID within that slave, default 1-24; do not use the global ID.\n";
     return 0;
 }
 

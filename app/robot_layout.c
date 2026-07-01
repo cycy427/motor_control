@@ -30,10 +30,10 @@ const char *kJointNames[TOTAL_MOTOR_NUMBER] = {
     "WaistRoll", "WaistPitch", "WaistYaw",
     "", "", "", "", "",
     "LeftShoulderPitch", "LeftShoulderRoll", "LeftShoulderYaw", "LeftElbow", "LeftForearmRoll",
-    "LeftWristYaw", "LeftWristPitch",
+    "LeftWristPitch", "LeftWristYaw",
     "",
     "RightShoulderPitch", "RightShoulderRoll", "RightShoulderYaw", "RightElbow", "RightForearmRoll",
-    "RightWristYaw", "RightWristPitch",
+    "RightWristPitch", "RightWristYaw",
     "", "", "", "", "", "", "", "", ""
 };
 

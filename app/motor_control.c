@@ -40,57 +40,59 @@ int Z1_MOTOR_ID_Type[TOTAL_MOTOR_NUMBER] = {
 };
 
 // 新EtherCAT-CANFD从站映射：
-// 从站1使用槽位1~24，对应CAN ID 1~24；从站2使用槽位1~24，对应CAN ID 25~48。
-// 每个从站槽位1~8为CANFD1，9~16为CANFD2，17~24为CANFD3。
+// global_id用于主站跨从站管理；can_id是每个从站内实际下发到CANFD总线的电机ID。
+// 每个从站都按槽位1~24对应CAN ID 1~24；槽位1~8为CANFD1，9~16为CANFD2，17~24为CANFD3。
+#define MOTOR_SLOT(slave_idx, pdo_slot, global_id) {MOTOR_YKS, (slave_idx), (pdo_slot), (pdo_slot), (global_id)}
+
 Motor g_motor_map[TOTAL_MOTOR_NUMBER] = {
-    {MOTOR_YKS, 0, 1, 1, 0},
-    {MOTOR_YKS, 0, 2, 2, 1},
-    {MOTOR_YKS, 0, 3, 3, 2},
-    {MOTOR_YKS, 0, 4, 4, 3},
-    {MOTOR_YKS, 0, 5, 5, 4},
-    {MOTOR_YKS, 0, 6, 6, 5},
-    {MOTOR_YKS, 0, 7, 7, 6},
-    {MOTOR_YKS, 0, 8, 8, 7},
-    {MOTOR_YKS, 0, 9, 9, 8},
-    {MOTOR_YKS, 0, 10, 10, 9},
-    {MOTOR_YKS, 0, 11, 11, 10},
-    {MOTOR_YKS, 0, 12, 12, 11},
-    {MOTOR_YKS, 0, 13, 13, 12},
-    {MOTOR_YKS, 0, 14, 14, 13},
-    {MOTOR_YKS, 0, 15, 15, 14},
-    {MOTOR_YKS, 0, 16, 16, 15},
-    {MOTOR_YKS, 0, 17, 17, 16},
-    {MOTOR_YKS, 0, 18, 18, 17},
-    {MOTOR_YKS, 0, 19, 19, 18},
-    {MOTOR_YKS, 0, 20, 20, 19},
-    {MOTOR_YKS, 0, 21, 21, 20},
-    {MOTOR_YKS, 0, 22, 22, 21},
-    {MOTOR_YKS, 0, 23, 23, 22},
-    {MOTOR_YKS, 0, 24, 24, 23},
-    {MOTOR_YKS, 1, 1, 25, 24},
-    {MOTOR_YKS, 1, 2, 26, 25},
-    {MOTOR_YKS, 1, 3, 27, 26},
-    {MOTOR_YKS, 1, 4, 28, 27},
-    {MOTOR_YKS, 1, 5, 29, 28},
-    {MOTOR_YKS, 1, 6, 30, 29},
-    {MOTOR_YKS, 1, 7, 31, 30},
-    {MOTOR_YKS, 1, 8, 32, 31},
-    {MOTOR_YKS, 1, 9, 33, 32},
-    {MOTOR_YKS, 1, 10, 34, 33},
-    {MOTOR_YKS, 1, 11, 35, 34},
-    {MOTOR_YKS, 1, 12, 36, 35},
-    {MOTOR_YKS, 1, 13, 37, 36},
-    {MOTOR_YKS, 1, 14, 38, 37},
-    {MOTOR_YKS, 1, 15, 39, 38},
-    {MOTOR_YKS, 1, 16, 40, 39},
-    {MOTOR_YKS, 1, 17, 41, 40},
-    {MOTOR_YKS, 1, 18, 42, 41},
-    {MOTOR_YKS, 1, 19, 43, 42},
-    {MOTOR_YKS, 1, 20, 44, 43},
-    {MOTOR_YKS, 1, 21, 45, 44},
-    {MOTOR_YKS, 1, 22, 46, 45},
-    {MOTOR_YKS, 1, 23, 47, 46},
-    {MOTOR_YKS, 1, 24, 48, 47},
+    MOTOR_SLOT(0, 1, 0),
+    MOTOR_SLOT(0, 2, 1),
+    MOTOR_SLOT(0, 3, 2),
+    MOTOR_SLOT(0, 4, 3),
+    MOTOR_SLOT(0, 5, 4),
+    MOTOR_SLOT(0, 6, 5),
+    MOTOR_SLOT(0, 7, 6),
+    MOTOR_SLOT(0, 8, 7),
+    MOTOR_SLOT(0, 9, 8),
+    MOTOR_SLOT(0, 10, 9),
+    MOTOR_SLOT(0, 11, 10),
+    MOTOR_SLOT(0, 12, 11),
+    MOTOR_SLOT(0, 13, 12),
+    MOTOR_SLOT(0, 14, 13),
+    MOTOR_SLOT(0, 15, 14),
+    MOTOR_SLOT(0, 16, 15),
+    MOTOR_SLOT(0, 17, 16),
+    MOTOR_SLOT(0, 18, 17),
+    MOTOR_SLOT(0, 19, 18),
+    MOTOR_SLOT(0, 20, 19),
+    MOTOR_SLOT(0, 21, 20),
+    MOTOR_SLOT(0, 22, 21),
+    MOTOR_SLOT(0, 23, 22),
+    MOTOR_SLOT(0, 24, 23),
+    MOTOR_SLOT(1, 1, 24),
+    MOTOR_SLOT(1, 2, 25),
+    MOTOR_SLOT(1, 3, 26),
+    MOTOR_SLOT(1, 4, 27),
+    MOTOR_SLOT(1, 5, 28),
+    MOTOR_SLOT(1, 6, 29),
+    MOTOR_SLOT(1, 7, 30),
+    MOTOR_SLOT(1, 8, 31),
+    MOTOR_SLOT(1, 9, 32),
+    MOTOR_SLOT(1, 10, 33),
+    MOTOR_SLOT(1, 11, 34),
+    MOTOR_SLOT(1, 12, 35),
+    MOTOR_SLOT(1, 13, 36),
+    MOTOR_SLOT(1, 14, 37),
+    MOTOR_SLOT(1, 15, 38),
+    MOTOR_SLOT(1, 16, 39),
+    MOTOR_SLOT(1, 17, 40),
+    MOTOR_SLOT(1, 18, 41),
+    MOTOR_SLOT(1, 19, 42),
+    MOTOR_SLOT(1, 20, 43),
+    MOTOR_SLOT(1, 21, 44),
+    MOTOR_SLOT(1, 22, 45),
+    MOTOR_SLOT(1, 23, 46),
+    MOTOR_SLOT(1, 24, 47),
 };
 
 Slave g_slaves[SLAVE_NUMBER] = {
@@ -98,63 +100,65 @@ Slave g_slaves[SLAVE_NUMBER] = {
         .slave_id = 1,
         .motor_count = 24,
         .motors = {
-            {MOTOR_YKS, 0, 1, 1, 0},
-            {MOTOR_YKS, 0, 2, 2, 1},
-            {MOTOR_YKS, 0, 3, 3, 2},
-            {MOTOR_YKS, 0, 4, 4, 3},
-            {MOTOR_YKS, 0, 5, 5, 4},
-            {MOTOR_YKS, 0, 6, 6, 5},
-            {MOTOR_YKS, 0, 7, 7, 6},
-            {MOTOR_YKS, 0, 8, 8, 7},
-            {MOTOR_YKS, 0, 9, 9, 8},
-            {MOTOR_YKS, 0, 10, 10, 9},
-            {MOTOR_YKS, 0, 11, 11, 10},
-            {MOTOR_YKS, 0, 12, 12, 11},
-            {MOTOR_YKS, 0, 13, 13, 12},
-            {MOTOR_YKS, 0, 14, 14, 13},
-            {MOTOR_YKS, 0, 15, 15, 14},
-            {MOTOR_YKS, 0, 16, 16, 15},
-            {MOTOR_YKS, 0, 17, 17, 16},
-            {MOTOR_YKS, 0, 18, 18, 17},
-            {MOTOR_YKS, 0, 19, 19, 18},
-            {MOTOR_YKS, 0, 20, 20, 19},
-            {MOTOR_YKS, 0, 21, 21, 20},
-            {MOTOR_YKS, 0, 22, 22, 21},
-            {MOTOR_YKS, 0, 23, 23, 22},
-            {MOTOR_YKS, 0, 24, 24, 23},
+            MOTOR_SLOT(0, 1, 0),
+            MOTOR_SLOT(0, 2, 1),
+            MOTOR_SLOT(0, 3, 2),
+            MOTOR_SLOT(0, 4, 3),
+            MOTOR_SLOT(0, 5, 4),
+            MOTOR_SLOT(0, 6, 5),
+            MOTOR_SLOT(0, 7, 6),
+            MOTOR_SLOT(0, 8, 7),
+            MOTOR_SLOT(0, 9, 8),
+            MOTOR_SLOT(0, 10, 9),
+            MOTOR_SLOT(0, 11, 10),
+            MOTOR_SLOT(0, 12, 11),
+            MOTOR_SLOT(0, 13, 12),
+            MOTOR_SLOT(0, 14, 13),
+            MOTOR_SLOT(0, 15, 14),
+            MOTOR_SLOT(0, 16, 15),
+            MOTOR_SLOT(0, 17, 16),
+            MOTOR_SLOT(0, 18, 17),
+            MOTOR_SLOT(0, 19, 18),
+            MOTOR_SLOT(0, 20, 19),
+            MOTOR_SLOT(0, 21, 20),
+            MOTOR_SLOT(0, 22, 21),
+            MOTOR_SLOT(0, 23, 22),
+            MOTOR_SLOT(0, 24, 23),
         }
     },
     {
         .slave_id = 2,
         .motor_count = 24,
         .motors = {
-            {MOTOR_YKS, 1, 1, 25, 24},
-            {MOTOR_YKS, 1, 2, 26, 25},
-            {MOTOR_YKS, 1, 3, 27, 26},
-            {MOTOR_YKS, 1, 4, 28, 27},
-            {MOTOR_YKS, 1, 5, 29, 28},
-            {MOTOR_YKS, 1, 6, 30, 29},
-            {MOTOR_YKS, 1, 7, 31, 30},
-            {MOTOR_YKS, 1, 8, 32, 31},
-            {MOTOR_YKS, 1, 9, 33, 32},
-            {MOTOR_YKS, 1, 10, 34, 33},
-            {MOTOR_YKS, 1, 11, 35, 34},
-            {MOTOR_YKS, 1, 12, 36, 35},
-            {MOTOR_YKS, 1, 13, 37, 36},
-            {MOTOR_YKS, 1, 14, 38, 37},
-            {MOTOR_YKS, 1, 15, 39, 38},
-            {MOTOR_YKS, 1, 16, 40, 39},
-            {MOTOR_YKS, 1, 17, 41, 40},
-            {MOTOR_YKS, 1, 18, 42, 41},
-            {MOTOR_YKS, 1, 19, 43, 42},
-            {MOTOR_YKS, 1, 20, 44, 43},
-            {MOTOR_YKS, 1, 21, 45, 44},
-            {MOTOR_YKS, 1, 22, 46, 45},
-            {MOTOR_YKS, 1, 23, 47, 46},
-            {MOTOR_YKS, 1, 24, 48, 47},
+            MOTOR_SLOT(1, 1, 24),
+            MOTOR_SLOT(1, 2, 25),
+            MOTOR_SLOT(1, 3, 26),
+            MOTOR_SLOT(1, 4, 27),
+            MOTOR_SLOT(1, 5, 28),
+            MOTOR_SLOT(1, 6, 29),
+            MOTOR_SLOT(1, 7, 30),
+            MOTOR_SLOT(1, 8, 31),
+            MOTOR_SLOT(1, 9, 32),
+            MOTOR_SLOT(1, 10, 33),
+            MOTOR_SLOT(1, 11, 34),
+            MOTOR_SLOT(1, 12, 35),
+            MOTOR_SLOT(1, 13, 36),
+            MOTOR_SLOT(1, 14, 37),
+            MOTOR_SLOT(1, 15, 38),
+            MOTOR_SLOT(1, 16, 39),
+            MOTOR_SLOT(1, 17, 40),
+            MOTOR_SLOT(1, 18, 41),
+            MOTOR_SLOT(1, 19, 42),
+            MOTOR_SLOT(1, 20, 43),
+            MOTOR_SLOT(1, 21, 44),
+            MOTOR_SLOT(1, 22, 45),
+            MOTOR_SLOT(1, 23, 46),
+            MOTOR_SLOT(1, 24, 47),
         }
     }
 };
+
+#undef MOTOR_SLOT
 
 union RV_TypeConvert {
     float to_float;
@@ -300,22 +304,6 @@ send_motor_ctrl_cmd(EtherCAT_Msg *TxMessage, const uint8_t pdo_slot, const uint1
         cur = T_MAX;
     else if (cur < T_MIN)
         cur = T_MIN;
-
-    //关节限位
-    if (pos > Z1_MOTOR_POS_MAX[global_id])
-        pos = Z1_MOTOR_POS_MAX[global_id];
-    else if (pos < Z1_MOTOR_POS_MIN[global_id])
-        pos = Z1_MOTOR_POS_MIN[global_id];
-    if (spd > Z1_MOTOR_SPE_MAX[global_id])
-        spd = Z1_MOTOR_SPE_MAX[global_id];
-    else if (spd < Z1_MOTOR_SPE_MIN[global_id])
-        spd = Z1_MOTOR_SPE_MIN[global_id];
-    if (cur > Z1_MOTOR_TOR_MAX[global_id])
-        cur = Z1_MOTOR_TOR_MAX[global_id];
-    else if (cur < Z1_MOTOR_TOR_MIN[global_id])
-        cur = Z1_MOTOR_TOR_MIN[global_id];
-
-
 
     const int kp_int = float_to_uint(kp, KP_MIN, KP_MAX, 12);
     const int kd_int = float_to_uint(kd, KD_MIN, KD_MAX, 9);

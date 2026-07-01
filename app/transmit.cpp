@@ -37,44 +37,6 @@ bool isConfig[SLAVE_NUMBER]{false};
 extern std::atomic<bool> stop_thread;
 
 #define EC_TIMEOUT_MON 500
-#define POS_LEG_MECH_MIN -3.14
-#define POS_LEG_MECH_MAX 3.14
-
-float Z1_MOTOR_POS_MAX[TOTAL_CAN_NUMBER] = {};
-float Z1_MOTOR_POS_MIN[TOTAL_CAN_NUMBER] = {};
-float Z1_MOTOR_SPE_MAX[TOTAL_CAN_NUMBER] = {};
-float Z1_MOTOR_SPE_MIN[TOTAL_CAN_NUMBER] = {};
-float Z1_MOTOR_TOR_MAX[TOTAL_CAN_NUMBER] = {};
-float Z1_MOTOR_TOR_MIN[TOTAL_CAN_NUMBER] = {};
-
-namespace {
-void set_limit(int gid, float pos_min, float pos_max, float spd_min, float spd_max) {
-    Z1_MOTOR_POS_MIN[gid] = pos_min;
-    Z1_MOTOR_POS_MAX[gid] = pos_max;
-    Z1_MOTOR_SPE_MIN[gid] = spd_min;
-    Z1_MOTOR_SPE_MAX[gid] = spd_max;
-}
-
-struct MotorLimitInitializer {
-    MotorLimitInitializer() {
-        for (int i = 0; i < TOTAL_MOTOR_NUMBER; ++i) {
-            const int type = Z1_MOTOR_ID_Type[i];
-            Z1_MOTOR_TOR_MIN[i] = yks_motor_range.T_MIN[type];
-            Z1_MOTOR_TOR_MAX[i] = yks_motor_range.T_MAX[type];
-        }
-
-        for (int i = 0; i < LEG_MOTOR_NUMBER; ++i) {
-            set_limit(kLegMotorIds[i], POS_LEG_MECH_MIN, POS_LEG_MECH_MAX, SPD_MIN, SPD_MAX);
-        }
-        for (int i = 0; i < BODY_MOTOR_NUMBER; ++i) {
-            set_limit(kBodyMotorIds[i], POS_MIN, POS_MAX, SPD_MIN, SPD_MAX);
-        }
-        for (int i = 0; i < ARM_MOTOR_NUMBER; ++i) {
-            set_limit(kArmMotorIds[i], POS_MIN, POS_MAX, SPD_MIN, SPD_MAX);
-        }
-    }
-} motorLimitInitializer;
-}
 
 void EtherCAT_Data_Get();
 
