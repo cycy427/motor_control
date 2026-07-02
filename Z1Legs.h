@@ -116,15 +116,10 @@ private:
         double theta1;
         double theta2;
     };
-	InverseKinematicsResult inverse_kinematics(double roll, double pitch) const;
-    void compute_jacobian(double roll, double pitch, double J[2][2], double delta = 1e-6) const;
-    void inverse_velocity(double roll, double pitch, const double end_vel[2], double joint_vel[2]) const;
-    void forward_kinematics(double theta1, double theta2, double& roll, double& pitch) const;
 	InverseKinematicsResult waist_inverse_kinematics(double roll, double pitch) const;
     void waist_compute_jacobian(double roll, double pitch, double J[2][2], double delta = 1e-6) const;
     void waist_inverse_velocity(double roll, double pitch, const double end_vel[2], double joint_vel[2]) const;
     void waist_forward_kinematics(double theta1, double theta2, double& roll, double& pitch) const;
-	void pseudo_inverse(const double J[2][2], double invJ[2][2]) const;
 
     YKSMotorData Pitch_forward_kinematics(const YKSMotorData &Ankle_A_motors, const YKSMotorData &Ankle_B_motors,  int direction) ;
 
@@ -224,7 +219,6 @@ private:
     bool battery_enable_ = false; //是否在这个类当中传入了电池的句柄
     std::shared_ptr<BmsHandler> battery_handler_; // 添加BatteryHandler成员变量
 
-    void SaveMotorDataToCSV(const std::string &filename) const;
 };
 
 #endif //YKS_SDK_Z1LEGS_H

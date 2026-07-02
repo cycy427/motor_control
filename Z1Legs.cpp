@@ -5,9 +5,9 @@
 #include "Z1Legs.h"
 #include <limits>
 #include <iostream>
-#include <fstream>
-#include <iomanip>
 #include <chrono>
+#include <stdexcept>
+#include <cstring>
 extern std::atomic<bool> stop_thread;
 
 namespace {
@@ -18,12 +18,7 @@ constexpr double kForwardResidualGiveUp = 0.5;
 constexpr double kMaxPoseAbs = 2.0;
 constexpr double kNewtonStepSoftMax = 0.2;
 constexpr double kNewtonStepHardMax = 1.0;
-constexpr int kV53LeftLegDirection = 0;
-constexpr double kV53AnkleExternalRollSign = -1.0;
-
-// V5.3 测试开关：true 时，Terminal 的 4/5/12/13 显示物理电机 RAW 数据。
-// 只覆盖 motor_print_，不改变 getMotorData() 返回给上层控制的 PR 数据。
-constexpr bool kV53_PrintRawAnkleMotorsInPR = false;
+constexpr int kLeftLegDirection = 0;
 
 
 double clampUnit(const double value) {
@@ -122,7 +117,7 @@ static const JointCommandLimit kSafeJointCommandLimits[] = {
 #undef X
 };
 
-void applyJointCommandLimits(YKSMotorData *data) {
+void applyJointPositionLimits(YKSMotorData *data) {
     for (const auto &limit : kSafeJointCommandLimits) {
         double &pos_des = data[limit.joint_id].pos_des_;
         if (pos_des > limit.pos_max) {
@@ -189,7 +184,7 @@ Vec3 normalizeOrZero(const Vec3& v) {
 
 Vec3 footPoint(const Vec3& c0, const double roll, const double pitch) {
     const double cos_p = cos(pitch), sin_p = sin(pitch);
-    const double sin_r = sin(-roll), cos_r = cos(-roll);
+    const double sin_r = sin(roll), cos_r = cos(roll);
     return {
         cos_p * c0.x + sin_r * sin_p * c0.y + cos_r * sin_p * c0.z,
         cos_r * c0.y - sin_r * c0.z,
@@ -268,19 +263,11 @@ const ParallelLinkageGeometry& leftAnkleGeometry() {
 }
 
 const ParallelLinkageGeometry& ankleGeometryForDirection(const int direction) {
-    return (direction == kV53LeftLegDirection) ? leftAnkleGeometry() : rightAnkleGeometry();
+    return (direction == kLeftLegDirection) ? leftAnkleGeometry() : rightAnkleGeometry();
 }
 
-const ParallelLinkageGeometry& ankleGeometry() {
-    // Legacy no-direction API: keep using the right/baseline geometry.
-    return rightAnkleGeometry();
-}
-
-// V5.3 踝部约定：右脚为基础模型；B1=theta1，B2=theta2。
-// 右脚：B1/ID12, B2/ID13，raw 角度直接进入 solver。
-// 左脚：B1/ID4,  B2/ID5，使用右脚基础几何的 Y 镜像版本。
-// 足踝外部 Roll 与 solver Roll 实机方向相反；Pitch 不反。
-// 注意：足踝 PR 解算路径不使用 LegDirectionMotor_ / PR_directionMotor_，也不再额外乘左右脚 sign。
+// Ankle linkage: right leg uses the base geometry, left leg mirrors it in Y.
+// theta1/theta2 map directly to the two ankle motor slots selected by direction.
 
 const ParallelLinkageGeometry& waistGeometry() {
     static const ParallelLinkageGeometry geometry = {
@@ -351,6 +338,27 @@ void inverseVelocityForGeometry(
         return;
     }
 
+    joint_vel[0] = finiteOrZeroLocal(J[0][0] * end_vel[0] + J[0][1] * end_vel[1]);
+    joint_vel[1] = finiteOrZeroLocal(J[1][0] * end_vel[0] + J[1][1] * end_vel[1]);
+}
+
+void forwardVelocityForGeometry(
+    const ParallelLinkageGeometry& geometry,
+    const double roll,
+    const double pitch,
+    const double joint_vel[2],
+    double end_vel[2]) {
+    end_vel[0] = end_vel[1] = 0.0;
+    if (!finite2(roll, pitch) || !finite2(joint_vel[0], joint_vel[1])) {
+        return;
+    }
+
+    double J[2][2];
+    computeJacobianForGeometry(geometry, roll, pitch, J, 1e-6);
+    if (!jacobianLooksFinite(J)) {
+        return;
+    }
+
     const double det = J[0][0] * J[1][1] - J[0][1] * J[1][0];
     if (!std::isfinite(det) || fabs(det) < kDetEps) {
         return;
@@ -360,10 +368,55 @@ void inverseVelocityForGeometry(
         { J[1][1] / det, -J[0][1] / det },
         { -J[1][0] / det, J[0][0] / det }
     };
-    joint_vel[0] = invJ[0][0] * end_vel[0] + invJ[0][1] * end_vel[1];
-    joint_vel[1] = invJ[1][0] * end_vel[0] + invJ[1][1] * end_vel[1];
-    joint_vel[0] = finiteOrZeroLocal(joint_vel[0]);
-    joint_vel[1] = finiteOrZeroLocal(joint_vel[1]);
+    end_vel[0] = finiteOrZeroLocal(invJ[0][0] * joint_vel[0] + invJ[0][1] * joint_vel[1]);
+    end_vel[1] = finiteOrZeroLocal(invJ[1][0] * joint_vel[0] + invJ[1][1] * joint_vel[1]);
+}
+
+void torqueToMotorForGeometry(
+    const ParallelLinkageGeometry& geometry,
+    const double roll,
+    const double pitch,
+    const double end_tau[2],
+    double joint_tau[2]) {
+    joint_tau[0] = joint_tau[1] = 0.0;
+    if (!finite2(roll, pitch) || !finite2(end_tau[0], end_tau[1])) {
+        return;
+    }
+
+    double J[2][2];
+    computeJacobianForGeometry(geometry, roll, pitch, J, 1e-6);
+    if (!jacobianLooksFinite(J)) {
+        return;
+    }
+
+    const double det = J[0][0] * J[1][1] - J[0][1] * J[1][0];
+    if (!std::isfinite(det) || fabs(det) < kDetEps) {
+        return;
+    }
+
+    joint_tau[0] = finiteOrZeroLocal((J[1][1] * end_tau[0] - J[1][0] * end_tau[1]) / det);
+    joint_tau[1] = finiteOrZeroLocal((-J[0][1] * end_tau[0] + J[0][0] * end_tau[1]) / det);
+}
+
+void motorTorqueToEndForGeometry(
+    const ParallelLinkageGeometry& geometry,
+    const double roll,
+    const double pitch,
+    const double joint_tau[2],
+    double end_tau[2]) {
+    end_tau[0] = end_tau[1] = 0.0;
+    if (!finite2(roll, pitch) || !finite2(joint_tau[0], joint_tau[1])) {
+        return;
+    }
+
+    double J[2][2];
+    computeJacobianForGeometry(geometry, roll, pitch, J, 1e-6);
+    if (!jacobianLooksFinite(J)) {
+        return;
+    }
+
+    end_tau[0] = finiteOrZeroLocal(J[0][0] * joint_tau[0] + J[1][0] * joint_tau[1]);
+    end_tau[1] = finiteOrZeroLocal(J[0][1] * joint_tau[0] + J[1][1] * joint_tau[1]);
 }
 
 void forwardForGeometry(
@@ -570,11 +623,6 @@ void Z1Legs::Control() {
             }
         }
         {
-            //创建的 lock 对象的作用域内（即 {} 包围的代码块），
-            //可以安全地对 motor_data_ 进行读写操作，因为此时 mutex_ 已经被锁定，
-            //其他线程无法同时修改 motor_data_。注意他只在花括号内有效，
-            //离开花括号作用域后，mutex_ 自动解锁。
-            // SaveMotorDataToCSV("motor_data_log.csv");  // 每次循环都追加写入
             std::lock_guard lock(mutex_);
             EtherCAT_Send_Command(motor_data_);
             // printf( "MotorData:)");
@@ -599,23 +647,6 @@ void Z1Legs::updateMotorData() {
     User_Get_Motor_Data(motor_data_); //通过EtherCAT读取电机数据
 }
 
-Z1Legs::InverseKinematicsResult Z1Legs::inverse_kinematics(double roll, double pitch) const {
-    const auto theta = inverseForGeometry(ankleGeometry(), roll, pitch);
-    return {theta.theta1, theta.theta2};
-}
-
-void Z1Legs::compute_jacobian(double roll, double pitch, double J[2][2], double delta) const {
-    computeJacobianForGeometry(ankleGeometry(), roll, pitch, J, delta);
-}
-
-void Z1Legs::inverse_velocity(double roll, double pitch, const double end_vel[2], double joint_vel[2]) const {
-    inverseVelocityForGeometry(ankleGeometry(), roll, pitch, end_vel, joint_vel);
-}
-
-void Z1Legs::forward_kinematics(double theta1, double theta2, double& roll, double& pitch) const {
-    forwardForGeometry(ankleGeometry(), theta1, theta2, roll, pitch);
-}
-
 Z1Legs::InverseKinematicsResult Z1Legs::waist_inverse_kinematics(double roll, double pitch) const {
     const auto theta = inverseForGeometry(waistGeometry(), roll, pitch);
     return {theta.theta1, theta.theta2};
@@ -633,31 +664,6 @@ void Z1Legs::waist_forward_kinematics(double theta1, double theta2, double& roll
     forwardForGeometry(waistGeometry(), theta1, theta2, roll, pitch);
 }
 
-void Z1Legs::pseudo_inverse(const double J[2][2], double invJ[2][2]) const {
-    double det = J[0][0]*J[1][1] - J[0][1]*J[1][0];
-    if(fabs(det) > 1e-6) { // 可逆情况
-        invJ[0][0] =  J[1][1]/det;
-        invJ[0][1] = -J[0][1]/det;
-        invJ[1][0] = -J[1][0]/det;
-        invJ[1][1] =  J[0][0]/det;
-    } else { // 伪逆处理
-        double svd[4];
-        svd[0] = J[0][0]*J[0][0] + J[1][0]*J[1][0];
-        svd[1] = J[0][0]*J[0][1] + J[1][0]*J[1][1];
-        svd[2] = J[0][1]*J[0][1] + J[1][1]*J[1][1];
-        double lambda = 1e-6;
-        invJ[0][0] = (svd[2] + lambda)*J[0][0] - svd[1]*J[0][1];
-        invJ[1][0] = (svd[0] + lambda)*J[0][1] - svd[1]*J[0][0];
-        invJ[0][1] = (svd[2] + lambda)*J[1][0] - svd[1]*J[1][1];
-        invJ[1][1] = (svd[0] + lambda)*J[1][1] - svd[1]*J[1][0];
-        double inv_norm = 1.0/( (svd[0]+lambda)*(svd[2]+lambda) - svd[1]*svd[1] );
-        invJ[0][0] *= inv_norm;
-        invJ[1][0] *= inv_norm;
-        invJ[0][1] *= inv_norm;
-        invJ[1][1] *= inv_norm;
-    }
-}
-
 YKSMotorData
 Z1Legs::AnkleA_inverse_kinematics(const YKSMotorData &pitch_joint_cmd, const YKSMotorData &roll_joint_cmd,
                                   int direction) {
@@ -665,19 +671,20 @@ Z1Legs::AnkleA_inverse_kinematics(const YKSMotorData &pitch_joint_cmd, const YKS
 
     const auto& geometry = ankleGeometryForDirection(direction);
 
-    // B1/theta1 命令。左脚使用镜像几何，足踝路径不乘方向向量。
-    const double desired_roll = kV53AnkleExternalRollSign * roll_joint_cmd.pos_des_;
+    const double desired_roll = roll_joint_cmd.pos_des_;
     const double desired_pitch = pitch_joint_cmd.pos_des_;
     const auto theta = inverseForGeometry(geometry, desired_roll, desired_pitch);
     cmd.pos_des_ = theta.theta1;
 
-    const double end_vel[2] = {kV53AnkleExternalRollSign * roll_joint_cmd.vel_des_, pitch_joint_cmd.vel_des_};
+    const double end_vel[2] = {roll_joint_cmd.vel_des_, pitch_joint_cmd.vel_des_};
     double joint_vel[2];
     inverseVelocityForGeometry(geometry, desired_roll, desired_pitch, end_vel, joint_vel);
     cmd.vel_des_ = joint_vel[0];
 
-    const double solver_roll_ff = kV53AnkleExternalRollSign * roll_joint_cmd.ff_;
-    cmd.ff_ = (pitch_joint_cmd.ff_ - solver_roll_ff) / 2.0;
+    const double end_tau[2] = {roll_joint_cmd.ff_, pitch_joint_cmd.ff_};
+    double joint_tau[2];
+    torqueToMotorForGeometry(geometry, desired_roll, desired_pitch, end_tau, joint_tau);
+    cmd.ff_ = joint_tau[0];
     return cmd;
 }
 
@@ -688,19 +695,20 @@ Z1Legs::AnkleB_inverse_kinematics(const YKSMotorData &pitch_joint_cmd, const YKS
 
     const auto& geometry = ankleGeometryForDirection(direction);
 
-    // B2/theta2 命令。左脚使用镜像几何，足踝路径不乘方向向量。
-    const double desired_roll = kV53AnkleExternalRollSign * roll_joint_cmd.pos_des_;
+    const double desired_roll = roll_joint_cmd.pos_des_;
     const double desired_pitch = pitch_joint_cmd.pos_des_;
     const auto theta = inverseForGeometry(geometry, desired_roll, desired_pitch);
     cmd.pos_des_ = theta.theta2;
 
-    const double end_vel[2] = {kV53AnkleExternalRollSign * roll_joint_cmd.vel_des_, pitch_joint_cmd.vel_des_};
+    const double end_vel[2] = {roll_joint_cmd.vel_des_, pitch_joint_cmd.vel_des_};
     double joint_vel[2];
     inverseVelocityForGeometry(geometry, desired_roll, desired_pitch, end_vel, joint_vel);
     cmd.vel_des_ = joint_vel[1];
 
-    const double solver_roll_ff = kV53AnkleExternalRollSign * roll_joint_cmd.ff_;
-    cmd.ff_ = (pitch_joint_cmd.ff_ + solver_roll_ff) / 2.0;
+    const double end_tau[2] = {roll_joint_cmd.ff_, pitch_joint_cmd.ff_};
+    double joint_tau[2];
+    torqueToMotorForGeometry(geometry, desired_roll, desired_pitch, end_tau, joint_tau);
+    cmd.ff_ = joint_tau[1];
     return cmd;
 }
 
@@ -709,9 +717,6 @@ YKSMotorData Z1Legs::WaistA_inverse_kinematics(
     const YKSMotorData &roll_joint_cmd) {
     YKSMotorData cmd;
 
-    // 腰部外部坐标定义：Pitch 弯腰为正，Roll 向右侧弯为正。
-    // 实测 V5：Pitch 方向正确，Roll 方向相反。
-    // V5.1：solver_roll 直接对应外部 WaistRoll；solver_pitch 与外部 WaistPitch 相反。
     const double desired_roll = roll_joint_cmd.pos_des_;
     const double desired_pitch = -pitch_joint_cmd.pos_des_;
     auto theta = waist_inverse_kinematics(desired_roll, desired_pitch);
@@ -724,7 +729,10 @@ YKSMotorData Z1Legs::WaistA_inverse_kinematics(
 
     const double solver_roll_ff = roll_joint_cmd.ff_;
     const double solver_pitch_ff = -pitch_joint_cmd.ff_;
-    cmd.ff_ = (solver_pitch_ff - solver_roll_ff) / 2.0;
+    const double end_tau[2] = {solver_roll_ff, solver_pitch_ff};
+    double joint_tau[2];
+    torqueToMotorForGeometry(waistGeometry(), desired_roll, desired_pitch, end_tau, joint_tau);
+    cmd.ff_ = joint_tau[0];
     return cmd;
 }
 
@@ -733,7 +741,6 @@ YKSMotorData Z1Legs::WaistB_inverse_kinematics(
     const YKSMotorData &roll_joint_cmd) {
     YKSMotorData cmd;
 
-    // WaistB/theta2。腰部 PR 路径不乘 LegDirectionMotor_ / PR_directionMotor_。
     const double desired_roll = roll_joint_cmd.pos_des_;
     const double desired_pitch = -pitch_joint_cmd.pos_des_;
     auto theta = waist_inverse_kinematics(desired_roll, desired_pitch);
@@ -746,7 +753,10 @@ YKSMotorData Z1Legs::WaistB_inverse_kinematics(
 
     const double solver_roll_ff = roll_joint_cmd.ff_;
     const double solver_pitch_ff = -pitch_joint_cmd.ff_;
-    cmd.ff_ = (solver_pitch_ff + solver_roll_ff) / 2.0;
+    const double end_tau[2] = {solver_roll_ff, solver_pitch_ff};
+    double joint_tau[2];
+    torqueToMotorForGeometry(waistGeometry(), desired_roll, desired_pitch, end_tau, joint_tau);
+    cmd.ff_ = joint_tau[1];
     return cmd;
 }
 
@@ -755,7 +765,7 @@ YKSMotorData Z1Legs::WaistPitch_forward_kinematics(
     const YKSMotorData &waist_b_motor) {
     YKSMotorData data;
 
-    // 腰部电机 raw 角度直接作为 solver theta。外部 Pitch = -solver_pitch。
+    // Waist pitch uses the opposite sign of the linkage solver pitch.
     const double theta1 = waist_a_motor.pos_;
     const double theta2 = waist_b_motor.pos_;
     if (!finite2(theta1, theta2)) {
@@ -778,19 +788,15 @@ YKSMotorData Z1Legs::WaistPitch_forward_kinematics(
         return data;
     }
 
-    const double dtheta1 = waist_a_motor.vel_;
-    const double dtheta2 = waist_b_motor.vel_;
-    const double solver_pitch_vel = finite2(dtheta1, dtheta2)
-        ? finiteOrZeroLocal(J[1][0] * dtheta1 + J[1][1] * dtheta2)
-        : 0.0;
-    data.vel_ = -solver_pitch_vel;
+    const double joint_vel[2] = {waist_a_motor.vel_, waist_b_motor.vel_};
+    double solver_vel[2];
+    forwardVelocityForGeometry(waistGeometry(), roll, pitch, joint_vel, solver_vel);
+    data.vel_ = -solver_vel[1];
 
-    const double tau1 = waist_a_motor.tau_;
-    const double tau2 = waist_b_motor.tau_;
-    const double solver_pitch_tau = finite2(tau1, tau2)
-        ? finiteOrZeroLocal(J[0][1] * tau1 + J[1][1] * tau2)
-        : 0.0;
-    data.tau_ = -solver_pitch_tau;
+    const double joint_tau[2] = {waist_a_motor.tau_, waist_b_motor.tau_};
+    double solver_tau[2];
+    motorTorqueToEndForGeometry(waistGeometry(), roll, pitch, joint_tau, solver_tau);
+    data.tau_ = -solver_tau[1];
 
     return data;
 }
@@ -800,7 +806,6 @@ YKSMotorData Z1Legs::WaistRoll_forward_kinematics(
     const YKSMotorData &waist_b_motor) {
     YKSMotorData data;
 
-    // 腰部电机 raw 角度直接作为 solver theta。V5.1 外部 Roll = solver_roll。
     const double theta1 = waist_a_motor.pos_;
     const double theta2 = waist_b_motor.pos_;
     if (!finite2(theta1, theta2)) {
@@ -823,19 +828,15 @@ YKSMotorData Z1Legs::WaistRoll_forward_kinematics(
         return data;
     }
 
-    const double dtheta1 = waist_a_motor.vel_;
-    const double dtheta2 = waist_b_motor.vel_;
-    const double solver_roll_vel = finite2(dtheta1, dtheta2)
-        ? finiteOrZeroLocal(J[0][0] * dtheta1 + J[0][1] * dtheta2)
-        : 0.0;
-    data.vel_ = solver_roll_vel;
+    const double joint_vel[2] = {waist_a_motor.vel_, waist_b_motor.vel_};
+    double solver_vel[2];
+    forwardVelocityForGeometry(waistGeometry(), roll, pitch, joint_vel, solver_vel);
+    data.vel_ = solver_vel[0];
 
-    const double tau1 = waist_a_motor.tau_;
-    const double tau2 = waist_b_motor.tau_;
-    const double solver_roll_tau = finite2(tau1, tau2)
-        ? finiteOrZeroLocal(J[0][0] * tau1 + J[1][0] * tau2)
-        : 0.0;
-    data.tau_ = solver_roll_tau;
+    const double joint_tau[2] = {waist_a_motor.tau_, waist_b_motor.tau_};
+    double solver_tau[2];
+    motorTorqueToEndForGeometry(waistGeometry(), roll, pitch, joint_tau, solver_tau);
+    data.tau_ = solver_tau[0];
 
     return data;
 }
@@ -846,7 +847,6 @@ YKSMotorData Z1Legs::Pitch_forward_kinematics(const YKSMotorData &b1_motor,
 
     const auto& geometry = ankleGeometryForDirection(direction);
 
-    // 足踝反馈：B1/B2 raw 角度直接进入对应脚的 solver。
     const double theta1 = b1_motor.pos_;
     const double theta2 = b2_motor.pos_;
     if (!finite2(theta1, theta2)) {
@@ -868,13 +868,15 @@ YKSMotorData Z1Legs::Pitch_forward_kinematics(const YKSMotorData &b1_motor,
         zeroVelTau(data);
         return data;
     }
-    const double dtheta1 = b1_motor.vel_;
-    const double dtheta2 = b2_motor.vel_;
-    data.vel_ = finite2(dtheta1, dtheta2) ? finiteOrZeroLocal(J[1][0] * dtheta1 + J[1][1] * dtheta2) : 0.0;
+    const double joint_vel[2] = {b1_motor.vel_, b2_motor.vel_};
+    double end_vel[2];
+    forwardVelocityForGeometry(geometry, roll, pitch, joint_vel, end_vel);
+    data.vel_ = end_vel[1];
 
-    const double tau1 = b1_motor.tau_;
-    const double tau2 = b2_motor.tau_;
-    data.tau_ = finite2(tau1, tau2) ? finiteOrZeroLocal(J[0][1] * tau1 + J[1][1] * tau2) : 0.0;
+    const double joint_tau[2] = {b1_motor.tau_, b2_motor.tau_};
+    double end_tau[2];
+    motorTorqueToEndForGeometry(geometry, roll, pitch, joint_tau, end_tau);
+    data.tau_ = end_tau[1];
 
     return data;
 }
@@ -898,7 +900,7 @@ YKSMotorData Z1Legs::Roll_forward_kinematics(const YKSMotorData &b1_motor,
         zeroPosVelTau(data);
         return data;
     }
-    data.pos_ = finiteOrZeroLocal(kV53AnkleExternalRollSign * roll);
+    data.pos_ = finiteOrZeroLocal(roll);
 
     double J[2][2];
     computeJacobianForGeometry(geometry, roll, pitch, J, 1e-6);
@@ -906,15 +908,15 @@ YKSMotorData Z1Legs::Roll_forward_kinematics(const YKSMotorData &b1_motor,
         zeroVelTau(data);
         return data;
     }
-    const double dtheta1 = b1_motor.vel_;
-    const double dtheta2 = b2_motor.vel_;
-    const double solver_roll_vel = finite2(dtheta1, dtheta2) ? finiteOrZeroLocal(J[0][0] * dtheta1 + J[0][1] * dtheta2) : 0.0;
-    data.vel_ = kV53AnkleExternalRollSign * solver_roll_vel;
+    const double joint_vel[2] = {b1_motor.vel_, b2_motor.vel_};
+    double end_vel[2];
+    forwardVelocityForGeometry(geometry, roll, pitch, joint_vel, end_vel);
+    data.vel_ = end_vel[0];
 
-    const double tau1 = b1_motor.tau_;
-    const double tau2 = b2_motor.tau_;
-    const double solver_roll_tau = finite2(tau1, tau2) ? finiteOrZeroLocal(J[0][0] * tau1 + J[1][0] * tau2) : 0.0;
-    data.tau_ = kV53AnkleExternalRollSign * solver_roll_tau;
+    const double joint_tau[2] = {b1_motor.tau_, b2_motor.tau_};
+    double end_tau[2];
+    motorTorqueToEndForGeometry(geometry, roll, pitch, joint_tau, end_tau);
+    data.tau_ = end_tau[0];
 
     return data;
 }
@@ -926,7 +928,7 @@ YKSMotorData Z1Legs::Roll_forward_kinematics(const YKSMotorData &b1_motor,
 
 Z1Legs::~Z1Legs() {
     std::lock_guard<std::mutex> lock(mutex_);
-    std::cout << "Z1Legs Destructor "  << std::endl;\
+    std::cout << "Z1Legs Destructor "  << std::endl;
     stop_ = true;
     if (control_thread_->joinable()) {
         control_thread_->join();
@@ -974,7 +976,7 @@ void Z1Legs::setMotorCommand(const YKSMotorData *data) {
     }
     YKSMotorData limited_data[Z1_NUM_MOTOR];
     std::memcpy(limited_data, data, Z1_NUM_MOTOR * sizeof(YKSMotorData));
-    applyJointCommandLimits(limited_data);
+    applyJointPositionLimits(limited_data);
 
     std::lock_guard lock(mutex_);
     if (mode_pr_ == Mode::PR) {
@@ -982,38 +984,38 @@ void Z1Legs::setMotorCommand(const YKSMotorData *data) {
         for (int i = 0; i < Z1_NUM_MOTOR; ++i) {
             motor_data_[i].mode = limited_data[i].mode;
             motor_print_[i].mode = limited_data[i].mode;
-            if (i == LeftAnklePitch) {              // 左脚 B1 / theta1 / ID4
+            if (i == LeftAnklePitch) {
                 tempData = AnkleA_inverse_kinematics(limited_data[LeftAnklePitch], limited_data[LeftAnkleRoll], LeftLeg);
                 motor_data_[i].pos_des_ = tempData.pos_des_;
                 motor_data_[i].vel_des_ = tempData.vel_des_;
                 motor_data_[i].ff_ = tempData.ff_;
-                motor_print_[i].pos_des_ = kV53_PrintRawAnkleMotorsInPR ? motor_data_[i].pos_des_ : limited_data[i].pos_des_;
-                motor_print_[i].vel_des_ = kV53_PrintRawAnkleMotorsInPR ? motor_data_[i].vel_des_ : limited_data[i].vel_des_;
-                motor_print_[i].ff_ = kV53_PrintRawAnkleMotorsInPR ? motor_data_[i].ff_ : limited_data[i].ff_;
-            } else if (i == LeftAnkleRoll) {        // 左脚 B2 / theta2 / ID5
+                motor_print_[i].pos_des_ = limited_data[i].pos_des_;
+                motor_print_[i].vel_des_ = limited_data[i].vel_des_;
+                motor_print_[i].ff_ = limited_data[i].ff_;
+            } else if (i == LeftAnkleRoll) {
                 tempData = AnkleB_inverse_kinematics(limited_data[LeftAnklePitch], limited_data[LeftAnkleRoll], LeftLeg);
                 motor_data_[i].pos_des_ = tempData.pos_des_;
                 motor_data_[i].vel_des_ = tempData.vel_des_;
                 motor_data_[i].ff_ = tempData.ff_;
-                motor_print_[i].pos_des_ = kV53_PrintRawAnkleMotorsInPR ? motor_data_[i].pos_des_ : limited_data[i].pos_des_;
-                motor_print_[i].vel_des_ = kV53_PrintRawAnkleMotorsInPR ? motor_data_[i].vel_des_ : limited_data[i].vel_des_;
-                motor_print_[i].ff_ = kV53_PrintRawAnkleMotorsInPR ? motor_data_[i].ff_ : limited_data[i].ff_;
-            } else if (i == RightAnklePitch) {      // 右脚 B1 / theta1 / ID12
+                motor_print_[i].pos_des_ = limited_data[i].pos_des_;
+                motor_print_[i].vel_des_ = limited_data[i].vel_des_;
+                motor_print_[i].ff_ = limited_data[i].ff_;
+            } else if (i == RightAnklePitch) {
                 tempData = AnkleA_inverse_kinematics(limited_data[RightAnklePitch], limited_data[RightAnkleRoll], RightLeg);
                 motor_data_[i].pos_des_ = tempData.pos_des_;
                 motor_data_[i].vel_des_ = tempData.vel_des_;
                 motor_data_[i].ff_ = tempData.ff_;
-                motor_print_[i].pos_des_ = kV53_PrintRawAnkleMotorsInPR ? motor_data_[i].pos_des_ : limited_data[i].pos_des_;
-                motor_print_[i].vel_des_ = kV53_PrintRawAnkleMotorsInPR ? motor_data_[i].vel_des_ : limited_data[i].vel_des_;
-                motor_print_[i].ff_ = kV53_PrintRawAnkleMotorsInPR ? motor_data_[i].ff_ : limited_data[i].ff_;
-            } else if (i == RightAnkleRoll) {       // 右脚 B2 / theta2 / ID13
+                motor_print_[i].pos_des_ = limited_data[i].pos_des_;
+                motor_print_[i].vel_des_ = limited_data[i].vel_des_;
+                motor_print_[i].ff_ = limited_data[i].ff_;
+            } else if (i == RightAnkleRoll) {
                 tempData = AnkleB_inverse_kinematics(limited_data[RightAnklePitch], limited_data[RightAnkleRoll], RightLeg);
                 motor_data_[i].pos_des_ = tempData.pos_des_;
                 motor_data_[i].vel_des_ = tempData.vel_des_;
                 motor_data_[i].ff_ = tempData.ff_;
-                motor_print_[i].pos_des_ = kV53_PrintRawAnkleMotorsInPR ? motor_data_[i].pos_des_ : limited_data[i].pos_des_;
-                motor_print_[i].vel_des_ = kV53_PrintRawAnkleMotorsInPR ? motor_data_[i].vel_des_ : limited_data[i].vel_des_;
-                motor_print_[i].ff_ = kV53_PrintRawAnkleMotorsInPR ? motor_data_[i].ff_ : limited_data[i].ff_;
+                motor_print_[i].pos_des_ = limited_data[i].pos_des_;
+                motor_print_[i].vel_des_ = limited_data[i].vel_des_;
+                motor_print_[i].ff_ = limited_data[i].ff_;
             } else if (i == WaistA) {
                 tempData = WaistA_inverse_kinematics(limited_data[WaistPitch], limited_data[WaistRoll]);
                 motor_data_[i].pos_des_ = tempData.pos_des_;
@@ -1135,16 +1137,6 @@ void Z1Legs::getMotorData(YKSMotorData *data) {
             motor_print_[i].temperature_ = motor_data_[i].temperature_;
 
         }
-
-        if (kV53_PrintRawAnkleMotorsInPR) {
-            const int ankle_ids[4] = {LeftAnklePitch, LeftAnkleRoll, RightAnklePitch, RightAnkleRoll};
-            for (int j = 0; j < 4; ++j) {
-                const int id = ankle_ids[j];
-                motor_print_[id].pos_ = motor_data_[id].pos_;
-                motor_print_[id].vel_ = motor_data_[id].vel_;
-                motor_print_[id].tau_ = motor_data_[id].tau_;
-            }
-        }
     } else {
         for (int i = 0; i < Z1_NUM_MOTOR; ++i) {
             data[i].pos_ = motor_data_[i].pos_ * LegDirectionMotor_[i];
@@ -1161,37 +1153,4 @@ void Z1Legs::getMotorData(YKSMotorData *data) {
             motor_print_[i].temperature_ = motor_data_[i].temperature_;
         }
     }
-}
-
-void Z1Legs::SaveMotorDataToCSV(const std::string &filename) const {
-    std::ofstream file(filename, std::ios_base::app); // 使用 app 模式进行追加
-    if (!file.is_open()) {
-        std::cerr << "Failed to open file: " << filename << std::endl;
-        return;
-    }
-
-    // 如果是第一次写入，添加表头
-    if (file.tellp() == 0) {
-        file << "ID,pos_,vel_,tau_,pos_des_,vel_des_,kp_,kd_,ff_,mode,error_,temperature_,mos_temperature_\n";
-    }
-    std::lock_guard lock(mutex_);
-    // 遍历 motor_data_ 并写入数据
-    for (int i = 0; i < Z1_NUM_MOTOR; ++i) {
-        const auto &data = motor_data_[i];
-        file << i << ","
-                << data.pos_ << ","
-                << data.vel_ << ","
-                << data.tau_ << ","
-                << data.pos_des_ << ","
-                << data.vel_des_ << ","
-                << data.kp_ << ","
-                << data.kd_ << ","
-                << data.ff_ << ","
-                << static_cast<int>(data.mode) << ","
-                << data.error_ << ","
-                << data.temperature_ << ","
-                << data.mos_temperature_ << "\n";
-    }
-
-    file.close();
 }
